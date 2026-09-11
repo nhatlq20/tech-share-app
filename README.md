@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TECHSHARE - NỀN TẢNG CHIA SẺ/CHO THUÊ THIẾT BỊ CÔNG NGHỆ & TỔNG HỢP REVIEW AI
 >
 > **DỰ ÁN MÔN HỌC MMA301 - CROSS-PLATFORM MOBILE APPLICATIONS DEVELOPMENT (20% TỔNG ĐIỂM)**  
@@ -44,3 +45,6 @@ npx expo start
 ## 👥 PHÂN CHIA NHIỆM VỤ 5 THÀNH VIÊN
 
 Xem chi tiết bảng phân công và kịch bản demo 15 phút tại: [docs/TEAM_ROLES.md](file:///E:/Repo/tech-share/docs/TEAM_ROLES.md).
+=======
+# tech-share-app
+>>>>>>> 18bd17d3c388c0af5aab690a2e4cf4375ea1861b
