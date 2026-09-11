@@ -1,0 +1,218 @@
+/**
+ * TechShare Mobile App - Central TypeScript Type Definitions
+ * Chuẩn hoá theo toàn bộ 10 phân hệ tính năng và CSDL MongoDB Atlas
+ */
+
+// ==========================================
+// 1. Phân hệ Người dùng (Users & Auth)
+// ==========================================
+export type UserRole = 'renter' | 'owner' | 'both' | 'admin';
+
+export interface GeoPoint {
+  type: 'Point';
+  coordinates: [number, number]; // [kinh độ (lng), vĩ độ (lat)]
+}
+
+export interface UserAddress {
+  street?: string;
+  ward?: string;
+  district?: string;
+  city?: string;
+  fullAddress: string;
+}
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  role: UserRole;
+  address?: UserAddress;
+  location?: GeoPoint;
+  favoriteDevices?: string[];
+  rating?: number;
+  totalReviews?: number;
+  isVerified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// ==========================================
+// 2. Phân hệ Thiết bị Công nghệ (Devices)
+// ==========================================
+export type DeviceCategory = 
+  | 'smartphone' 
+  | 'laptop' 
+  | 'camera' 
+  | 'drone' 
+  | 'audio' 
+  | 'accessory';
+
+export type DeviceStatus = 'available' | 'rented' | 'maintenance' | 'hidden';
+
+export interface DeviceAiAnalysis {
+  summary: string;
+  pros: string[];
+  cons: string[];
+  rentalRecommendation: string;
+  analyzedAt?: string;
+}
+
+export interface DeviceLocation {
+  type: 'Point';
+  coordinates: [number, number]; // [lng, lat]
+  address: string;
+}
+
+export interface Device {
+  _id: string;
+  owner: User | string;
+  title: string;
+  brand: string;
+  category: DeviceCategory;
+  dailyRate: number;
+  depositValue: number;
+  images: string[];
+  specs: Record<string, string>;
+  description: string;
+  location: DeviceLocation;
+  status: DeviceStatus;
+  rating: number;
+  reviewCount: number;
+  aiAnalysis?: DeviceAiAnalysis;
+  viewsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ==========================================
+// 3. Phân hệ Đơn thuê (Bookings)
+// ==========================================
+export type BookingStatus =
+  | 'pending'
+  | 'approved'
+  | 'handover_in_progress'
+  | 'active'
+  | 'returned'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected';
+
+export type PaymentStatus = 'unpaid' | 'deposit_held' | 'paid' | 'refunded';
+
+export interface BookingDeliveryAddress {
+  recipientName: string;
+  phone: string;
+  address: string;
+}
+
+export interface BookingTimelineItem {
+  status: BookingStatus;
+  updatedAt: string;
+  note?: string;
+}
+
+export interface Booking {
+  _id: string;
+  bookingCode: string;
+  device: Device | string;
+  renter: User | string;
+  owner: User | string;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  dailyRate: number;
+  rentalFee: number;
+  depositValue: number;
+  totalAmount: number;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  deliveryAddress: BookingDeliveryAddress;
+  note?: string;
+  handoverPhotos?: {
+    beforeRental?: string[];
+    afterRental?: string[];
+  };
+  timeline?: BookingTimelineItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ==========================================
+// 4. Phân hệ Đánh giá (Reviews)
+// ==========================================
+export interface Review {
+  _id: string;
+  booking: string;
+  device: Device | string;
+  reviewer: User | string;
+  targetUser: User | string;
+  rating: number; // 1 - 5
+  comment: string;
+  images?: string[];
+  createdAt?: string;
+}
+
+// ==========================================
+// 5. Phân hệ Thông báo (Notifications)
+// ==========================================
+export type NotificationType =
+  | 'booking_request'
+  | 'booking_approved'
+  | 'booking_cancelled'
+  | 'reminder'
+  | 'system';
+
+export interface Notification {
+  _id: string;
+  recipient: string;
+  title: string;
+  body: string;
+  type: NotificationType;
+  data?: {
+    bookingId?: string;
+    deviceId?: string;
+  };
+  isRead: boolean;
+  createdAt?: string;
+}
+
+// ==========================================
+// 6. Navigation Parameters (3-Tier Navigation)
+// ==========================================
+export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Register: undefined;
+  MainDrawer: undefined;
+  DeviceDetail: { deviceId: string };
+  BookingCreate: { deviceId: string };
+  BookingDetail: { bookingId: string };
+  AiCompare: { deviceIdA?: string; deviceIdB?: string };
+  PostDevice: undefined;
+};
+
+export type MainDrawerParamList = {
+  MainTabs: undefined;
+  MyBookings: undefined;
+  MyDevices: undefined;
+  Profile: undefined;
+  Settings: undefined;
+};
+
+export type MainTabParamList = {
+  HomeTab: undefined;
+  MapTab: undefined;
+  AiTab: undefined;
+  WishlistTab: undefined;
+  NotificationTab: undefined;
+};

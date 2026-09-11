@@ -1,0 +1,32 @@
+{
+  "name": "techshare-backend",
+  "version": "1.0.0",
+  "description": "Backend RESTful API for TechShare MMA301 Project",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seeds/seedData.js",
+    "test:schemas": "node src/utils/verify-schemas.js"
+  },
+  "keywords": [
+    "techshare",
+    "mma301",
+    "express",
+    "mongodb",
+    "gemini-ai"
+  ],
+  "author": "TechShare Team (MMA301)",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.2",
+    "morgan": "^1.10.0"
+  }
+}
