@@ -1,85 +1,113 @@
 import mongoose from 'mongoose';
-import { User, Device, Booking, Review, Notification } from '../models/index.js';
+import {
+  User,
+  Device,
+  Booking,
+  Review,
+  Message,
+  Notification,
+  WalletTransaction,
+  Voucher,
+  Dispute,
+  EkycRequest,
+  AiCache,
+} from '../models/index.js';
 
-console.log('🧪 BẮT ĐẦU KIỂM TRA CHUẨN HOÁ MONGOOSE SCHEMAS & OBJECTID...\n');
+console.log('🧪 STARTING MONGOOSE SCHEMA & OBJECTID STANDARDIZATION CHECKS...\n');
 
 const models = [
   { name: 'User', model: User },
   { name: 'Device', model: Device },
   { name: 'Booking', model: Booking },
   { name: 'Review', model: Review },
+  { name: 'Message', model: Message },
   { name: 'Notification', model: Notification },
+  { name: 'WalletTransaction', model: WalletTransaction },
+  { name: 'Voucher', model: Voucher },
+  { name: 'Dispute', model: Dispute },
+  { name: 'EkycRequest', model: EkycRequest },
+  { name: 'AiCache', model: AiCache },
 ];
 
 let allPassed = true;
 
 for (const { name, model } of models) {
-  console.log(`--- [Kiểm tra Model: ${name}] ---`);
+  console.log(`--- [Checking Model: ${name}] ---`);
 
-  // 1. Kiểm tra không có trường 'id' khai báo thủ công trong schema.paths
+  // 1. Verify no manual 'id' field is defined in schema.paths
   const hasManualId = model.schema.paths['id'] !== undefined;
   if (hasManualId) {
-    console.error(`❌ [THẤT BẠI] Model ${name} đang khai báo trường 'id' thủ công trong schema.paths!`);
+    console.error(`❌ [FAILED] Model ${name} defines a manual 'id' in schema.paths!`);
     allPassed = false;
   } else {
-    console.log(`✅ Model ${name}: KHÔNG có trường 'id' thủ công (Chuẩn NoSQL)`);
+    console.log(`✅ Model ${name}: NO manual 'id' field (NoSQL Standard)`);
   }
 
-  // 2. Kiểm tra trường '_id' tồn tại và là ObjectId
+  // 2. Verify '_id' exists and is an ObjectId
   const idPath = model.schema.paths['_id'];
   const isObjectId = idPath && idPath.instance === 'ObjectId';
   if (isObjectId) {
-    console.log(`✅ Model ${name}: '_id' là kiểu BSON ObjectId mặc định của Mongoose`);
+    console.log(`✅ Model ${name}: '_id' is default Mongoose BSON ObjectId`);
   } else {
-    console.error(`❌ [THẤT BẠI] Model ${name}: '_id' không phải là ObjectId! (${idPath?.instance})`);
+    console.error(`❌ [FAILED] Model ${name}: '_id' is not an ObjectId! (${idPath?.instance})`);
     allPassed = false;
   }
 
-  // 3. Kiểm tra virtual getter 'id' có sẵn
+  // 3. Verify virtual getter 'id' is available
   const hasVirtualId = model.schema.virtuals['id'] !== undefined;
   if (hasVirtualId) {
-    console.log(`✅ Model ${name}: Virtual getter 'id' đã sẵn sàng phục vụ Mobile Client`);
+    console.log(`✅ Model ${name}: Virtual getter 'id' is ready for Mobile Client`);
   } else {
-    console.error(`❌ [THẤT BẠI] Model ${name}: Thiếu virtual getter 'id'!`);
+    console.error(`❌ [FAILED] Model ${name}: Missing virtual getter 'id'!`);
     allPassed = false;
   }
 
-  // 4. Khởi tạo Document mẫu và kiểm tra hành vi runtime
+  // 4. Instantiate dummy document and verify runtime behavior
   const dummyDoc = new model();
   const rawId = dummyDoc._id;
   const virtualId = dummyDoc.id;
 
   if (rawId instanceof mongoose.Types.ObjectId && virtualId === rawId.toString()) {
-    console.log(`✅ Model ${name}: dummyDoc._id = ${rawId} | dummyDoc.id = "${virtualId}" (Trùng khớp 100%)`);
+    console.log(`✅ Model ${name}: dummyDoc._id = ${rawId} | dummyDoc.id = "${virtualId}" (100% Match)`);
   } else {
-    console.error(`❌ [THẤT BẠI] Model ${name}: dummyDoc.id không khớp với dummyDoc._id.toString()!`);
+    console.error(`❌ [FAILED] Model ${name}: dummyDoc.id does not match dummyDoc._id.toString()!`);
     allPassed = false;
   }
 
-  // 5. Kiểm tra toJSON()
+  // 5. Verify toJSON()
   const jsonDoc = dummyDoc.toJSON();
   if (jsonDoc.id && !jsonDoc.__v) {
-    console.log(`✅ Model ${name}: toJSON() bao gồm virtual 'id', đã ẩn '__v'`);
+    console.log(`✅ Model ${name}: toJSON() includes virtual 'id', hides '__v'`);
   } else {
-    console.error(`❌ [THẤT BẠI] Model ${name}: toJSON() không hợp lệ!`);
+    console.error(`❌ [FAILED] Model ${name}: toJSON() is invalid!`);
     allPassed = false;
   }
 
   console.log('');
 }
 
-// 6. Kiểm tra các trường Foreign Key (tham chiếu) đều là ObjectId
-console.log('--- [Kiểm tra các trường Foreign Key tham chiếu] ---');
+// 6. Verify all Foreign Key references point to correct models
+console.log('--- [Checking All Foreign Key References for ObjectId Standard] ---');
 const fkChecks = [
-  { model: Device, field: 'owner', expectedRef: 'User' },
-  { model: Booking, field: 'device', expectedRef: 'Device' },
-  { model: Booking, field: 'renter', expectedRef: 'User' },
-  { model: Booking, field: 'owner', expectedRef: 'User' },
-  { model: Review, field: 'booking', expectedRef: 'Booking' },
-  { model: Review, field: 'device', expectedRef: 'Device' },
-  { model: Review, field: 'reviewer', expectedRef: 'User' },
-  { model: Review, field: 'targetUser', expectedRef: 'User' },
-  { model: Notification, field: 'recipient', expectedRef: 'User' },
+  { model: Device, field: 'ownerId', expectedRef: 'User' },
+  { model: Booking, field: 'deviceId', expectedRef: 'Device' },
+  { model: Booking, field: 'renterId', expectedRef: 'User' },
+  { model: Booking, field: 'ownerId', expectedRef: 'User' },
+  { model: Review, field: 'bookingId', expectedRef: 'Booking' },
+  { model: Review, field: 'deviceId', expectedRef: 'Device' },
+  { model: Review, field: 'renterId', expectedRef: 'User' },
+  { model: Review, field: 'ownerId', expectedRef: 'User' },
+  { model: Message, field: 'bookingId', expectedRef: 'Booking' },
+  { model: Message, field: 'senderId', expectedRef: 'User' },
+  { model: Message, field: 'receiverId', expectedRef: 'User' },
+  { model: Notification, field: 'userId', expectedRef: 'User' },
+  { model: WalletTransaction, field: 'userId', expectedRef: 'User' },
+  { model: WalletTransaction, field: 'relatedBookingId', expectedRef: 'Booking' },
+  { model: Dispute, field: 'bookingId', expectedRef: 'Booking' },
+  { model: Dispute, field: 'raisedBy', expectedRef: 'User' },
+  { model: Dispute, field: 'resolvedBy', expectedRef: 'User' },
+  { model: EkycRequest, field: 'userId', expectedRef: 'User' },
+  { model: EkycRequest, field: 'reviewedBy', expectedRef: 'User' },
 ];
 
 for (const { model, field, expectedRef } of fkChecks) {
@@ -88,18 +116,18 @@ for (const { model, field, expectedRef } of fkChecks) {
   if (isFKObjectId) {
     console.log(`✅ ${model.modelName}.${field} -> ObjectId (ref: '${expectedRef}')`);
   } else {
-    console.error(`❌ [THẤT BẠI] ${model.modelName}.${field} không phải ObjectId ref tới '${expectedRef}'! (${path?.instance}, ref: ${path?.options?.ref})`);
+    console.error(`❌ [FAILED] ${model.modelName}.${field} is not an ObjectId referencing '${expectedRef}'! (${path?.instance}, ref: ${path?.options?.ref})`);
     allPassed = false;
   }
 }
 
 console.log('\n==================================================');
 if (allPassed) {
-  console.log('🎉 TOÀN BỘ 5 SCHEMAS ĐÃ ĐẠT CHUẨN OBJECTID CỦA MONGOOSE!');
+  console.log('🎉 ALL 11 SCHEMAS PASSED MONGOOSE OBJECTID STANDARDS!');
   console.log('==================================================');
   process.exit(0);
 } else {
-  console.error('❌ CÓ LỖI XẢY RA TRONG QUÁ TRÌNH KIỂM TRA SCHEMAS!');
+  console.error('❌ ERRORS DETECTED DURING SCHEMA VERIFICATION!');
   console.log('==================================================');
   process.exit(1);
 }
