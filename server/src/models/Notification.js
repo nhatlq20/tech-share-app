@@ -2,35 +2,29 @@ import mongoose from 'mongoose';
 
 const notificationSchema = new mongoose.Schema(
   {
-    recipient: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Người nhận thông báo là bắt buộc'],
+      required: [true, 'Notification recipient is required'],
       index: true,
+    },
+    type: {
+      type: String,
+      enum: ['order', 'message', 'promo', 'system'],
+      default: 'system',
     },
     title: {
       type: String,
-      required: [true, 'Tiêu đề thông báo là bắt buộc'],
+      required: [true, 'Notification title is required'],
       trim: true,
     },
     body: {
       type: String,
-      required: [true, 'Nội dung thông báo là bắt buộc'],
+      required: [true, 'Notification body is required'],
     },
-    type: {
-      type: String,
-      enum: ['booking_request', 'booking_approved', 'booking_cancelled', 'reminder', 'system'],
-      default: 'system',
-    },
-    data: {
-      bookingId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Booking',
-      },
-      deviceId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Device',
-      },
+    relatedId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
     },
     isRead: {
       type: Boolean,
@@ -39,19 +33,17 @@ const notificationSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
-    toJSON: {
-      virtuals: true,
-      transform: (doc, ret) => {
-        delete ret.__v;
-        return ret;
-      },
-    },
+    timestamps: { createdAt: true, updatedAt: false },
+    toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
-notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
+// Virtual aliases for backward compatibility
+notificationSchema.virtual('recipient').get(function () { return this.userId; });
+
+// Indexes
+notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 
 const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
 

@@ -2,25 +2,43 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '../config/db.js';
-import { User, Device, Booking, Review, Notification } from '../models/index.js';
+import {
+  User,
+  Device,
+  Booking,
+  Review,
+  Message,
+  Notification,
+  WalletTransaction,
+  Voucher,
+  Dispute,
+  EkycRequest,
+  AiCache,
+} from '../models/index.js';
 
 const seedDatabase = async () => {
   try {
-    console.log('🌱 [TechShare Seed] Đang kết nối tới MongoDB Atlas...');
+    console.log('🌱 [TechShare Seed] Connecting to MongoDB Atlas...');
     await connectDB();
-    console.log('✅ [TechShare Seed] Kết nối thành công! Đang làm sạch dữ liệu cũ...');
+    console.log('✅ [TechShare Seed] Connected successfully! Cleaning existing collections...');
 
-    // 1. Xoá dữ liệu cũ
+    // 1. Clean all 11 collections
     await Promise.all([
       User.deleteMany({}),
       Device.deleteMany({}),
       Booking.deleteMany({}),
       Review.deleteMany({}),
+      Message.deleteMany({}),
       Notification.deleteMany({}),
+      WalletTransaction.deleteMany({}),
+      Voucher.deleteMany({}),
+      Dispute.deleteMany({}),
+      EkycRequest.deleteMany({}),
+      AiCache.deleteMany({}),
     ]);
-    console.log('🧹 [TechShare Seed] Đã làm sạch toàn bộ collections cũ.');
+    console.log('🧹 [TechShare Seed] Cleaned all 11 existing collections.');
 
-    // 2. Tạo ID cố định cho quan hệ nhất quán
+    // 2. Fixed IDs for consistent cross-collection relations
     const userAdminId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a111111');
     const userOwnerId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222222');
     const userRenterId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333333');
@@ -38,67 +56,85 @@ const seedDatabase = async () => {
       new mongoose.Types.ObjectId('64e0a12f9b1c2b001a000010'),
     ];
 
-    // 3. Nạp Users
+    const bookingCompletedId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444441');
+    const bookingActiveId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444442');
+
+    // 3. Seed Users
     const salt = await bcrypt.genSalt(10);
     const defaultHashedPassword = await bcrypt.hash('TechShare2026@', salt);
 
     const usersData = [
       {
         _id: userAdminId,
-        name: 'Quản Trị Viên TechShare',
+        name: 'TechShare Administrator',
         email: 'admin@techshare.vn',
-        password: defaultHashedPassword,
+        passwordHash: defaultHashedPassword,
         phone: '0901234567',
         role: 'admin',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-        address: { fullAddress: 'Hoàn Kiếm, Hà Nội', city: 'Hà Nội' },
+        address: 'Hoan Kiem, Hanoi, Vietnam',
         location: { type: 'Point', coordinates: [105.8542, 21.0285] },
         rating: 5.0,
         isVerified: true,
+        trustScore: 100,
+        referralCode: 'ADMINVIP',
+        badges: ['Admin', 'Super Moderator'],
+        walletBalance: 10000000,
       },
       {
         _id: userOwnerId,
-        name: 'Minh Tuấn Tech Review',
+        name: 'Minh Tuan Tech Review',
         email: 'minhtuan@techshare.vn',
-        password: defaultHashedPassword,
+        passwordHash: defaultHashedPassword,
         phone: '0912345678',
         role: 'owner',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
-        address: { fullAddress: 'Cầu Giấy, Hà Nội', city: 'Hà Nội' },
+        address: 'Cau Giay, Hanoi, Vietnam',
         location: { type: 'Point', coordinates: [105.7826, 21.0285] },
         rating: 4.9,
         totalReviews: 28,
         isVerified: true,
+        trustScore: 100,
+        referralCode: 'TUANTECH99',
+        badges: ['Top Owner', 'Verified Creator'],
+        walletBalance: 5200000,
       },
       {
         _id: userRenterId,
-        name: 'Hoàng Nam Creator',
+        name: 'Hoang Nam Creator',
         email: 'hoangnam@techshare.vn',
-        password: defaultHashedPassword,
+        passwordHash: defaultHashedPassword,
         phone: '0987654321',
         role: 'renter',
         avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400',
-        address: { fullAddress: 'Đống Đa, Hà Nội', city: 'Hà Nội' },
+        address: 'Dong Da, Hanoi, Vietnam',
         location: { type: 'Point', coordinates: [105.8275, 21.0183] },
         rating: 5.0,
         totalReviews: 12,
         isVerified: true,
+        trustScore: 100,
+        referralCode: 'NAMVLOG2026',
+        referredBy: userOwnerId,
+        badges: ['Top Renter'],
+        wishlist: [deviceIds[0], deviceIds[1]],
+        walletBalance: 2500000,
+        walletEscrowBalance: 15000000,
       },
     ];
 
     await User.insertMany(usersData);
-    console.log('👤 [TechShare Seed] Đã nạp 3 Users (Admin, Owner, Renter).');
+    console.log('👤 [TechShare Seed] Seeded 3 Users (Admin, Owner, Renter).');
 
-    // 4. Nạp 10 Thiết bị công nghệ đa dạng
+    // 4. Seed 10 Tech Devices
     const devicesData = [
       {
         _id: deviceIds[0],
-        owner: userOwnerId,
-        title: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
+        ownerId: userOwnerId,
+        name: 'iPhone 15 Pro Max 256GB Natural Titanium',
         brand: 'Apple',
         category: 'smartphone',
-        dailyRate: 250000,
-        depositValue: 15000000,
+        pricePerDay: 250000,
+        depositAmount: 15000000,
         images: [
           'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800',
           'https://images.unsplash.com/photo-1695048065057-de12e8ebf036?w=800',
@@ -106,34 +142,36 @@ const seedDatabase = async () => {
         specs: {
           Chip: 'Apple A17 Pro 3nm',
           RAM: '8GB',
-          Camera: '48MP + 12MP + 12MP (Zoom quang 5x)',
-          Màn_hình: '6.7 inch Super Retina XDR OLED 120Hz',
-          Pin: '4422 mAh, Cổng Type-C 3.0 tốc độ cao',
+          Camera: '48MP + 12MP + 12MP (5x Optical Zoom)',
+          Display: '6.7 inch Super Retina XDR OLED 120Hz',
+          Battery: '4422 mAh, USB-C 3.0 high-speed port',
         },
-        description: 'Máy như mới 99%, chuyên dụng quay phim ProRes Log cho các dự án TVC hoặc vlog du lịch ngắn ngày.',
+        description: 'Like-new 99% flagship, specialized in recording ProRes Log video for TVC projects or travel vlogs.',
         location: {
           type: 'Point',
           coordinates: [105.7826, 21.0285],
-          address: 'Trần Thái Tông, Cầu Giấy, Hà Nội',
         },
+        addressText: 'Tran Thai Tong, Cau Giay, Hanoi',
         status: 'available',
-        rating: 4.9,
-        reviewCount: 15,
+        condition: 'new99',
+        ratingAvg: 4.9,
+        ratingCount: 15,
+        rentalCount: 24,
         aiAnalysis: {
-          summary: 'iPhone 15 Pro Max là flagship toàn diện nhất cho nhu cầu sáng tạo nội dung di động với khả năng ghi hình Apple Log chuyên nghiệp.',
-          pros: ['Chất lượng quay video vượt trội', 'Khung viền titan nhẹ nhàng', 'Camera tele 5x sắc nét'],
-          cons: ['Mặt kính lưng nhạy cảm va đập', 'Máy có thể ấm khi quay 4K60 Log liên tục'],
-          rentalRecommendation: 'Rất thích hợp thuê 2-3 ngày để quay vlog sự kiện, du lịch hoặc làm máy phụ quay phim.',
+          summary: 'iPhone 15 Pro Max is the ultimate flagship for mobile content creators with professional Apple Log recording.',
+          pros: ['Exceptional video recording quality', 'Lightweight titanium frame', 'Sharp 5x telephoto lens'],
+          cons: ['Fragile back glass', 'Device warms up under continuous 4K60 Log recording'],
+          rentalRecommendation: 'Ideal for 2-3 day rental for event vlogs, travel, or B-cam production.',
         },
       },
       {
         _id: deviceIds[1],
-        owner: userOwnerId,
-        title: 'Samsung Galaxy S24 Ultra 512GB Titanium Gray',
+        ownerId: userOwnerId,
+        name: 'Samsung Galaxy S24 Ultra 512GB Titanium Gray',
         brand: 'Samsung',
         category: 'smartphone',
-        dailyRate: 240000,
-        depositValue: 14000000,
+        pricePerDay: 240000,
+        depositAmount: 14000000,
         images: [
           'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800',
         ],
@@ -141,368 +179,457 @@ const seedDatabase = async () => {
           Chip: 'Snapdragon 8 Gen 3 for Galaxy',
           RAM: '12GB',
           Camera: '200MP + 50MP (5x) + 12MP + 10MP (3x)',
-          Màn_hình: '6.8 inch Dynamic AMOLED 2X phẳng 2600 nits',
-          Bút_S_Pen: 'Tích hợp sẵn trong thân máy',
+          Display: '6.8 inch Dynamic AMOLED 2X Flat 2600 nits',
+          S_Pen: 'Integrated into body',
         },
-        description: 'Galaxy AI toàn diện, màn hình chống chói cực tốt khi quay chụp ngoài trời nắng.',
+        description: 'Comprehensive Galaxy AI suite with superior anti-reflective screen for bright outdoor shooting.',
         location: {
           type: 'Point',
           coordinates: [105.8275, 21.0183],
-          address: 'Xã Đàn, Đống Đa, Hà Nội',
         },
+        addressText: 'Chua Boc, Dong Da, Hanoi',
         status: 'available',
-        rating: 4.8,
-        reviewCount: 9,
+        condition: 'new99',
+        ratingAvg: 4.8,
+        ratingCount: 9,
+        rentalCount: 16,
       },
       {
         _id: deviceIds[2],
-        owner: userOwnerId,
-        title: 'Sony Alpha A7 Mark IV + Lens 24-70mm F2.8 GM II',
+        ownerId: userOwnerId,
+        name: 'Sony Alpha A7 IV Mirrorless + Lens 24-70mm GM II',
         brand: 'Sony',
         category: 'camera',
-        dailyRate: 450000,
-        depositValue: 25000000,
+        pricePerDay: 450000,
+        depositAmount: 25000000,
         images: [
           'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800',
-          'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800',
         ],
         specs: {
-          Cảm_biến: '33MP Full-frame Exmor R BSI CMOS',
-          Quay_video: '4K 60p 10-bit 4:2:2 All-Intra',
-          Lấy_nét: '759 điểm AF pha thời gian thực',
-          Ống_kính: 'Sony FE 24-70mm f/2.8 GM II đa dụng đỉnh cao',
+          Sensor: '33MP Full-Frame Exmor R BSI CMOS',
+          Video: '4K60p 10-bit 4:2:2, S-Cinetone, S-Log3',
+          Stabilization: '5-axis SteadyShot 5.5 stops',
+          Lens: 'Sony FE 24-70mm f/2.8 GM II flagship zoom',
         },
-        description: 'Combo máy ảnh quay chụp thương mại số 1 hiện nay. Đầy đủ thẻ nhớ v90 128GB và 2 pin chính hãng.',
+        description: 'The definitive hybrid camera kit for commercial video, wedding photography, and TVC production.',
         location: {
           type: 'Point',
-          coordinates: [105.8542, 21.0285],
-          address: 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+          coordinates: [105.7826, 21.0285],
         },
+        addressText: 'Duy Tan, Cau Giay, Hanoi',
         status: 'available',
-        rating: 5.0,
-        reviewCount: 22,
-        aiAnalysis: {
-          summary: 'Chiếc máy ảnh lai (hybrid) tốt nhất phân khúc bán chuyên cho cả nhiếp ảnh gia và nhà làm phim.',
-          pros: ['Màu sắc S-Cinetone tuyệt đẹp', 'Lấy nét mắt người và động vật siêu nhanh', 'Dàn ống kính GM II siêu sắc nét'],
-          cons: ['Quay 4K60p bị crop 1.5x Super35'],
-          rentalRecommendation: 'Lựa chọn số 1 để thuê chụp ảnh cưới, sự kiện công ty hoặc làm TVC thương mại.',
-        },
+        condition: 'new99',
+        ratingAvg: 5.0,
+        ratingCount: 32,
+        rentalCount: 45,
       },
       {
         _id: deviceIds[3],
-        owner: userOwnerId,
-        title: 'Fujifilm X-T5 Silver + Lens XF 33mm F1.4 R LM WR',
-        brand: 'Fujifilm',
-        category: 'camera',
-        dailyRate: 320000,
-        depositValue: 18000000,
-        images: [
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800',
-        ],
-        specs: {
-          Cảm_biến: '40.2MP APS-C X-Trans CMOS 5 HR BSI',
-          Film_Simulation: '19 chế độ giả lập màu phim kinh điển Fujifilm',
-          Chống_rung: 'IBIS 5 trục trong thân máy lên đến 7 stops',
-        },
-        description: 'Màu ảnh chụp chân dung và đường phố không cần hậu kỳ, kiểu dáng cổ điển cực đẹp.',
-        location: {
-          type: 'Point',
-          coordinates: [105.8194, 21.0543],
-          address: 'Xuân Diệu, Tây Hồ, Hà Nội',
-        },
-        status: 'available',
-        rating: 4.9,
-        reviewCount: 14,
-      },
-      {
-        _id: deviceIds[4],
-        owner: userOwnerId,
-        title: 'MacBook Pro 16 inch M3 Max (36GB RAM / 1TB SSD)',
+        ownerId: userOwnerId,
+        name: 'MacBook Pro 16 inch M3 Max (36GB RAM / 1TB SSD)',
         brand: 'Apple',
         category: 'laptop',
-        dailyRate: 500000,
-        depositValue: 30000000,
+        pricePerDay: 550000,
+        depositAmount: 35000000,
         images: [
           'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800',
         ],
         specs: {
-          Vi_xử_lý: 'Apple M3 Max (14-core CPU, 30-core GPU)',
+          CPU: 'Apple M3 Max 14-core',
+          GPU: '30-core GPU, Hardware-accelerated ray tracing',
           RAM: '36GB Unified Memory',
-          Ổ_cứng: '1TB SSD siêu nhanh 7400MB/s',
-          Màn_hình: '16.2 inch Liquid Retina XDR 120Hz ProMotion',
+          Display: '16.2 inch Liquid Retina XDR 120Hz ProMotion',
         },
-        description: 'Trạm làm việc di động mạnh nhất cho dựng phim 8K DaVinci Resolve, Premiere Pro và render 3D.',
+        description: 'Most powerful mobile workstation for heavy 8K video rendering and 3D modeling on the go.',
         location: {
           type: 'Point',
-          coordinates: [105.7826, 21.0285],
-          address: 'Duy Tân, Cầu Giấy, Hà Nội',
+          coordinates: [105.8012, 21.0354],
         },
+        addressText: 'Kim Ma, Ba Dinh, Hanoi',
         status: 'available',
-        rating: 5.0,
-        reviewCount: 18,
+        condition: 'new99',
+        ratingAvg: 5.0,
+        ratingCount: 18,
+        rentalCount: 22,
       },
       {
-        _id: deviceIds[5],
-        owner: userOwnerId,
-        title: 'Dell XPS 15 9530 Core i9-13900H RTX 4070 OLED 3.5K',
-        brand: 'Dell',
-        category: 'laptop',
-        dailyRate: 420000,
-        depositValue: 26000000,
-        images: [
-          'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800',
-        ],
-        specs: {
-          CPU: 'Intel Core i9-13900H 14 cores 20 threads',
-          Card_đồ_hoạ: 'NVIDIA GeForce RTX 4070 8GB GDDR6',
-          Màn_hình: '15.6 inch OLED 3.5K cảm ứng 100% DCI-P3',
-          RAM_SSD: '32GB DDR5 / 1TB NVMe PCIe 4.0',
-        },
-        description: 'Máy trạm đồ hoạ mỏng nhẹ chuẩn doanh nhân, màu sắc màn hình chuẩn xác cho thiết kế in ấn.',
-        location: {
-          type: 'Point',
-          coordinates: [105.8078, 20.9991],
-          address: 'Nguyễn Trãi, Thanh Xuân, Hà Nội',
-        },
-        status: 'available',
-        rating: 4.7,
-        reviewCount: 8,
-      },
-      {
-        _id: deviceIds[6],
-        owner: userOwnerId,
-        title: 'Flycam DJI Mini 4 Pro Fly More Combo Plus',
+        _id: deviceIds[4],
+        ownerId: userOwnerId,
+        name: 'DJI Mini 4 Pro Fly More Combo Plus Drone',
         brand: 'DJI',
         category: 'drone',
-        dailyRate: 350000,
-        depositValue: 12000000,
+        pricePerDay: 350000,
+        depositAmount: 12000000,
         images: [
           'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=800',
         ],
         specs: {
-          Trọng_lượng: 'Dưới 249g (Không cần xin phép bay phức tạp)',
-          Camera: '48MP 1/1.3 inch CMOS, Quay 4K100fps, D-Log M',
-          Khả_năng: 'Quay khung hình dọc True Vertical Shooting',
-          Pin: '3 pin Plus cho thời gian bay tối đa 45 phút/pin',
+          Weight: 'Under 249g (No complex permit required)',
+          Camera: '4K/60fps HDR, True Vertical Shooting',
+          Obstacle_Sensing: 'Omnidirectional Obstacle Sensing',
+          Flight_Time: 'Up to 45 mins per battery (3 batteries included)',
         },
-        description: 'Cảm biến va chạm đa hướng 360 độ an toàn tuyệt đối. Kèm tay điều khiển DJI RC 2 màn hình sáng.',
+        description: 'Ideal ultralight drone for outdoor travel, wide-angle cinematic aerial footage.',
         location: {
           type: 'Point',
-          coordinates: [105.8342, 21.0333],
-          address: 'Kim Mã, Ba Đình, Hà Nội',
+          coordinates: [105.8542, 21.0285],
         },
+        addressText: 'Trang Tien, Hoan Kiem, Hanoi',
         status: 'available',
-        rating: 4.9,
-        reviewCount: 30,
-        aiAnalysis: {
-          summary: 'Chiếc flycam nhỏ gọn tốt nhất thị trường với đầy đủ tính năng bay an toàn và màu 10-bit D-Log M.',
-          pros: ['Siêu nhẹ dưới 249g', 'Cảm biến tránh vật cản đa hướng', 'Quay dọc trực tiếp đăng TikTok/Reels'],
-          cons: ['Dễ bị ảnh hưởng khi gặp gió giật cấp 6 trở lên'],
-          rentalRecommendation: 'Rất khuyên dùng để mang đi du lịch hoặc quay khảo sát bất động sản.',
-        },
+        condition: 'new99',
+        ratingAvg: 4.8,
+        ratingCount: 14,
+        rentalCount: 20,
       },
       {
-        _id: deviceIds[7],
-        owner: userOwnerId,
-        title: 'Flycam DJI Mavic 3 Pro Cine Combo SSD 1TB',
-        brand: 'DJI',
-        category: 'drone',
-        dailyRate: 850000,
-        depositValue: 45000000,
-        images: [
-          'https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800',
-        ],
-        specs: {
-          Hệ_thống_camera: '3 camera Hasselblad 4/3 CMOS + 70mm + 166mm',
-          Codec_video: 'Apple ProRes 422 HQ / 422 / 422 LT',
-          Truyền_sóng: 'DJI O3+ phạm vi truyền xa tới 15km',
-        },
-        description: 'Dành riêng cho đoàn làm phim chuyên nghiệp và quảng cáo điện ảnh cao cấp.',
-        location: {
-          type: 'Point',
-          coordinates: [105.8824, 21.0416],
-          address: 'Nguyễn Văn Cừ, Long Biên, Hà Nội',
-        },
-        status: 'available',
-        rating: 5.0,
-        reviewCount: 11,
-      },
-      {
-        _id: deviceIds[8],
-        owner: userOwnerId,
-        title: 'Tai nghe Sony WH-1000XM5 Chống ồn Không dây',
+        _id: deviceIds[5],
+        ownerId: userOwnerId,
+        name: 'Sony WH-1000XM5 Noise Canceling Headphones Silver',
         brand: 'Sony',
         category: 'audio',
-        dailyRate: 90000,
-        depositValue: 4000000,
+        pricePerDay: 90000,
+        depositAmount: 4000000,
         images: [
-          'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
+          'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800',
         ],
         specs: {
-          Chống_ồn: '2 bộ xử lý chuyên dụng và 8 micro triệt tiêu tiếng ồn',
-          Thời_lượng_pin: '30 giờ nghe nhạc liên tục',
-          Codec_âm_thanh: 'Hi-Res Audio Wireless với chuẩn LDAC',
+          Noise_Canceling: 'Integrated Processor V1 + QN1, 8 microphones',
+          Audio_Codec: 'LDAC, Hi-Res Audio Wireless, DSEE Extreme',
+          Battery_Life: '30 hours continuous playback',
         },
-        description: 'Chống ồn đỉnh cao thích hợp cho chuyến bay dài hoặc làm việc tập trung trong không gian ồn ào.',
-        location: {
-          type: 'Point',
-          coordinates: [105.8491, 21.0083],
-          address: 'Bà Triệu, Hai Bà Trưng, Hà Nội',
-        },
-        status: 'available',
-        rating: 4.8,
-        reviewCount: 19,
-      },
-      {
-        _id: deviceIds[9],
-        owner: userOwnerId,
-        title: 'Tay cầm chống rung Gimbal DJI RS 3 Pro Combo',
-        brand: 'DJI',
-        category: 'accessory',
-        dailyRate: 200000,
-        depositValue: 9000000,
-        images: [
-          'https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?w=800',
-        ],
-        specs: {
-          Tải_trọng: '4.5 kg (Cân thoải mái máy ảnh kèm ống kính tele)',
-          Cánh_tay_trục: 'Sợi carbon mở rộng thế hệ mới',
-          Khoá_trục: 'Khoá trục tự động thông minh khi bật/tắt nguồn',
-        },
-        description: 'Gimbal chống rung chuyên nghiệp cho máy quay điện ảnh, hoạt động mượt mà êm ái.',
+        description: 'Industry-leading noise canceling for long flights or focused study and work sessions.',
         location: {
           type: 'Point',
           coordinates: [105.7826, 21.0285],
-          address: 'Cầu Giấy, Hà Nội',
         },
+        addressText: 'Cau Giay, Hanoi',
         status: 'available',
-        rating: 4.9,
-        reviewCount: 25,
+        condition: 'used95',
+        ratingAvg: 4.7,
+        ratingCount: 8,
+        rentalCount: 15,
+      },
+      {
+        _id: deviceIds[6],
+        ownerId: userOwnerId,
+        name: 'iPad Pro M4 11 inch with Apple Pencil Pro',
+        brand: 'Apple',
+        category: 'gaming',
+        pricePerDay: 280000,
+        depositAmount: 16000000,
+        images: [
+          'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
+        ],
+        specs: {
+          Display: 'Ultra Retina XDR Tandem OLED ultra-thin 5.1mm',
+          Chip: 'Apple M4 9-core',
+          Stylus: 'Apple Pencil Pro with Haptic Feedback squeeze',
+        },
+        description: 'Premier digital illustration and professional Lightroom photo editing tablet.',
+        location: {
+          type: 'Point',
+          coordinates: [105.8012, 21.0354],
+        },
+        addressText: 'Ba Dinh, Hanoi',
+        status: 'available',
+        condition: 'new99',
+        ratingAvg: 4.9,
+        ratingCount: 11,
+        rentalCount: 18,
+      },
+      {
+        _id: deviceIds[7],
+        ownerId: userOwnerId,
+        name: 'DJI RS 3 Pro Combo Gimbal Stabilizer',
+        brand: 'DJI',
+        category: 'accessory',
+        pricePerDay: 180000,
+        depositAmount: 8000000,
+        images: [
+          'https://images.unsplash.com/photo-1589872766857-2110c7320b7c?w=800',
+        ],
+        specs: {
+          Payload: '4.5 kg (Supports Cinema RED, Sony FX6, A7S3 rigs)',
+          Axis_Locks: 'Automated automated axis locks upon power-on',
+        },
+        description: 'Heavy-duty 3-axis stabilizer for ultra-smooth high-speed tracking shots.',
+        location: {
+          type: 'Point',
+          coordinates: [105.7826, 21.0285],
+        },
+        addressText: 'Cau Giay, Hanoi',
+        status: 'available',
+        condition: 'new99',
+        ratingAvg: 5.0,
+        ratingCount: 7,
+        rentalCount: 12,
+      },
+      {
+        _id: deviceIds[8],
+        ownerId: userOwnerId,
+        name: 'Fujifilm X-T5 Silver with XF 16-80mm f/4 OIS WR Lens',
+        brand: 'Fujifilm',
+        category: 'camera',
+        pricePerDay: 320000,
+        depositAmount: 18000000,
+        images: [
+          'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800',
+        ],
+        specs: {
+          Sensor: '40.2MP X-Trans CMOS 5 HR',
+          Film_Simulation: '19 classic film modes (Classic Chrome, Nostalgic Neg)',
+        },
+        description: 'Legendary film color recipes straight out of camera in a vintage dials body.',
+        location: {
+          type: 'Point',
+          coordinates: [105.8542, 21.0285],
+        },
+        addressText: 'Hoan Kiem, Hanoi',
+        status: 'available',
+        condition: 'new99',
+        ratingAvg: 4.9,
+        ratingCount: 21,
+        rentalCount: 29,
+      },
+      {
+        _id: deviceIds[9],
+        ownerId: userOwnerId,
+        name: 'Dell Alienware m16 R2 Gaming Laptop Core Ultra 7',
+        brand: 'Dell',
+        category: 'gaming',
+        pricePerDay: 400000,
+        depositAmount: 22000000,
+        images: [
+          'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800',
+        ],
+        specs: {
+          CPU: 'Intel Core Ultra 7 155H',
+          GPU: 'NVIDIA GeForce RTX 4070 8GB GDDR6',
+          Display: '16 inch QHD+ 240Hz 100% sRGB',
+        },
+        description: 'Elite gaming rig for competitive AAA titles and real-time 3D VFX rendering.',
+        location: {
+          type: 'Point',
+          coordinates: [105.8275, 21.0183],
+        },
+        addressText: 'Dong Da, Hanoi',
+        status: 'available',
+        condition: 'new99',
+        ratingAvg: 4.8,
+        ratingCount: 10,
+        rentalCount: 14,
       },
     ];
 
     await Device.insertMany(devicesData);
-    console.log('📱 [TechShare Seed] Đã nạp 10 Thiết bị công nghệ phong phú.');
+    console.log('📱 [TechShare Seed] Seeded 10 Tech Devices.');
 
-    // 5. Nạp Đơn thuê mẫu (Bookings)
-    const bookingCompletedId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444441');
-    const bookingActiveId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444442');
-
+    // 5. Seed Bookings
     const bookingsData = [
       {
         _id: bookingCompletedId,
         bookingCode: 'TS-20260901',
-        device: deviceIds[2], // Sony A7 IV
-        renter: userRenterId,
-        owner: userOwnerId,
+        deviceId: deviceIds[2], // Sony A7 IV
+        renterId: userRenterId,
+        ownerId: userOwnerId,
         startDate: new Date('2026-09-01T08:00:00.000Z'),
-        endDate: new Date('2026-09-03T20:00:00.000Z'),
+        endDate: new Date('2026-09-04T18:00:00.000Z'),
         totalDays: 3,
-        dailyRate: 450000,
+        pricePerDayAtBooking: 450000,
         rentalFee: 1350000,
-        depositValue: 25000000,
+        depositFee: 25000000,
         totalAmount: 26350000,
         status: 'completed',
         paymentStatus: 'paid',
-        deliveryAddress: {
-          recipientName: 'Hoàng Nam',
-          phone: '0987654321',
-          address: 'Số 12 Chùa Bộc, Đống Đa, Hà Nội',
-        },
-        note: 'Thuê máy chụp ảnh kỷ yếu lớp đại học',
+        deliveryMethod: 'delivery',
+        deliveryAddress: '12 Chua Boc Street, Dong Da, Hanoi',
+        qrToken: 'QR-TS-20260901-COMPLETED',
         timeline: [
-          { status: 'pending', note: 'Gửi yêu cầu thuê' },
-          { status: 'approved', note: 'Chủ máy đã đồng ý' },
-          { status: 'active', note: 'Đã nhận máy và bắt đầu sử dụng' },
-          { status: 'completed', note: 'Đã hoàn trả máy nguyên vẹn, nhận lại tiền cọc' },
+          { status: 'pending', note: 'Rental request submitted' },
+          { status: 'approved', note: 'Approved by owner' },
+          { status: 'active', note: 'Device handed over and in use' },
+          { status: 'completed', note: 'Device returned in perfect condition, deposit refunded' },
         ],
       },
       {
         _id: bookingActiveId,
         bookingCode: 'TS-20260910',
-        device: deviceIds[0], // iPhone 15 Pro Max
-        renter: userRenterId,
-        owner: userOwnerId,
+        deviceId: deviceIds[0], // iPhone 15 Pro Max
+        renterId: userRenterId,
+        ownerId: userOwnerId,
         startDate: new Date('2026-09-10T08:00:00.000Z'),
         endDate: new Date('2026-09-12T20:00:00.000Z'),
         totalDays: 2,
-        dailyRate: 250000,
+        pricePerDayAtBooking: 250000,
         rentalFee: 500000,
-        depositValue: 15000000,
+        depositFee: 15000000,
         totalAmount: 15500000,
         status: 'active',
         paymentStatus: 'deposit_held',
-        deliveryAddress: {
-          recipientName: 'Hoàng Nam',
-          phone: '0987654321',
-          address: 'Số 12 Chùa Bộc, Đống Đa, Hà Nội',
-        },
-        note: 'Thuê quay vlog đánh giá công nghệ',
+        deliveryMethod: 'pickup',
+        deliveryAddress: 'Tran Thai Tong, Cau Giay, Hanoi',
+        qrToken: 'QR-TS-20260910-ACTIVE',
         timeline: [
-          { status: 'pending', note: 'Khởi tạo đơn thuê' },
-          { status: 'approved', note: 'Được phê duyệt' },
-          { status: 'active', note: 'Đang trong quá trình thuê' },
+          { status: 'pending', note: 'Rental request submitted' },
+          { status: 'approved', note: 'Approved by owner' },
+          { status: 'active', note: 'Device handed over and in active rental' },
         ],
       },
     ];
 
     await Booking.insertMany(bookingsData);
-    console.log('📝 [TechShare Seed] Đã nạp 2 Đơn thuê mẫu (1 completed, 1 active).');
+    console.log('📝 [TechShare Seed] Seeded 2 Sample Bookings (1 completed, 1 active).');
 
-    // 6. Nạp Đánh giá (Reviews)
+    // 6. Seed Reviews
     const reviewsData = [
       {
         _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a555551'),
-        booking: bookingCompletedId,
-        device: deviceIds[2],
-        reviewer: userRenterId,
-        targetUser: userOwnerId,
+        bookingId: bookingCompletedId,
+        deviceId: deviceIds[2],
+        renterId: userRenterId,
+        ownerId: userOwnerId,
         rating: 5,
-        comment: 'Máy ảnh Sony A7 IV hoạt động hoàn hảo, cảm biến sạch sẽ, ống kính 24-70 GM II nét căng. Anh Minh Tuấn hướng dẫn bàn giao rất nhiệt tình và uy tín!',
+        comment: 'Sony Alpha A7 IV worked flawlessly with a spotless sensor and sharp 24-70mm GM II lens. Minh Tuan was very helpful and professional!',
         images: ['https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800'],
       },
     ];
 
     await Review.insertMany(reviewsData);
-    console.log('⭐ [TechShare Seed] Đã nạp 1 Đánh giá kèm hình ảnh mẫu.');
+    console.log('⭐ [TechShare Seed] Seeded 1 Sample Review.');
 
-    // 7. Nạp Thông báo mẫu (Notifications)
+    // 7. Seed 1-1 Chat Messages in English
+    const messagesData = [
+      {
+        bookingId: bookingActiveId,
+        senderId: userRenterId,
+        receiverId: userOwnerId,
+        type: 'text',
+        content: 'Hello, is the iPhone 15 Pro Max fully charged to 100%?',
+        status: 'read',
+      },
+      {
+        bookingId: bookingActiveId,
+        senderId: userOwnerId,
+        receiverId: userRenterId,
+        type: 'text',
+        content: 'Hello Nam, it is 100% charged and already equipped with a rugged UAG protective case for you.',
+        status: 'read',
+      },
+      {
+        bookingId: bookingActiveId,
+        senderId: userRenterId,
+        receiverId: userOwnerId,
+        type: 'location',
+        content: 'I have arrived at the lobby meetup location!',
+        location: {
+          latitude: 21.0285,
+          longitude: 105.7826,
+          address: 'Tran Thai Tong, Cau Giay, Hanoi',
+        },
+        status: 'read',
+      },
+    ];
+
+    await Message.insertMany(messagesData);
+    console.log('💬 [TechShare Seed] Seeded 3 Sample 1-1 Chat Messages (English).');
+
+    // 8. Seed Notifications in English
     const notificationsData = [
       {
         _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a666661'),
-        recipient: userRenterId,
-        title: 'Đơn thuê đã được duyệt thành công 🎉',
-        body: 'Chủ máy Minh Tuấn đã phê duyệt đơn thuê thiết bị iPhone 15 Pro Max của bạn.',
-        type: 'booking_approved',
-        data: {
-          bookingId: bookingActiveId,
-          deviceId: deviceIds[0],
-        },
+        userId: userRenterId,
+        title: 'Booking Approved Successfully 🎉',
+        body: 'Owner Minh Tuan has approved your rental request for iPhone 15 Pro Max.',
+        type: 'order',
+        relatedId: bookingActiveId,
         isRead: false,
       },
       {
         _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a666662'),
-        recipient: userOwnerId,
-        title: 'Đánh giá 5 sao mới từ Hoàng Nam ⭐',
-        body: 'Hoàng Nam vừa gửi đánh giá 5 sao cho chiếc máy ảnh Sony A7 IV của bạn.',
+        userId: userOwnerId,
+        title: 'New 5-Star Review from Hoang Nam ⭐',
+        body: 'Hoang Nam just left a 5-star review for your Sony Alpha A7 IV camera.',
         type: 'system',
-        data: {
-          bookingId: bookingCompletedId,
-          deviceId: deviceIds[2],
-        },
+        relatedId: bookingCompletedId,
         isRead: true,
       },
     ];
 
     await Notification.insertMany(notificationsData);
-    console.log('🔔 [TechShare Seed] Đã nạp 2 Thông báo mẫu.');
+    console.log('🔔 [TechShare Seed] Seeded 2 Sample Notifications (English).');
+
+    // 9. Seed Vouchers
+    const vouchersData = [
+      {
+        code: 'TECHSHARE50',
+        type: 'fixed',
+        value: 50000,
+        minDays: 2,
+        usageLimit: 100,
+        usedCount: 5,
+        isActive: true,
+      },
+      {
+        code: 'WELCOME10',
+        type: 'percent',
+        value: 10,
+        maxDiscount: 100000,
+        minDays: 1,
+        usageLimit: 500,
+        usedCount: 22,
+        isActive: true,
+      },
+    ];
+
+    await Voucher.insertMany(vouchersData);
+    console.log('🎟️ [TechShare Seed] Seeded 2 Promo Vouchers.');
+
+    // 10. Seed Wallet Transactions
+    const walletTransactionsData = [
+      {
+        userId: userRenterId,
+        type: 'deposit_hold',
+        amount: 15000000,
+        balanceAfter: 2500000,
+        relatedBookingId: bookingActiveId,
+        status: 'success',
+      },
+      {
+        userId: userOwnerId,
+        type: 'rental_income',
+        amount: 1350000,
+        balanceAfter: 5200000,
+        relatedBookingId: bookingCompletedId,
+        status: 'success',
+      },
+    ];
+
+    await WalletTransaction.insertMany(walletTransactionsData);
+    console.log('💳 [TechShare Seed] Seeded 2 Wallet Escrow Transactions.');
+
+    // 11. Seed AiCache
+    const aiCachesData = [
+      {
+        type: 'review_summary',
+        inputHash: 'hash_iphone_15_pro_max_v1',
+        resultJson: {
+          summary: 'iPhone 15 Pro Max boasts exceptional videography and powerful A17 Pro performance.',
+          pros: ['Professional ProRes Log recording', 'Premium lightweight titanium build'],
+          cons: ['Fragile back glass under heavy impact'],
+        },
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Auto expires in 7 days
+      },
+    ];
+
+    await AiCache.insertMany(aiCachesData);
+    console.log('🤖 [TechShare Seed] Seeded 1 AI Cache record (TTL 7 days).');
 
     console.log('\n==================================================');
-    console.log('🎉 [TechShare Seed] NẠP DỮ LIỆU SEED MONGODB THÀNH CÔNG 100%!');
+    console.log('🎉 [TechShare Seed] SEEDED ALL 11 COLLECTIONS SUCCESSFULLY!');
     console.log('==================================================');
     process.exit(0);
   } catch (error) {
-    console.error('❌ [TechShare Seed] Lỗi trong quá trình nạp dữ liệu:', error.message);
+    console.error('❌ [TechShare Seed] Error during seed execution:', error);
     process.exit(1);
   }
 };

@@ -2,44 +2,44 @@ import mongoose from 'mongoose';
 
 const reviewSchema = new mongoose.Schema(
   {
-    booking: {
+    bookingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Booking',
-      required: [true, 'Đơn thuê tham chiếu là bắt buộc'],
-      unique: true, // Mỗi đơn thuê chỉ đánh giá 1 lần
+      required: [true, 'Booking reference is required'],
+      unique: true, // Each booking can only be reviewed once
     },
-    device: {
+    deviceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Device',
-      required: [true, 'Thiết bị đánh giá là bắt buộc'],
+      required: [true, 'Device reference is required'],
       index: true,
     },
-    reviewer: {
+    renterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Người đánh giá là bắt buộc'],
+      required: [true, 'Reviewer reference is required'],
     },
-    targetUser: {
+    ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Đối tượng được đánh giá là bắt buộc'],
-      index: true,
+      required: [true, 'Target user reference is required'],
     },
+
     rating: {
       type: Number,
-      required: [true, 'Số sao đánh giá là bắt buộc'],
-      min: [1, 'Đánh giá tối thiểu 1 sao'],
-      max: [5, 'Đánh giá tối đa 5 sao'],
+      required: [true, 'Rating is required'],
+      min: [1, 'Rating must be at least 1 star'],
+      max: [5, 'Rating cannot exceed 5 stars'],
     },
     comment: {
       type: String,
-      required: [true, 'Nội dung nhận xét là bắt buộc'],
-      maxlength: [1000, 'Nội dung nhận xét không quá 1000 ký tự'],
+      required: [true, 'Review comment is required'],
+      trim: true,
     },
     images: [{ type: String }],
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
       virtuals: true,
       transform: (doc, ret) => {
@@ -50,6 +50,15 @@ const reviewSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+// Virtual aliases for backward compatibility
+reviewSchema.virtual('booking').get(function () { return this.bookingId; });
+reviewSchema.virtual('device').get(function () { return this.deviceId; });
+reviewSchema.virtual('reviewer').get(function () { return this.renterId; });
+reviewSchema.virtual('targetUser').get(function () { return this.ownerId; });
+
+// Indexes
+reviewSchema.index({ deviceId: 1, createdAt: -1 });
 
 const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
 
