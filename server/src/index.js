@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import { notFound, errorHandler } from './middlewares/errorHandler.js';
+import deviceRoutes from './routes/deviceRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +22,13 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// API Routes
+app.use('/api/devices', deviceRoutes);
+
+// 404 & Error Handler Middlewares
+app.use(notFound);
+app.use(errorHandler);
 
 // Kết nối MongoDB Atlas và khởi động Server
 const startServer = async () => {
