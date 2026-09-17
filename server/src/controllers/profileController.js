@@ -74,3 +74,52 @@ export const updateMyProfile = async (req, res) => {
     });
   }
 };
+
+export const uploadMyAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Avatar image is required' });
+    }
+
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) {
+      return res.status(500).json({ success: false, message: 'Cloudinary is not configured' });
+    }
+
+    const formData = new FormData();
+    formData.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname);
+    formData.append('upload_preset', uploadPreset);
+    formData.append('folder', 'techshare/avatars');
+
+    const cloudinaryResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const cloudinaryData = await cloudinaryResponse.json();
+
+    if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+      console.error('Cloudinary upload error:', cloudinaryData);
+      return res.status(502).json({ success: false, message: 'Avatar upload failed' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.auth.id,
+      { $set: { avatar: cloudinaryData.secure_url } },
+      { new: true, runValidators: true }
+    ).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Avatar updated successfully',
+      user: profileFields(user),
+    });
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Unable to upload avatar' });
+  }
+};
