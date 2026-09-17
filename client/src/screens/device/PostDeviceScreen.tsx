@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SpecsInputForm } from './SpecsInputForm';
 
 type PostDeviceScreenProps = {
-  onBack?: () => void;
+  onBack: () => void;
   onPublished?: () => void;
 };
 
@@ -52,7 +52,7 @@ export function PostDeviceScreen({ onBack, onPublished }: PostDeviceScreenProps)
 
   const handleBack = () => {
     if (!isDirty || submitted) {
-      onBack?.();
+      onBack();
       return;
     }
 
