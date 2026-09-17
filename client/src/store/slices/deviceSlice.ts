@@ -94,6 +94,9 @@ export const deviceSlice = createSlice({
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
         }
+        if (action.meta.arg?.search !== undefined) {
+          state.searchQuery = action.meta.arg.search;
+        }
       })
       .addCase(fetchDevices.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -101,7 +104,10 @@ export const deviceSlice = createSlice({
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
         }
-        state.filteredDevices = filterList(action.payload, state.selectedCategory, state.searchQuery);
+        if (action.meta.arg?.search !== undefined) {
+          state.searchQuery = action.meta.arg.search;
+        }
+        state.filteredDevices = action.payload;
       })
       .addCase(fetchDevices.rejected, (state, action) => {
         state.isLoading = false;
@@ -119,7 +125,10 @@ export const deviceSlice = createSlice({
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
         }
-        state.filteredDevices = filterList(action.payload, state.selectedCategory, state.searchQuery);
+        if (action.meta.arg?.search !== undefined) {
+          state.searchQuery = action.meta.arg.search;
+        }
+        state.filteredDevices = action.payload;
       })
       .addCase(refreshDevices.rejected, (state, action) => {
         state.isRefreshing = false;

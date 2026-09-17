@@ -56,28 +56,30 @@ export function HomeScreen({
     dispatch(fetchDevices(undefined));
   }, [dispatch]);
 
-  // Cập nhật tìm kiếm vào Redux
+  // Cập nhật tìm kiếm vào Redux và gọi Backend API
   const handleSearchChange = (text: string) => {
     setLocalSearch(text);
     dispatch(setSearchQuery(text));
+    dispatch(fetchDevices({ category: selectedCategory, search: text }));
   };
 
   const handleClearSearch = () => {
     setLocalSearch('');
     dispatch(setSearchQuery(''));
+    dispatch(fetchDevices({ category: selectedCategory, search: '' }));
   };
 
   const handleSelectCategory = (category: DeviceCategory | 'all') => {
     dispatch(setSelectedCategory(category));
-    dispatch(fetchDevices({ category }));
+    dispatch(fetchDevices({ category, search: localSearch }));
   };
 
   const handleRefresh = () => {
-    dispatch(refreshDevices({ category: selectedCategory }));
+    dispatch(refreshDevices({ category: selectedCategory, search: localSearch }));
   };
 
   const handleRetry = () => {
-    dispatch(fetchDevices({ category: selectedCategory }));
+    dispatch(fetchDevices({ category: selectedCategory, search: localSearch }));
   };
 
   // Header của FlatList gồm: Search, CategoryBar, PromoBanner, SectionHeader
@@ -162,8 +164,8 @@ export function HomeScreen({
           onActionPress={
             selectedCategory !== 'all'
               ? () => {
-                  dispatch(clearFilters());
-                  dispatch(fetchDevices({ category: 'all' }));
+                  dispatch(setSelectedCategory('all'));
+                  dispatch(fetchDevices({ category: 'all', search: localSearch }));
                 }
               : undefined
           }

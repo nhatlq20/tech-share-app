@@ -8,7 +8,7 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
  * @access  Public
  */
 export const getDevices = asyncHandler(async (req, res) => {
-  const { category } = req.query;
+  const { category, q } = req.query;
 
   const filter = {
     status: 'available',
@@ -17,6 +17,18 @@ export const getDevices = asyncHandler(async (req, res) => {
 
   if (category && category !== 'all') {
     filter.category = category.trim().toLowerCase();
+  }
+
+  if (q && q.trim()) {
+    const keyword = q.trim();
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedKeyword, 'i');
+
+    filter.$or = [
+      { name: regex },
+      { brand: regex },
+      { description: regex },
+    ];
   }
 
   const devices = await Device.find(filter)
