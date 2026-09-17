@@ -1,27 +1,31 @@
 # THIẾT KẾ CƠ SỞ DỮ LIỆU CHUẨN - DỰ ÁN TECHSHARE
-## CHUẨN HOÁ 100% CƠ SỞ DỮ LIỆU MONGODB (NOSQL ARCHITECTURE) - 11 COLLECTIONS
+## CHUẨN HOÁ 100% CƠ SỞ DỮ LIỆU MONGODB (NOSQL ARCHITECTURE) - 13 COLLECTIONS
 
 ---
 
 ### 1. TỔNG QUAN KIẾN TRÚC DỮ LIỆU (MONGODB UNIFIED DATABASE)
 
-Toàn bộ dự án **TechShare** được chuẩn hoá sử dụng **MongoDB (MongoDB Atlas)** làm nền tảng CSDL duy nhất xuyên suốt hệ thống theo mô hình **3 Tầng (3-Tier Architecture)** bao quát toàn bộ 6 phân hệ của 5 thành viên:
+Toàn bộ dự án **TechShare** được chuẩn hoá sử dụng **MongoDB (MongoDB Atlas)** làm nền tảng CSDL duy nhất xuyên suốt hệ thống theo mô hình **3 Tầng (3-Tier Architecture)** bao quát toàn bộ các phân hệ:
 
-- **Tier 1 (Cốt lõi - Core MVP)**: `users`, `devices`, `bookings`, `reviews`
+- **Tier 1 (Cốt lõi & Định danh - Core & Identity)**: `roles`, `accounts`, `users`, `devices`, `bookings`, `reviews`
 - **Tier 2 (Giao tiếp & FinTech)**: `messages`, `notifications`, `wallet_transactions`, `vouchers`
-- **Tier 3 (Quản trị, Định danh & Trợ lý AI)**: `disputes`, `ekyc_requests`, `ai_caches`
+- **Tier 3 (Quản trị, Định danh nâng cao & Trợ lý AI)**: `disputes`, `ekyc_requests`, `ai_caches`
 
 #### Nguyên tắc thiết kế:
 1. **Quy ước Khoá chính & Định danh (`_id: ObjectId`)**:
    - Mọi collection đều sử dụng trường khoá chính `_id` với kiểu `ObjectId` mặc định có sẵn của MongoDB & Mongoose.
    - **Không** khai báo trường `id` thủ công trong schema.
    - Cấu hình schema `{ toJSON: { virtuals: true }, toObject: { virtuals: true } }` kích hoạt getter virtual `id` (chuỗi hex 24 ký tự) có sẵn của Mongoose, giúp Mobile Client (React Native Expo) và AsyncStorage truy xuất linh hoạt cả `_id` và `id`.
-2. **Quy ước Khoá ngoại (`...Id`) & Lớp tương thích ngược**:
-   - Mọi quan hệ tham chiếu sử dụng quy ước rõ ràng: `ownerId`, `deviceId`, `renterId`, `bookingId`, `userId`, `senderId`, `receiverId`.
-   - Cung cấp Virtual Getters/Setters để hỗ trợ tương thích song song với cách gọi truyền thống: `device.owner`, `device.title`, `device.dailyRate`, `booking.device`, `user.password`.
-3. **Tối ưu hoá Địa lý (Geospatial Index `2dsphere`)**:
+2. **Quy ước Tách thực thể Định danh (Identity Separation)**:
+   - `roles`: Quản lý phân quyền và danh mục vai trò hệ thống (`admin`, `owner`, `renter`, `both`).
+   - `accounts`: Quản lý bảo mật đăng nhập (`email`, `passwordHash`, `roleId`, `isActive`).
+   - `users`: Quản lý hồ sơ cá nhân (`name`, `phone`, `avatar`, `address`, `location`), tài chính (`walletBalance`, `walletEscrowBalance`), và độ uy tín (`trustScore`, `isVerified`), liên kết 1-1 với `accounts` qua `accountId`.
+3. **Quy ước Khoá ngoại (`...Id`) & Lớp tương thích ngược**:
+   - Mọi quan hệ nghiệp vụ tham chiếu trực tiếp đến `users` (`ownerId`, `renterId`, `userId`, `senderId`, `receiverId`).
+   - Cung cấp Virtual Getters/Setters để hỗ trợ tương thích: `user.email`, `user.role`, `device.owner`, `booking.device`.
+4. **Tối ưu hoá Địa lý (Geospatial Index `2dsphere`)**:
    - Sử dụng chỉ mục không gian `2dsphere` và chuẩn GeoJSON Point `[lng, lat]` của MongoDB để phục vụ truy vấn tìm kiếm thiết bị quanh toạ độ người dùng theo thời gian thực (`react-native-maps`).
-4. **Tự động Dọn dẹp Bộ nhớ đệm AI (TTL Index)**:
+5. **Tự động Dọn dẹp Bộ nhớ đệm AI (TTL Index)**:
    - Collection `ai_caches` tích hợp chỉ mục `{ expireAfterSeconds: 0 }` trên `expiresAt`, tự động huỷ các bản ghi phân tích đánh giá/so sánh quá hạn, tiết kiệm tài nguyên database và chi phí Google Gemini API.
 
 ---
@@ -30,6 +34,9 @@ Toàn bộ dự án **TechShare** được chuẩn hoá sử dụng **MongoDB (M
 
 ```mermaid
 erDiagram
+    ROLES ||--o{ ACCOUNTS : "defines (roleId)"
+    ACCOUNTS ||--|| USERS : "authenticates (accountId)"
+
     USERS ||--o{ DEVICES : "owns (ownerId)"
     USERS ||--o{ BOOKINGS : "rents (renterId)"
     USERS ||--o{ BOOKINGS : "manages (ownerId)"
@@ -49,15 +56,33 @@ erDiagram
     BOOKINGS ||--o| DISPUTES : "disputed in (bookingId)"
     BOOKINGS ||--o{ WALLET_TRANSACTIONS : "generates escrow (relatedBookingId)"
 
-    USERS {
+    ROLES {
         ObjectId _id PK
+        string code UK "renter | owner | admin"
         string name
+        string description
+        array permissions
+        boolean isActive
+    }
+
+    ACCOUNTS {
+        ObjectId _id PK
+        string username UK
         string email UK
         string passwordHash "select: false"
+        ObjectId roleId FK
+        boolean isActive
+        date lastLogin
+    }
+
+    USERS {
+        ObjectId _id PK
+        ObjectId accountId FK,UK
+        string username UK
+        string name
         string phone
         string address
         string avatar
-        string role "renter | owner | both | admin"
         boolean isVerified
         number trustScore "100"
         array badges
@@ -68,6 +93,9 @@ erDiagram
         number walletEscrowBalance
         string expoPushToken
         boolean biometricEnabled
+        object location "GeoJSON Point [lng, lat] (2dsphere)"
+        number rating "5.0"
+        number totalReviews "0"
         boolean isActive
     }
 
@@ -217,18 +245,97 @@ erDiagram
 
 ---
 
-### 3. ĐẶC TẢ TẤT CẢ 11 COLLECTIONS & MONGOOSE SCHEMAS
+### 3. ĐẶC TẢ TẤT CẢ 13 COLLECTIONS & MONGOOSE SCHEMAS
 
-#### 3.1. Collection: `users`
+#### 3.1. Collection: `roles`
+```javascript
+const roleSchema = new mongoose.Schema({
+  code: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    enum: ['renter', 'owner', 'admin'],
+  },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, default: '', trim: true },
+  permissions: [{ type: String, trim: true }],
+  isActive: { type: Boolean, default: true },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+});
+```
+
+#### 3.2. Collection: `accounts`
+```javascript
+const accountSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  passwordHash: {
+    type: String,
+    required: true,
+    minlength: 6,
+    select: false,
+  },
+  roleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    required: true,
+  },
+  isActive: { type: Boolean, default: true },
+  lastLogin: { type: Date },
+}, {
+  timestamps: true,
+  toJSON: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      delete ret.passwordHash;
+      delete ret.__v;
+      return ret;
+    },
+  },
+  toObject: { virtuals: true },
+});
+
+// Virtual linking to User Profile
+accountSchema.virtual('user', {
+  ref: 'User',
+  localField: '_id',
+  foreignField: 'accountId',
+  justOne: true,
+});
+```
+
+#### 3.3. Collection: `users`
 ```javascript
 const userSchema = new mongoose.Schema({
+  accountId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Account',
+    required: true,
+    unique: true,
+    index: true,
+  },
+  username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
   name: { type: String, required: true, trim: true },
-  email: { type: String, unique: true, required: true, lowercase: true, trim: true },
-  passwordHash: { type: String, required: true, select: false },
   phone: { type: String, default: '' },
   address: { type: String, default: '' },
   avatar: { type: String, default: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400' },
-  role: { type: String, enum: ['renter', 'owner', 'both', 'admin'], default: 'both' },
 
   isVerified: { type: Boolean, default: false },
   trustScore: { type: Number, default: 100, min: 0, max: 100 },
@@ -259,8 +366,29 @@ const userSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
 }, {
   timestamps: true,
-  toJSON: { virtuals: true },
+  toJSON: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      delete ret.__v;
+      return ret;
+    },
+  },
   toObject: { virtuals: true },
+});
+
+userSchema.virtual('account', {
+  ref: 'Account',
+  localField: 'accountId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+userSchema.virtual('email').get(function () {
+  return this.account?.email;
+});
+
+userSchema.virtual('role').get(function () {
+  return this.account?.roleId?.code || this.account?.roleId;
 });
 
 userSchema.index({ location: '2dsphere' });

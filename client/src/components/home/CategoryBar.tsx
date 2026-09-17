@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DeviceCategory } from '../../types';
+import { colors } from '../../theme/colors';
 
 export interface CategoryItem {
   id: DeviceCategory | 'all';
@@ -79,13 +80,13 @@ export function CategoryBar({ selectedCategory, onSelectCategory }: CategoryBarP
               <View
                 style={[
                   styles.iconCircle,
-                  isActive && styles.iconCircleActive,
+                  isActive ? styles.iconCircleActive : styles.iconCircleInactive,
                 ]}
               >
                 <Ionicons
                   name={cat.icon}
                   size={20}
-                  color={isActive ? '#FFFFFF' : '#94A3B8'}
+                  color={isActive ? '#FFFFFF' : colors.light.primary}
                 />
               </View>
               <Text
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 10,
     alignItems: 'center',
   },
   categoryItem: {
@@ -117,36 +118,38 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     minWidth: 76,
   },
   categoryItemActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#3B82F6',
-    shadowColor: '#2563EB',
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primaryDark,
+    shadowColor: colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 3,
   },
   iconCircle: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
+  iconCircleInactive: {
+    backgroundColor: colors.light.primaryLight,
+  },
   iconCircleActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   categoryName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     textAlign: 'center',
   },
   categoryNameActive: {

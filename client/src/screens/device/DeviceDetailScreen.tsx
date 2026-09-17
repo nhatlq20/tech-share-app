@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
+import { colors } from '../../theme/colors';
 
 interface DeviceDetailScreenProps {
   deviceId: string;
@@ -45,8 +46,8 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={styles.loadingText}>Loading device details...</Text>
+        <ActivityIndicator size="large" color={colors.light.primary} />
+        <Text style={styles.loadingText}>Đang tải chi tiết thiết bị...</Text>
       </View>
     );
   }
@@ -54,10 +55,10 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
   if (!device) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
-        <Text style={styles.errorTitle}>Device not found</Text>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.light.error} />
+        <Text style={styles.errorTitle}>Không tìm thấy thiết bị</Text>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Back to Home</Text>
+          <Text style={styles.backBtnText}>Quay lại trang chủ</Text>
         </TouchableOpacity>
       </View>
     );
@@ -68,20 +69,22 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
       ? device.images[0]
       : 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800';
 
+  const isAvailable = device.status === 'available';
+
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#070B13" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.background} />
 
       {/* Top Header with Back button */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        <TouchableOpacity style={styles.headerBtn} onPress={onBack} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color={colors.light.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {device.title}
         </Text>
-        <TouchableOpacity style={styles.headerBtn}>
-          <Ionicons name="heart-outline" size={20} color="#FFFFFF" />
+        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.7}>
+          <Ionicons name="heart-outline" size={20} color={colors.light.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -104,9 +107,19 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
           {/* Brand & Status */}
           <View style={styles.brandRow}>
             <Text style={styles.brandText}>{device.brand}</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
-                {device.status === 'available' ? 'Ready to rent' : 'Currently rented'}
+            <View
+              style={[
+                styles.statusBadge,
+                isAvailable ? styles.statusAvailable : styles.statusRented,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
+                ]}
+              >
+                {isAvailable ? 'Sẵn sàng thuê' : 'Đang thuê'}
               </Text>
             </View>
           </View>
@@ -117,7 +130,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
           {/* Rating & Address */}
           <View style={styles.metaRow}>
             <View style={styles.ratingBox}>
-              <Ionicons name="star" size={14} color="#FBBF24" />
+              <Ionicons name="star" size={14} color={colors.light.ratingStar} />
               <Text style={styles.ratingText}>
                 {device.rating ? device.rating.toFixed(1) : '5.0'}
               </Text>
@@ -128,7 +141,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
 
             {device.location?.address && (
               <View style={styles.addressBox}>
-                <Ionicons name="location-sharp" size={14} color="#38BDF8" />
+                <Ionicons name="location-sharp" size={14} color={colors.light.primary} />
                 <Text style={styles.addressText} numberOfLines={1}>
                   {device.location.address}
                 </Text>
@@ -144,7 +157,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
             </View>
             <View style={styles.depositDivider} />
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Security deposit</Text>
+              <Text style={styles.priceSub}>Tiền cọc đảm bảo (Ký quỹ)</Text>
               <Text style={styles.depositMain}>{formatPrice(device.depositValue)}</Text>
             </View>
           </View>
@@ -168,7 +181,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
         </View>
       </ScrollView>
 
-      {/* Bottom Sticky Action Bar */}
+      {/* Bottom Sticky Action Bar (CTA bo góc 12px theo theme-skill.md) */}
       <View style={styles.bottomBar}>
         <View>
           <Text style={styles.bottomPriceSub}>Total rental fee</Text>
@@ -181,9 +194,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
         <TouchableOpacity
           style={styles.bookBtn}
           onPress={() => {
-            if (onBookNow) onBookNow(deviceId);
+            if (onBookNow) {
+              onBookNow(deviceId);
+            } else {
+              alert(`Đặt thuê thiết bị: ${device.title}`);
+            }
           }}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
           <Text style={styles.bookBtnText}>Book now</Text>
@@ -196,32 +213,32 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#070B13',
+    backgroundColor: colors.light.background,
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: '#070B13',
+    backgroundColor: colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 12,
     fontSize: 14,
   },
   errorTitle: {
-    color: '#EF4444',
+    color: colors.light.error,
     fontSize: 16,
     fontWeight: '700',
     marginTop: 12,
     marginBottom: 16,
   },
   backBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   backBtnText: {
     color: '#FFFFFF',
@@ -233,15 +250,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: colors.light.border,
   },
   headerBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
+    borderWidth: 1,
+    borderColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -249,7 +268,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     textAlign: 'center',
     marginHorizontal: 10,
   },
@@ -260,7 +279,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 240,
     position: 'relative',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
   },
   mainImage: {
     width: '100%',
@@ -270,15 +289,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     left: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: colors.light.border,
   },
   categoryBadgeText: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 11,
     fontWeight: '800',
   },
@@ -292,28 +311,39 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   brandText: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   statusBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#10B981',
+  },
+  statusAvailable: {
+    backgroundColor: colors.light.primaryLight,
+    borderColor: colors.light.primary,
+  },
+  statusRented: {
+    backgroundColor: '#FEF3C7',
+    borderColor: colors.light.warning,
   },
   statusText: {
-    color: '#10B981',
     fontSize: 11,
     fontWeight: '700',
+  },
+  statusTextAvailable: {
+    color: colors.light.primaryDark,
+  },
+  statusTextRented: {
+    color: colors.light.warning,
   },
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     lineHeight: 26,
     marginBottom: 10,
   },
@@ -329,12 +359,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    color: '#FBBF24',
+    color: colors.light.ratingStar,
     fontWeight: '700',
     fontSize: 13,
   },
   reviewCount: {
-    color: '#64748B',
+    color: colors.light.textSecondary,
     fontSize: 12,
   },
   addressBox: {
@@ -344,16 +374,16 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   addressText: {
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontSize: 12,
   },
   priceCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     marginBottom: 20,
   },
   priceColumn: {
@@ -361,33 +391,33 @@ const styles = StyleSheet.create({
   },
   depositDivider: {
     width: 1,
-    backgroundColor: '#334155',
+    backgroundColor: colors.light.border,
     marginHorizontal: 12,
   },
   priceSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginBottom: 4,
   },
   priceMain: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: colors.light.primary,
   },
   depositMain: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: colors.light.textPrimary,
   },
   sectionHeading: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     marginTop: 10,
     marginBottom: 8,
   },
   descriptionText: {
-    color: '#CBD5E1',
+    color: colors.light.textSecondary,
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 18,
@@ -400,15 +430,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: colors.light.border,
   },
   specKey: {
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontSize: 13,
     fontWeight: '500',
   },
   specValue: {
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'right',
@@ -419,42 +449,47 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: colors.light.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 6,
   },
   bottomPriceSub: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   bottomPriceMain: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: colors.light.primary,
   },
   dayUnit: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontWeight: '500',
   },
   bookBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     paddingVertical: 12,
     paddingHorizontal: 22,
     borderRadius: 12,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: colors.light.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
   },
   bookBtnText: {
     color: '#FFFFFF',

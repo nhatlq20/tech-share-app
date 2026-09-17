@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { apiClient } from '../../config/api';
 import { setAuth } from '../../store/slices/authSlice';
+import { colors } from '../../theme/colors';
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -85,7 +86,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.background} />
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -96,12 +97,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       >
         {/* HEADER */}
         <View style={styles.headerBox}>
-          <TouchableOpacity style={styles.backBtn} onPress={onNavigateToLogin}>
-            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+          <TouchableOpacity style={styles.backBtn} onPress={onNavigateToLogin} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={20} color={colors.light.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <Text style={styles.appTitle}>Create account</Text>
-            <Text style={styles.appSubtitle}>Join the tech rental community</Text>
+            <Text style={styles.appTitle}>Tạo tài khoản</Text>
+            <Text style={styles.appSubtitle}>Gia nhập cộng đồng cho thuê công nghệ TechShare</Text>
           </View>
         </View>
 
@@ -109,7 +110,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
         <View style={styles.card}>
           {errorMsg ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+              <Ionicons name="alert-circle" size={16} color={colors.light.error} />
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           ) : null}
@@ -139,12 +140,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             <Text style={styles.inputLabel}>Full name *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="person-outline" size={18} color="#94A3B8" />
+                <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="e.g. John Doe"
-                placeholderTextColor="#64748B"
+                placeholder="VD: Nguyễn Văn An"
+                placeholderTextColor={colors.light.textSecondary}
                 value={name}
                 onChangeText={(t: string) => {
                   setName(t);
@@ -159,19 +160,19 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             <Text style={styles.inputLabel}>Email *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="mail-outline" size={18} color="#94A3B8" />
+                <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="e.g. john@techshare.vn"
-                placeholderTextColor="#64748B"
-                keyboardType="email-address"
-                autoCapitalize="none"
+                placeholder="VD: an.nguyen@email.com"
+                placeholderTextColor={colors.light.textSecondary}
                 value={email}
                 onChangeText={(t: string) => {
                   setEmail(t);
                   if (errorMsg) setErrorMsg('');
                 }}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
             </View>
           </View>
@@ -181,98 +182,101 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             <Text style={styles.inputLabel}>Phone number *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="call-outline" size={18} color="#94A3B8" />
+                <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="e.g. 0912345678"
-                placeholderTextColor="#64748B"
-                keyboardType="phone-pad"
+                placeholder="VD: 0912 345 678"
+                placeholderTextColor={colors.light.textSecondary}
                 value={phone}
                 onChangeText={(t: string) => {
                   setPhone(t);
                   if (errorMsg) setErrorMsg('');
                 }}
+                keyboardType="phone-pad"
               />
             </View>
           </View>
 
           {/* Password input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Password (minimum 6 characters) *</Text>
+            <Text style={styles.inputLabel}>Mật khẩu * (Tối thiểu 6 ký tự)</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" />
+                <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Enter password"
-                placeholderTextColor="#64748B"
-                secureTextEntry={!showPassword}
+                placeholder="Nhập mật khẩu an toàn"
+                placeholderTextColor={colors.light.textSecondary}
                 value={password}
                 onChangeText={(t: string) => {
                   setPassword(t);
                   if (errorMsg) setErrorMsg('');
                 }}
+                secureTextEntry={!showPassword}
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
                 onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={18}
-                  color="#94A3B8"
+                  color={colors.light.textSecondary}
                 />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Confirm password input */}
+          {/* Xác nhận Mật khẩu */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Confirm password *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#94A3B8" />
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Re-enter password"
-                placeholderTextColor="#64748B"
-                secureTextEntry={!showPassword}
+                placeholder="Nhập lại mật khẩu"
+                placeholderTextColor={colors.light.textSecondary}
                 value={confirmPassword}
                 onChangeText={(t: string) => {
                   setConfirmPassword(t);
                   if (errorMsg) setErrorMsg('');
                 }}
+                secureTextEntry={!showPassword}
               />
             </View>
           </View>
 
-          {/* Terms */}
+          {/* Điều khoản sử dụng */}
           <TouchableOpacity
             style={styles.termsRow}
             onPress={() => setAgreeTerms(!agreeTerms)}
+            activeOpacity={0.8}
           >
             <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
-              {agreeTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              {agreeTerms && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
             </View>
             <Text style={styles.termsText}>
-              I agree to the <Text style={styles.termsLink}>Terms of Use</Text> and <Text style={styles.termsLink}>Privacy Policy</Text> of TechShare
+              Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
+              <Text style={styles.termsLink}>Chính sách bảo mật ký quỹ</Text> của TechShare.
             </Text>
           </TouchableOpacity>
 
-          {/* Register button */}
+          {/* Nút Đăng ký (CTA bo góc 12px theo theme-skill.md) */}
           <TouchableOpacity
             style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
             onPress={handleRegister}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.registerBtnText}>CREATE ACCOUNT</Text>
+              <Text style={styles.registerBtnText}>ĐĂNG KÝ TÀI KHOẢN</Text>
             )}
           </TouchableOpacity>
 
@@ -292,8 +296,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.light.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -312,11 +315,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   headerTitles: {
     flex: 1,
@@ -324,33 +327,38 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   appSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#FEE2E2',
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: colors.light.error,
     marginBottom: 14,
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.light.error,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -359,7 +367,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: colors.light.textPrimary,
     fontWeight: '600',
     marginBottom: 6,
   },
@@ -374,18 +382,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   roleTabActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#38BDF8',
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primaryDark,
   },
   roleTabText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontWeight: '600',
   },
   roleTabTextActive: {
@@ -394,10 +402,10 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     paddingHorizontal: 12,
     height: 46,
   },
@@ -406,7 +414,7 @@ const styles = StyleSheet.create({
   },
   inputField: {
     flex: 1,
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 13,
   },
   eyeBtn: {
@@ -423,33 +431,38 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#64748B',
+    borderColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+    backgroundColor: colors.light.background,
   },
   checkboxActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primary,
   },
   termsText: {
     flex: 1,
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     lineHeight: 18,
   },
   termsLink: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '600',
   },
   registerBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     height: 48,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
-    elevation: 3,
+    elevation: 2,
+    shadowColor: colors.light.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
   },
   registerBtnDisabled: {
     opacity: 0.7,
@@ -468,11 +481,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   loginLink: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '700',
   },
 });

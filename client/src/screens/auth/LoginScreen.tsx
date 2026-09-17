@@ -17,6 +17,7 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { apiClient } from '../../config/api';
 import { setAuth } from '../../store/slices/authSlice';
+import { colors } from '../../theme/colors';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -72,7 +73,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.background} />
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -98,7 +99,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
           {/* Báo lỗi nếu có */}
           {errorMsg ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+              <Ionicons name="alert-circle" size={16} color={colors.light.error} />
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           ) : null}
@@ -108,7 +109,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
             <Text style={styles.inputLabel}>Username or email</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="mail-outline" size={20} color="#94A3B8" />
+                <Ionicons name="mail-outline" size={20} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
@@ -130,92 +131,95 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
-                <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                <Ionicons name="lock-closed-outline" size={20} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Enter your password"
-                placeholderTextColor="#64748B"
-                secureTextEntry={!showPassword}
+                placeholder="Nhập mật khẩu"
+                placeholderTextColor={colors.light.textSecondary}
                 value={password}
                 onChangeText={(text: string) => {
                   setPassword(text);
                   if (errorMsg) setErrorMsg('');
                 }}
+                secureTextEntry={!showPassword}
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
                 onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color="#94A3B8"
+                  size={18}
+                  color={colors.light.textSecondary}
                 />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Remember & forgot password */}
+          {/* Nhớ tài khoản & Quên mật khẩu */}
           <View style={styles.optionsRow}>
             <TouchableOpacity
               style={styles.rememberRow}
               onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.8}
             >
               <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                {rememberMe && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
               </View>
               <Text style={styles.rememberText}>Remember me</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity>
-              <Text style={styles.forgotPassText}>Forgot password?</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Login button */}
+          {/* Nút Đăng nhập (CTA 12px bo góc) */}
           <TouchableOpacity
             style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             onPress={handleLogin}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.loginBtnText}>LOG IN</Text>
+                <Text style={styles.loginBtnText}>ĐĂNG NHẬP</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
           </TouchableOpacity>
 
-          {/* Divider */}
+          {/* Đường phân cách Hoặc */}
           <View style={styles.dividerBox}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>Or continue with</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google & Apple buttons */}
+          {/* Đăng nhập Mạng xã hội */}
           <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialBtn}>
+            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
               <Ionicons name="logo-google" size={18} color="#EA4335" />
               <Text style={styles.socialBtnText}>Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
+
+            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
+              <Ionicons name="logo-apple" size={18} color={colors.light.textPrimary} />
               <Text style={styles.socialBtnText}>Apple</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Switch to Register */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Don’t have an account? </Text>
-            <TouchableOpacity onPress={onNavigateToRegister}>
-              <Text style={styles.registerLink}>Sign up now</Text>
-            </TouchableOpacity>
-          </View>
+        {/* CHUYỂN QUA ĐĂNG KÝ */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+          <TouchableOpacity onPress={onNavigateToRegister} activeOpacity={0.7}>
+            <Text style={styles.registerLink}>Đăng ký ngay</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -225,59 +229,65 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.light.background,
   },
   scrollContent: {
-    flexGrow: 1,
-    width: '100%',
-    paddingVertical: 20,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 30,
     justifyContent: 'center',
+    flexGrow: 1,
   },
   headerBox: {
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 10,
+    marginBottom: 28,
   },
   logoCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    elevation: 6,
+    shadowColor: colors.light.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   appTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     letterSpacing: 0.5,
   },
   appSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
-    elevation: 4,
+    borderColor: colors.light.border,
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   cardDesc: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
     marginBottom: 16,
   },
@@ -285,15 +295,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#FEE2E2',
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: colors.light.error,
     marginBottom: 14,
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.light.error,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -302,17 +312,17 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 13,
-    color: '#CBD5E1',
+    color: colors.light.textPrimary,
     fontWeight: '600',
     marginBottom: 6,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     paddingHorizontal: 12,
     height: 48,
   },
@@ -321,7 +331,7 @@ const styles = StyleSheet.create({
   },
   inputField: {
     flex: 1,
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 14,
   },
   eyeBtn: {
@@ -344,32 +354,37 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#64748B',
+    borderColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.light.background,
   },
   checkboxActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primary,
   },
   rememberText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   forgotPassText: {
     fontSize: 12,
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '600',
   },
   loginBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     height: 48,
     borderRadius: 12,
-    elevation: 3,
+    elevation: 2,
+    shadowColor: colors.light.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
   },
   loginBtnText: {
     color: '#FFFFFF',
@@ -386,11 +401,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: colors.light.border,
   },
   dividerText: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   socialRow: {
     flexDirection: 'row',
@@ -403,13 +418,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     height: 44,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   socialBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -421,11 +436,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   registerLink: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '700',
   },
 });

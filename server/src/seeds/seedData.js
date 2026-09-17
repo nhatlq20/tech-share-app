@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '../config/db.js';
 import {
+  Role,
+  Account,
   User,
   Device,
   Booking,
@@ -23,9 +25,47 @@ const seedDatabase = async () => {
     console.log('✅ [TechShare Seed] Connected successfully. Existing collections will be preserved.');
 
     // 2. Fixed IDs for consistent cross-collection relations
+    const roleAdminId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a888881');
+    const roleOwnerId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a888882');
+    const roleRenterId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a888883');
+
+    // Admin IDs
+    const accountAdminId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777771');
     const userAdminId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a111111');
+
+    // Owner IDs (owner1 - owner5)
+    const ownerAccountIds = [
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777772'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777002'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777003'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777004'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777005'),
+    ];
     const userOwnerId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222222');
+    const ownerUserIds = [
+      userOwnerId,
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222002'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222003'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222004'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a222005'),
+    ];
+
+    // Renter IDs (renter1 - renter5)
+    const renterAccountIds = [
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777773'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777102'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777103'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777104'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777105'),
+    ];
     const userRenterId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333333');
+    const renterUserIds = [
+      userRenterId,
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333002'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333003'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333004'),
+      new mongoose.Types.ObjectId('64e0a12f9b1c2b001a333005'),
+    ];
 
     const deviceIds = [
       new mongoose.Types.ObjectId('64e0a12f9b1c2b001a000001'),
@@ -43,18 +83,97 @@ const seedDatabase = async () => {
     const bookingCompletedId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444441');
     const bookingActiveId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a444442');
 
-    // 3. Seed Users
-    const salt = await bcrypt.genSalt(10);
-    const defaultHashedPassword = await bcrypt.hash('TechShare2026@', salt);
-
-    const usersData = [
+    // 3. Seed Roles
+    const rolesData = [
       {
-        _id: userAdminId,
-        name: 'TechShare Administrator',
+        _id: roleAdminId,
+        code: 'admin',
+        name: 'Quản trị viên',
+        description: 'Toàn quyền quản trị hệ thống, duyệt tranh chấp, quản lý tài khoản và thiết bị',
+        permissions: ['admin:*', 'user:*', 'device:*', 'booking:*', 'dispute:*'],
+      },
+      {
+        _id: roleOwnerId,
+        code: 'owner',
+        name: 'Chủ máy',
+        description: 'Đăng tải và cho thuê thiết bị công nghệ, quản lý lịch đặt',
+        permissions: ['device:create', 'device:update', 'booking:manage'],
+      },
+      {
+        _id: roleRenterId,
+        code: 'renter',
+        name: 'Người thuê',
+        description: 'Tìm kiếm, đặt thuê thiết bị công nghệ và viết đánh giá',
+        permissions: ['device:read', 'booking:create', 'review:create'],
+      },
+    ];
+
+    await Role.insertMany(rolesData);
+    console.log('👑 [TechShare Seed] Seeded 3 Roles (Admin, Owner, Renter).');
+
+    // 4. Seed Accounts
+    const salt = await bcrypt.genSalt(10);
+    const defaultHashedPassword = await bcrypt.hash('123456', salt);
+
+    const accountsData = [
+      // 1. Admin
+      {
+        _id: accountAdminId,
+        username: 'admin',
         email: 'admin@techshare.vn',
         passwordHash: defaultHashedPassword,
+        roleId: roleAdminId,
+        isActive: true,
+      },
+      // 2. Owner 1 - 5
+      ...ownerAccountIds.map((id, index) => ({
+        _id: id,
+        username: `owner${index + 1}`,
+        email: `owner${index + 1}@techshare.vn`,
+        passwordHash: defaultHashedPassword,
+        roleId: roleOwnerId,
+        isActive: true,
+      })),
+      // 3. Renter 1 - 5
+      ...renterAccountIds.map((id, index) => ({
+        _id: id,
+        username: `renter${index + 1}`,
+        email: `renter${index + 1}@techshare.vn`,
+        passwordHash: defaultHashedPassword,
+        roleId: roleRenterId,
+        isActive: true,
+      })),
+    ];
+
+    await Account.insertMany(accountsData);
+    console.log(`🔐 [TechShare Seed] Seeded ${accountsData.length} Accounts with password '123456' (1 Admin, 5 Owner, 5 Renter).`);
+
+    // Avatars for profiles
+    const ownerAvatars = [
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400',
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400',
+    ];
+
+    const renterAvatars = [
+      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400',
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400',
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400',
+    ];
+
+    // 5. Seed Users (Profiles)
+    const usersData = [
+      // 1. Admin
+      {
+        _id: userAdminId,
+        accountId: accountAdminId,
+        username: 'admin',
+        name: 'TechShare Administrator',
         phone: '0901234567',
-        role: 'admin',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
         address: 'Hoan Kiem, Hanoi, Vietnam',
         location: { type: 'Point', coordinates: [105.8542, 21.0285] },
@@ -65,49 +184,51 @@ const seedDatabase = async () => {
         badges: ['Admin', 'Super Moderator'],
         walletBalance: 10000000,
       },
-      {
-        _id: userOwnerId,
-        name: 'Minh Tuan Tech Review',
-        email: 'minhtuan@techshare.vn',
-        passwordHash: defaultHashedPassword,
-        phone: '0912345678',
-        role: 'owner',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
-        address: 'Cau Giay, Hanoi, Vietnam',
-        location: { type: 'Point', coordinates: [105.7826, 21.0285] },
+
+      // 2. Owner 1 - 5
+      ...ownerUserIds.map((id, index) => ({
+        _id: id,
+        accountId: ownerAccountIds[index],
+        username: `owner${index + 1}`,
+        name: index === 0 ? 'Minh Tuan Tech Review' : `Owner User ${index + 1}`,
+        phone: `092200000${index + 1}`,
+        avatar: ownerAvatars[index],
+        address: index === 0 ? 'Cau Giay, Hanoi, Vietnam' : `Cau Giay Sector ${index + 1}, Hanoi`,
+        location: { type: 'Point', coordinates: [105.7826 + index * 0.008, 21.0285 + index * 0.003] },
         rating: 4.9,
-        totalReviews: 28,
+        totalReviews: 28 - index * 3,
         isVerified: true,
         trustScore: 100,
-        referralCode: 'TUANTECH99',
+        referralCode: `OWNER0${index + 1}`,
         badges: ['Top Owner', 'Verified Creator'],
-        walletBalance: 5200000,
-      },
-      {
-        _id: userRenterId,
-        name: 'Hoang Nam Creator',
-        email: 'hoangnam@techshare.vn',
-        passwordHash: defaultHashedPassword,
-        phone: '0987654321',
-        role: 'renter',
-        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400',
-        address: 'Dong Da, Hanoi, Vietnam',
-        location: { type: 'Point', coordinates: [105.8275, 21.0183] },
+        walletBalance: 5200000 + index * 300000,
+      })),
+
+      // 4. Renter 1 - 5
+      ...renterUserIds.map((id, index) => ({
+        _id: id,
+        accountId: renterAccountIds[index],
+        username: `renter${index + 1}`,
+        name: index === 0 ? 'Hoang Nam Creator' : `Renter User ${index + 1}`,
+        phone: `093300000${index + 1}`,
+        avatar: renterAvatars[index],
+        address: index === 0 ? 'Dong Da, Hanoi, Vietnam' : `Dong Da Sector ${index + 1}, Hanoi`,
+        location: { type: 'Point', coordinates: [105.8275 + index * 0.005, 21.0183 + index * 0.004] },
         rating: 5.0,
-        totalReviews: 12,
+        totalReviews: 12 - index,
         isVerified: true,
         trustScore: 100,
-        referralCode: 'NAMVLOG2026',
+        referralCode: `RENTER0${index + 1}`,
         referredBy: userOwnerId,
         badges: ['Top Renter'],
         wishlist: [deviceIds[0], deviceIds[1]],
-        walletBalance: 2500000,
-        walletEscrowBalance: 15000000,
-      },
+        walletBalance: 2500000 + index * 200000,
+        walletEscrowBalance: index === 0 ? 15000000 : 0,
+      })),
     ];
 
     await User.insertMany(usersData);
-    console.log('👤 [TechShare Seed] Seeded 3 Users (Admin, Owner, Renter).');
+    console.log(`👤 [TechShare Seed] Seeded ${usersData.length} Users (1 Admin, 5 Owner, 5 Renter).`);
 
     // 4. Seed 10 Tech Devices
     const devicesData = [
@@ -428,6 +549,10 @@ const seedDatabase = async () => {
         deliveryMethod: 'delivery',
         deliveryAddress: '12 Chua Boc Street, Dong Da, Hanoi',
         qrToken: 'QR-TS-20260901-COMPLETED',
+        handoverPhotos: {
+          beforeRental: ['https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800'],
+          afterRental: ['https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800'],
+        },
         timeline: [
           { status: 'pending', note: 'Rental request submitted' },
           { status: 'approved', note: 'Approved by owner' },
@@ -608,8 +733,47 @@ const seedDatabase = async () => {
     await AiCache.insertMany(aiCachesData);
     console.log('🤖 [TechShare Seed] Seeded 1 AI Cache record (TTL 7 days).');
 
+    // 12. Seed Disputes
+    const disputesData = [
+      {
+        _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a777991'),
+        bookingId: bookingCompletedId,
+        raisedBy: userOwnerId,
+        reason: 'Khách làm xước viền kim loại và thấu kính bảo vệ của ống kính Sony 24-70mm GM II khi quay ngoại cảnh.',
+        evidenceImages: [
+          'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800',
+        ],
+        requestedDeductAmount: 2500000,
+        status: 'pending',
+      },
+    ];
+    await Dispute.insertMany(disputesData);
+    console.log('⚖️ [TechShare Seed] Seeded 1 Pending Deposit Dispute.');
+
+    // 13. Seed EkycRequests
+    const ekycRequestsData = [
+      {
+        _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a888991'),
+        userId: userRenterId,
+        idCardFrontUrl: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=800',
+        idCardBackUrl: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=800',
+        selfieUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800',
+        status: 'pending',
+      },
+      {
+        _id: new mongoose.Types.ObjectId('64e0a12f9b1c2b001a888992'),
+        userId: renterUserIds[1],
+        idCardFrontUrl: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=800',
+        idCardBackUrl: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=800',
+        selfieUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
+        status: 'pending',
+      },
+    ];
+    await EkycRequest.insertMany(ekycRequestsData);
+    console.log('🪪 [TechShare Seed] Seeded 2 Pending eKYC Requests.');
+
     console.log('\n==================================================');
-    console.log('🎉 [TechShare Seed] SEEDED ALL 11 COLLECTIONS SUCCESSFULLY!');
+    console.log('🎉 [TechShare Seed] SEEDED ALL 13 COLLECTIONS SUCCESSFULLY!');
     console.log('==================================================');
     process.exit(0);
   } catch (error) {
