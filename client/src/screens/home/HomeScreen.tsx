@@ -68,14 +68,15 @@ export function HomeScreen({
 
   const handleSelectCategory = (category: DeviceCategory | 'all') => {
     dispatch(setSelectedCategory(category));
+    dispatch(fetchDevices({ category }));
   };
 
   const handleRefresh = () => {
-    dispatch(refreshDevices(undefined));
+    dispatch(refreshDevices({ category: selectedCategory }));
   };
 
   const handleRetry = () => {
-    dispatch(fetchDevices(undefined));
+    dispatch(fetchDevices({ category: selectedCategory }));
   };
 
   // Header của FlatList gồm: Search, CategoryBar, PromoBanner, SectionHeader
@@ -159,7 +160,10 @@ export function HomeScreen({
           actionText={selectedCategory !== 'all' ? 'Bỏ lọc' : undefined}
           onActionPress={
             selectedCategory !== 'all'
-              ? () => dispatch(clearFilters())
+              ? () => {
+                  dispatch(clearFilters());
+                  dispatch(fetchDevices({ category: 'all' }));
+                }
               : undefined
           }
         />
@@ -207,6 +211,7 @@ export function HomeScreen({
             onPress={() => {
               setLocalSearch('');
               dispatch(clearFilters());
+              dispatch(fetchDevices({ category: 'all' }));
             }}
             activeOpacity={0.8}
           >
