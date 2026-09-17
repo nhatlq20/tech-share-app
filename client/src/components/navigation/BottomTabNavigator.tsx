@@ -1,0 +1,276 @@
+/**
+ * BottomTabNavigator.tsx
+ * Thanh điều hướng 4 Tab với Pill Indicator bo tròn mượt mà riêng cho Icon.
+ *
+ * Thiết kế:
+ * - Active: icon đặc + nền oval `primaryLight` (chỉ bọc icon, KHÔNG bọc chữ).
+ * - Inactive: icon outline + text màu muted.
+ * - Badge đếm đơn thuê chờ xử lý trên Tab 2 (Đơn thuê).
+ *
+ * Tuân thủ 100% Design Tokens từ src/constants/theme.ts (theme-skill.md).
+ * Không hardcode bất kỳ mã màu hex nào trong component này.
+ */
+
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../constants/theme';
+import { ScreenType } from '../../../App';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type IoniconsName = string;
+
+interface TabConfig {
+  key: ScreenType;
+  label: string;
+  iconActive: IoniconsName;
+  iconInactive: IoniconsName;
+  badgeCount?: number;
+}
+
+interface BottomTabNavigatorProps {
+  activeTab: ScreenType;
+  onTabPress: (tab: ScreenType) => void;
+  /** Padding bottom an toàn cho iOS Home Indicator và Android Nav Bar */
+  safeAreaBottom?: number;
+  /** Số đơn thuê đang chờ xử lý — hiển thị badge trên Tab "Đơn thuê" */
+  pendingBookingsCount?: number;
+}
+
+// ─── Tab Configuration ────────────────────────────────────────────────────────
+
+const TAB_CONFIGS: TabConfig[] = [
+  {
+    key: 'home',
+    label: 'Trang chủ',
+    iconActive: 'home',
+    iconInactive: 'home-outline',
+  },
+  {
+    key: 'bookings',
+    label: 'Đơn thuê',
+    iconActive: 'receipt',
+    iconInactive: 'receipt-outline',
+  },
+  {
+    key: 'map',
+    label: 'Gần bạn',
+    iconActive: 'map',
+    iconInactive: 'map-outline',
+  },
+  {
+    key: 'profile',
+    label: 'Tài khoản',
+    iconActive: 'person',
+    iconInactive: 'person-outline',
+  },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function BottomTabNavigator({
+  activeTab,
+  onTabPress,
+  safeAreaBottom = 0,
+  pendingBookingsCount = 0,
+}: BottomTabNavigatorProps) {
+  const tabs = TAB_CONFIGS.map((tab) => ({
+    ...tab,
+    badgeCount: tab.key === 'bookings' ? pendingBookingsCount : 0,
+  }));
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { paddingBottom: Math.max(safeAreaBottom, theme.spacing.sm) },
+      ]}
+    >
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
+          <TabItem
+            key={tab.key}
+            tab={tab}
+            isActive={isActive}
+            onPress={() => onTabPress(tab.key)}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── TabItem Sub-component ────────────────────────────────────────────────────
+
+interface TabItemProps {
+  tab: TabConfig & { badgeCount: number };
+  isActive: boolean;
+  onPress: () => void;
+}
+
+function TabItem({ tab, isActive, onPress }: TabItemProps) {
+  const iconName = isActive ? tab.iconActive : tab.iconInactive;
+  const iconColor = isActive
+    ? theme.colors.primary[600]  // #2563EB
+    : theme.colors.slate[400];   // #94A3B8 — muted/inactive
+
+  return (
+    <TouchableOpacity
+      style={styles.tabItem}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={tab.label}
+    >
+      {/* ── Pill Icon Wrapper (chỉ bọc icon, KHÔNG bao gồm label) ── */}
+      <View style={styles.iconWrapperOuter}>
+        <View
+          style={[
+            styles.iconPill,
+            isActive && styles.iconPillActive,
+          ]}
+        >
+          <Ionicons name={iconName} size={22} color={iconColor} />
+        </View>
+
+        {/* Badge đếm — chỉ hiển thị khi badgeCount > 0 */}
+        {tab.badgeCount > 0 && (
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>
+              {tab.badgeCount > 99 ? '99+' : String(tab.badgeCount)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* ── Tab Label ── */}
+      <Text
+        style={[
+          styles.tabLabel,
+          isActive ? styles.tabLabelActive : styles.tabLabelInactive,
+        ]}
+        numberOfLines={1}
+      >
+        {tab.label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  /**
+   * Thanh tab bar — nền trắng phẳng, viền trên mảnh, bóng nhẹ hướng lên.
+   * Chiều cao thoáng: paddingTop + paddingBottom + content ≈ 62-66px.
+   */
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.card,          // #FFFFFF
+    borderTopWidth: 1,
+    borderTopColor: theme.border,         // #E2E8F0
+    paddingTop: 8,
+
+    // Cross-platform shadow hướng lên trên
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.colors.slate[900],
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: theme.shadows.subtle.shadowOpacity,  // 0.04
+        shadowRadius: theme.shadows.subtle.shadowRadius,    // 4
+      },
+      android: {
+        elevation: theme.shadows.card.elevation,            // 3
+      },
+    }),
+  },
+
+  /**
+   * Mỗi tab item — KHÔNG có backgroundColor.
+   * Chỉ căn giữa theo chiều dọc, flex đều nhau.
+   */
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',   // giữ icon + label sát nhau từ trên xuống
+    paddingBottom: 6,
+  },
+
+  /** Wrapper tương đối chứa pill icon + badge số */
+  iconWrapperOuter: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /**
+   * Pill bọc RIÊNG icon — dạng viên thuốc ngang (landscape oval).
+   * Inactive: nền hoàn toàn trong suốt, chỉ icon hiển thị.
+   *
+   * Kích thước cố định:  width 52 × height 28.
+   * borderRadius: 9999   → hai đầu ngang vát tròn mềm mại.
+   */
+  iconPill: {
+    width: 52,
+    height: 28,
+    borderRadius: 9999,               // theme.radii.full = 9999
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',   // inactive: KHÔNG nền
+  },
+
+  /**
+   * Active pill — nền nhạt primaryLight.
+   * Dùng theme.colors.primary[50] (#EFF6FF) — tông xanh nhạt nhất,
+   * tạo contrast với icon primary[600] bên trong.
+   */
+  iconPillActive: {
+    backgroundColor: 'transparent',
+  },
+
+  /** Badge số đơn chờ xử lý — góc trên phải pill */
+  badgeContainer: {
+    position: 'absolute',
+    top: -4,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.danger[500], // #EF4444
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: theme.card,                   // viền trắng tách badge
+  },
+  badgeText: {
+    ...theme.typography.badge,
+    color: theme.colors.white,
+    fontSize: 9,
+    fontWeight: '700',
+  },
+
+  /** Label dưới icon */
+  tabLabel: {
+    fontSize: 11,
+    letterSpacing: 0.1,
+  },
+  tabLabelActive: {
+    color: theme.colors.primary[600],  // #2563EB
+    fontWeight: '600',
+  },
+  tabLabelInactive: {
+    color: theme.colors.slate[400],    // #94A3B8
+    fontWeight: '500',
+  },
+});

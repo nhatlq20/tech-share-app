@@ -20,7 +20,8 @@ import { colors } from '../../theme/colors';
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
-  onRegisterSuccess?: () => void;
+  /** Gọi sau khi đăng ký thành công, truyền role để App routing */
+  onRegisterSuccess?: (role?: string) => void;
 }
 
 export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
@@ -73,7 +74,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       }
 
       dispatch(setAuth({ token, user }));
-      onRegisterSuccess?.();
+      onRegisterSuccess?.(user?.role);
     } catch (error: any) {
       setErrorMsg(error?.response?.data?.message || 'Registration failed. Please try again.');
     } finally {

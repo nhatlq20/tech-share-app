@@ -276,52 +276,54 @@ export function ProfileScreen({
           </TouchableOpacity>
         </View>
 
-        {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS) */}
-        <View style={styles.dashboardSection}>
-          <Text style={styles.dashboardSectionTitle}>Cổng Quản lý Chuyên dụng</Text>
-          
-          {onNavigateToOwnerDashboard && (
-            <TouchableOpacity
-              style={styles.dashboardShortcutCard}
-              onPress={onNavigateToOwnerDashboard}
-              activeOpacity={0.8}
-            >
-              <View style={styles.dashboardIconBoxOwner}>
-                <Ionicons name="briefcase" size={20} color={colors.light.primary} />
-              </View>
-              <View style={styles.dashboardCardContent}>
-                <View style={styles.dashboardCardTitleRow}>
-                  <Text style={styles.dashboardCardTitle}>Bảng điều khiển Chủ máy</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+        {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS DỰA TRÊN ROLE) */}
+        {(role === 'owner' || role === 'admin') && (
+          <View style={styles.dashboardSection}>
+            <Text style={styles.dashboardSectionTitle}>Cổng Quản lý Chuyên dụng</Text>
+            
+            {(role === 'owner' || role === 'admin') && onNavigateToOwnerDashboard && (
+              <TouchableOpacity
+                style={styles.dashboardShortcutCard}
+                onPress={onNavigateToOwnerDashboard}
+                activeOpacity={0.8}
+              >
+                <View style={styles.dashboardIconBoxOwner}>
+                  <Ionicons name="briefcase" size={20} color={colors.light.primary} />
                 </View>
-                <Text style={styles.dashboardCardDesc}>
-                  Quản lý 4 thiết bị, doanh thu 4.2M & duyệt đơn thuê
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
+                <View style={styles.dashboardCardContent}>
+                  <View style={styles.dashboardCardTitleRow}>
+                    <Text style={styles.dashboardCardTitle}>Bảng điều khiển Chủ máy</Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+                  </View>
+                  <Text style={styles.dashboardCardDesc}>
+                    Quản lý thiết bị, doanh thu & duyệt đơn thuê
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
 
-          {onNavigateToAdminDashboard && (
-            <TouchableOpacity
-              style={[styles.dashboardShortcutCard, styles.dashboardShortcutCardAdmin]}
-              onPress={onNavigateToAdminDashboard}
-              activeOpacity={0.8}
-            >
-              <View style={styles.dashboardIconBoxAdmin}>
-                <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
-              </View>
-              <View style={styles.dashboardCardContent}>
-                <View style={styles.dashboardCardTitleRow}>
-                  <Text style={[styles.dashboardCardTitle, { color: colors.light.primary }]}>Cổng Quản trị Admin Portal</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+            {role === 'admin' && onNavigateToAdminDashboard && (
+              <TouchableOpacity
+                style={[styles.dashboardShortcutCard, styles.dashboardShortcutCardAdmin]}
+                onPress={onNavigateToAdminDashboard}
+                activeOpacity={0.8}
+              >
+                <View style={styles.dashboardIconBoxAdmin}>
+                  <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
                 </View>
-                <Text style={styles.dashboardCardDesc}>
-                  Xử lý tranh chấp cọc, kiểm duyệt eKYC & giám sát hệ thống
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
+                <View style={styles.dashboardCardContent}>
+                  <View style={styles.dashboardCardTitleRow}>
+                    <Text style={[styles.dashboardCardTitle, { color: colors.light.primary }]}>Cổng Quản trị Admin Portal</Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+                  </View>
+                  <Text style={styles.dashboardCardDesc}>
+                    Xử lý tranh chấp cọc, kiểm duyệt eKYC & giám sát hệ thống
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* CÁC TAB ĐIỀU HƯỚNG */}
         <View style={styles.tabsRow}>
