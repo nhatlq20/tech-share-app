@@ -9,6 +9,8 @@ import { errorHandler, notFound } from './middlewares/errorHandler.js';
 import { connectDB } from './config/db.js';
 import adminRoutes from './routes/adminRoutes.js';
 import ownerAnalyticsRoutes from './routes/ownerAnalyticsRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
+import voucherRoutes from './routes/voucherRoutes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -39,6 +41,8 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/devices', deviceRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/vouchers', voucherRoutes);
 
 // 404 & Error Handler Middlewares
 app.use(notFound);
