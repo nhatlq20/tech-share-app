@@ -16,13 +16,14 @@ import { Device } from '../../types';
 interface DeviceDetailScreenProps {
   deviceId: string;
   onBack: () => void;
+  onBookNow?: (deviceId: string) => void;
 }
 
 const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ';
 };
 
-export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps) {
+export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetailScreenProps) {
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +46,7 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={styles.loadingText}>Đang tải chi tiết thiết bị...</Text>
+        <Text style={styles.loadingText}>Loading device details...</Text>
       </View>
     );
   }
@@ -54,9 +55,9 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
-        <Text style={styles.errorTitle}>Không tìm thấy thiết bị</Text>
+        <Text style={styles.errorTitle}>Device not found</Text>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Quay lại Trang chủ</Text>
+          <Text style={styles.backBtnText}>Back to Home</Text>
         </TouchableOpacity>
       </View>
     );
@@ -105,7 +106,7 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
             <Text style={styles.brandText}>{device.brand}</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>
-                {device.status === 'available' ? 'Sẵn sàng thuê' : 'Đang thuê'}
+                {device.status === 'available' ? 'Ready to rent' : 'Currently rented'}
               </Text>
             </View>
           </View>
@@ -121,7 +122,7 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
                 {device.rating ? device.rating.toFixed(1) : '5.0'}
               </Text>
               <Text style={styles.reviewCount}>
-                ({device.reviewCount || 0} đánh giá)
+                ({device.reviewCount || 0} reviews)
               </Text>
             </View>
 
@@ -138,24 +139,24 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
           {/* Price & Deposit Card */}
           <View style={styles.priceCard}>
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Giá thuê theo ngày</Text>
-              <Text style={styles.priceMain}>{formatPrice(device.dailyRate)}/ngày</Text>
+              <Text style={styles.priceSub}>Daily rental price</Text>
+              <Text style={styles.priceMain}>{formatPrice(device.dailyRate)}/day</Text>
             </View>
             <View style={styles.depositDivider} />
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Tiền cọc đảm bảo</Text>
+              <Text style={styles.priceSub}>Security deposit</Text>
               <Text style={styles.depositMain}>{formatPrice(device.depositValue)}</Text>
             </View>
           </View>
 
           {/* Description */}
-          <Text style={styles.sectionHeading}>Mô tả thiết bị</Text>
+          <Text style={styles.sectionHeading}>Device description</Text>
           <Text style={styles.descriptionText}>{device.description}</Text>
 
           {/* Specs */}
           {device.specs && Object.keys(device.specs).length > 0 && (
             <View style={styles.specsContainer}>
-              <Text style={styles.sectionHeading}>Thông số kỹ thuật</Text>
+              <Text style={styles.sectionHeading}>Technical specs</Text>
               {Object.entries(device.specs).map(([key, val]) => (
                 <View key={key} style={styles.specRow}>
                   <Text style={styles.specKey}>{key}</Text>
@@ -170,20 +171,22 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
       {/* Bottom Sticky Action Bar */}
       <View style={styles.bottomBar}>
         <View>
-          <Text style={styles.bottomPriceSub}>Tổng phí thuê</Text>
+          <Text style={styles.bottomPriceSub}>Total rental fee</Text>
           <Text style={styles.bottomPriceMain}>
             {formatPrice(device.dailyRate)}
-            <Text style={styles.dayUnit}>/ngày</Text>
+            <Text style={styles.dayUnit}>/day</Text>
           </Text>
         </View>
 
         <TouchableOpacity
           style={styles.bookBtn}
-          onPress={() => alert(`Đặt thuê thiết bị: ${device.title}`)}
+          onPress={() => {
+            if (onBookNow) onBookNow(deviceId);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-          <Text style={styles.bookBtnText}>Đặt thuê ngay</Text>
+          <Text style={styles.bookBtnText}>Book now</Text>
         </TouchableOpacity>
       </View>
     </View>

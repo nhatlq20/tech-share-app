@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
+    accountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Account',
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Full name is required'],
@@ -12,7 +17,6 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
       trim: true,
@@ -20,9 +24,8 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // Hidden when querying
+      select: false,
     },
     phone: {
       type: String,
@@ -39,8 +42,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['renter', 'owner', 'both', 'admin'],
-      default: 'both',
+      enum: ['admin', 'owner', 'rental', 'renter', 'both'],
+      default: 'rental',
     },
 
     isVerified: {
@@ -126,6 +129,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'users',
     toJSON: {
       virtuals: true,
       transform: (doc, ret) => {

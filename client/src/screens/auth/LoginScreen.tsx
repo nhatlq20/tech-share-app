@@ -9,28 +9,62 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { apiClient } from '../../config/api';
+import { setAuth } from '../../store/slices/authSlice';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
-  onNavigateToProfile: () => void;
+  onNavigateToHome: () => void;
 }
 
-export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScreenProps) {
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password) {
-      setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu');
+      setErrorMsg('Please enter both email and password');
       return;
     }
-    setErrorMsg('');
-    onNavigateToProfile();
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+
+      const response = await apiClient.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      const { token, user } = response.data;
+      if (!token || !user) {
+        throw new Error('Login response is invalid');
+      }
+
+      dispatch(setAuth({ token, user }));
+      onNavigateToHome();
+    } catch (error: any) {
+      const message = error?.response?.data?.message
+        || (axios.isAxiosError(error) && !error.response
+          ? 'Cannot connect to the server. Check that the backend is running and the device is on the same Wi-Fi.'
+          : 'Login failed. Please try again.');
+      setErrorMsg(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,23 +74,26 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
     >
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: isCompact ? 14 : 20 },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* LOGO & TIÊU ĐỀ */}
+        {/* LOGO & TITLE */}
         <View style={styles.headerBox}>
           <View style={styles.logoCircle}>
             <Ionicons name="hardware-chip" size={32} color="#FFFFFF" />
           </View>
           <Text style={styles.appTitle}>TechShare</Text>
-          <Text style={styles.appSubtitle}>Nền tảng chia sẻ & cho thuê thiết bị công nghệ</Text>
+          <Text style={styles.appSubtitle}>A platform for sharing and renting tech devices</Text>
         </View>
 
-        {/* THẺ FORM ĐĂNG NHẬP */}
+        {/* LOGIN FORM */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Đăng Nhập</Text>
-          <Text style={styles.cardDesc}>Chào mừng bạn quay trở lại với cộng đồng</Text>
+          <Text style={styles.cardTitle}>Log In</Text>
+          <Text style={styles.cardDesc}>Welcome back to the community</Text>
 
           {/* Báo lỗi nếu có */}
           {errorMsg ? (
@@ -66,7 +103,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
             </View>
           ) : null}
 
-          {/* Input Email */}
+          {/* Email input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Email</Text>
             <View style={styles.inputWrap}>
@@ -75,7 +112,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="VD: user@techshare.vn"
+                placeholder="e.g. user@techshare.vn"
                 placeholderTextColor="#64748B"
                 value={email}
                 onChangeText={(text: string) => {
@@ -88,16 +125,16 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
             </View>
           </View>
 
-          {/* Input Mật khẩu */}
+          {/* Password input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Mật khẩu</Text>
+            <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter your password"
                 placeholderTextColor="#64748B"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -119,7 +156,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
             </View>
           </View>
 
-          {/* Ghi nhớ & Quên mật khẩu */}
+          {/* Remember & forgot password */}
           <View style={styles.optionsRow}>
             <TouchableOpacity
               style={styles.rememberRow}
@@ -128,28 +165,39 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
               <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
                 {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
               </View>
-              <Text style={styles.rememberText}>Ghi nhớ đăng nhập</Text>
+              <Text style={styles.rememberText}>Remember me</Text>
             </TouchableOpacity>
 
             <TouchableOpacity>
-              <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
+              <Text style={styles.forgotPassText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Nút Đăng nhập */}
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.8}>
-            <Text style={styles.loginBtnText}>ĐĂNG NHẬP</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          {/* Login button */}
+          <TouchableOpacity
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.loginBtnText}>LOG IN</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </>
+            )}
           </TouchableOpacity>
 
-          {/* Phân cách */}
+          {/* Divider */}
           <View style={styles.dividerBox}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Hoặc đăng nhập bằng</Text>
+            <Text style={styles.dividerText}>Or continue with</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Nút Google & Apple */}
+          {/* Google & Apple buttons */}
           <View style={styles.socialRow}>
             <TouchableOpacity style={styles.socialBtn}>
               <Ionicons name="logo-google" size={18} color="#EA4335" />
@@ -161,11 +209,11 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
             </TouchableOpacity>
           </View>
 
-          {/* Chuyển sang Đăng ký */}
+          {/* Switch to Register */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+            <Text style={styles.footerText}>Don’t have an account? </Text>
             <TouchableOpacity onPress={onNavigateToRegister}>
-              <Text style={styles.registerLink}>Đăng ký ngay</Text>
+              <Text style={styles.registerLink}>Sign up now</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -177,11 +225,14 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: '#0B0F19',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    width: '100%',
+    paddingVertical: 20,
+    paddingHorizontal: 18,
     justifyContent: 'center',
   },
   headerBox: {

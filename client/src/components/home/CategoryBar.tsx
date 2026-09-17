@@ -18,7 +18,7 @@ export interface CategoryItem {
 export const CATEGORIES: CategoryItem[] = [
   {
     id: 'all',
-    name: 'Tất cả',
+    name: 'All',
     icon: 'apps-outline',
   },
   {
@@ -48,7 +48,7 @@ export const CATEGORIES: CategoryItem[] = [
   },
   {
     id: 'accessory',
-    name: 'Phụ kiện',
+    name: 'Accessories',
     icon: 'hardware-chip-outline',
   },
 ];
