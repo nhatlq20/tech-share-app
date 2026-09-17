@@ -3,7 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
+import deviceRoutes from './routes/deviceRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import { errorHandler, notFound } from './middlewares/errorHandler.js';
 import { connectDB } from './config/db.js';
 
 const app = express();
