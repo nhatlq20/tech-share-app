@@ -1,0 +1,27 @@
+import Device from '../models/Device.js';
+import User from '../models/User.js'; // Registers 'User' model for Mongoose populate
+import { asyncHandler } from '../middlewares/asyncHandler.js';
+
+/**
+ * @desc    Lấy danh sách các thiết bị đang có sẵn (available)
+ * @route   GET /api/devices
+ * @access  Public
+ */
+export const getDevices = asyncHandler(async (req, res) => {
+  const devices = await Device.find({
+    status: 'available',
+    isDeleted: false,
+  })
+    .populate('ownerId', 'name avatar rating isVerified phone email address')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: devices.length,
+    data: devices,
+  });
+});
+
+export default {
+  getDevices,
+};

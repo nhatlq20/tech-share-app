@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -165,12 +164,15 @@ export default function App() {
           </View>
         )}
 
-        {/* NỘI DUNG MÀN HÌNH ĐANG CHỌN */}
-        <View style={styles.screenContainer}>
-          {selectedDeviceId ? (
-            <DeviceDetailScreen
-              deviceId={selectedDeviceId}
-              onBack={handleBackFromDetail}
+          <TouchableOpacity
+            style={[styles.tabButton, currentScreen === 'profile' && styles.tabButtonActive]}
+            onPress={() => setCurrentScreen('profile')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="person-circle-outline"
+              size={16}
+              color={currentScreen === 'profile' ? '#FFFFFF' : '#94A3B8'}
             />
           ) : (
             <>
@@ -216,8 +218,58 @@ export default function App() {
             </>
           )}
         </View>
-      </SafeAreaView>
-    </ReduxProvider>
+      )}
+
+      <View style={styles.screenContainer}>
+        {bookingDeviceId ? (
+          <BookingCreateScreen 
+            deviceId={bookingDeviceId} 
+            onBack={() => setBookingDeviceId(null)} 
+          />
+        ) : selectedDeviceId ? (
+          <DeviceDetailScreen 
+            deviceId={selectedDeviceId} 
+            onBack={handleBackFromDetail} 
+            onBookNow={(id) => setBookingDeviceId(id)}
+          />
+        ) : (
+          <>
+            {currentScreen === 'home' && (
+              <HomeScreen
+                onNavigateToDeviceDetail={handleNavigateToDeviceDetail}
+                onNavigateToSearch={() => {
+                  console.log('Điều hướng Search');
+                }}
+                onNavigateToNotifications={() => {
+                  console.log('Điều hướng Notifications');
+                }}
+              />
+            )}
+
+            {currentScreen === 'login' && (
+              <LoginScreen
+                onNavigateToRegister={() => setCurrentScreen('register')}
+                onNavigateToProfile={() => setCurrentScreen('profile')}
+              />
+            )}
+
+            {currentScreen === 'register' && (
+              <RegisterScreen
+                onNavigateToLogin={() => setCurrentScreen('login')}
+                onRegisterSuccess={() => setCurrentScreen('profile')}
+              />
+            )}
+
+            {currentScreen === 'profile' && (
+              <ProfileScreen
+                onLogout={() => setCurrentScreen('login')}
+                onNavigateToLogin={() => setCurrentScreen('login')}
+              />
+            )}
+          </>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -230,7 +282,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#0F172A",
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#1E293B",
     gap: 6,
@@ -241,6 +293,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
+    minHeight: 40,
     paddingVertical: 8,
     borderRadius: 10,
     backgroundColor: "#1E293B",
@@ -258,5 +311,7 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
+    width: '100%',
+    backgroundColor: '#070B13',
   },
 });
