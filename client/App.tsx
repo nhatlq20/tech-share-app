@@ -19,6 +19,7 @@ import { DeviceDetailScreen } from './src/screens/device/DeviceDetailScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
+import { BookingCreateScreen } from './src/screens/booking/BookingCreateScreen';
 
 export type ScreenType = 'home' | 'login' | 'register' | 'profile';
 
@@ -37,6 +38,7 @@ export default function App() {
 function AppContent() {
   const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
+  const [bookingDeviceId, setBookingDeviceId] = useState(null as string | null);
   const insets = useSafeAreaInsets();
 
   const handleNavigateToDeviceDetail = (deviceId: string) => {
@@ -129,8 +131,17 @@ function AppContent() {
       )}
 
       <View style={styles.screenContainer}>
-        {selectedDeviceId ? (
-          <DeviceDetailScreen deviceId={selectedDeviceId} onBack={handleBackFromDetail} />
+        {bookingDeviceId ? (
+          <BookingCreateScreen 
+            deviceId={bookingDeviceId} 
+            onBack={() => setBookingDeviceId(null)} 
+          />
+        ) : selectedDeviceId ? (
+          <DeviceDetailScreen 
+            deviceId={selectedDeviceId} 
+            onBack={handleBackFromDetail} 
+            onBookNow={(id) => setBookingDeviceId(id)}
+          />
         ) : (
           <>
             {currentScreen === 'home' && (
