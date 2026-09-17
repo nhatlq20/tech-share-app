@@ -16,14 +16,23 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { updateUser } from '../../store/slices/authSlice';
 import { apiClient } from '../../config/api';
+import { colors } from '../../theme/colors';
 
 interface ProfileScreenProps {
   onLogout: () => void;
-  onNavigateToLogin: () => void;
-  onNavigateToPostDevice: () => void;
+  onNavigateToLogin?: () => void;
+  onNavigateToPostDevice?: () => void;
+  onNavigateToOwnerDashboard?: () => void;
+  onNavigateToAdminDashboard?: () => void;
 }
 
-export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScreenProps) {
+export function ProfileScreen({
+  onLogout,
+  onNavigateToLogin,
+  onNavigateToPostDevice,
+  onNavigateToOwnerDashboard,
+  onNavigateToAdminDashboard,
+}: ProfileScreenProps) {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token);
@@ -38,9 +47,9 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
   // User info
   const [name, setName] = useState(user?.name || 'John Nguyen');
   const [email, setEmail] = useState(user?.email || 'an.creator@techshare.vn');
-  const [phone, setPhone] = useState(user?.phone || '+1 202 555 0147');
-  const [bio, setBio] = useState('Tech reviewer & creator. Passionate about Sony cameras and premium Apple devices.');
-  const [role, setRole] = useState((user?.role as 'admin' | 'owner' | 'rental') || 'rental');
+  const [phone, setPhone] = useState(user?.phone || '0988 123 456');
+  const [bio, setBio] = useState('Tech Reviewer & Content Creator. Đam mê máy ảnh Sony & Apple Flagships.');
+  const [role, setRole] = useState((user?.role as 'admin' | 'owner' | 'rental' | 'renter') || 'rental');
 
   // Address
   const [street, setStreet] = useState('Landmark 81 Tower, 720A Dien Bien Phu');
@@ -190,14 +199,14 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
             <View style={styles.userInfoCol}>
               <View style={styles.nameBadgeRow}>
                 <Text style={styles.userNameText}>{name}</Text>
-                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                <Ionicons name="checkmark-circle" size={18} color={colors.light.primary} />
               </View>
               <Text style={styles.userEmailText}>{email}</Text>
               <Text style={styles.userPhoneText}>{phone}</Text>
 
               <View style={styles.rolePill}>
                 <Text style={styles.rolePillText}>
-                  {role === 'admin' ? 'Admin' : role === 'owner' ? 'Owner' : 'Rental'}
+                  {role === 'admin' ? 'Quản trị viên' : role === 'owner' ? 'Chủ máy đã xác thực' : 'Người thuê'}
                 </Text>
               </View>
             </View>
@@ -207,8 +216,8 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
           <View style={styles.trustScoreBox}>
             <View style={styles.trustHeaderRow}>
               <View style={styles.trustTitleGroup}>
-                <Ionicons name="shield-checkmark" size={16} color="#F59E0B" />
-                <Text style={styles.trustScoreTitle}>Trust Score</Text>
+                <Ionicons name="shield-checkmark" size={16} color={colors.light.warning} />
+                <Text style={styles.trustScoreTitle}>Điểm Tín Nhiệm (Trust Score)</Text>
               </View>
               <Text style={styles.trustScoreValue}>98/100</Text>
             </View>
@@ -231,8 +240,8 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#F59E0B' }]}>4.9 ★</Text>
-              <Text style={styles.statLabel}>32 reviews</Text>
+              <Text style={[styles.statNum, { color: colors.light.ratingStar }]}>4.9 ★</Text>
+              <Text style={styles.statLabel}>32 đánh giá</Text>
             </View>
           </View>
 
@@ -247,7 +256,54 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
           </TouchableOpacity>
         </View>
 
-        {/* NAV TABS */}
+        {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS) */}
+        <View style={styles.dashboardSection}>
+          <Text style={styles.dashboardSectionTitle}>Cổng Quản lý Chuyên dụng</Text>
+          
+          {onNavigateToOwnerDashboard && (
+            <TouchableOpacity
+              style={styles.dashboardShortcutCard}
+              onPress={onNavigateToOwnerDashboard}
+              activeOpacity={0.8}
+            >
+              <View style={styles.dashboardIconBoxOwner}>
+                <Ionicons name="briefcase" size={20} color={colors.light.primary} />
+              </View>
+              <View style={styles.dashboardCardContent}>
+                <View style={styles.dashboardCardTitleRow}>
+                  <Text style={styles.dashboardCardTitle}>Bảng điều khiển Chủ máy</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+                </View>
+                <Text style={styles.dashboardCardDesc}>
+                  Quản lý 4 thiết bị, doanh thu 4.2M & duyệt đơn thuê
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {onNavigateToAdminDashboard && (
+            <TouchableOpacity
+              style={[styles.dashboardShortcutCard, styles.dashboardShortcutCardAdmin]}
+              onPress={onNavigateToAdminDashboard}
+              activeOpacity={0.8}
+            >
+              <View style={styles.dashboardIconBoxAdmin}>
+                <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
+              </View>
+              <View style={styles.dashboardCardContent}>
+                <View style={styles.dashboardCardTitleRow}>
+                  <Text style={[styles.dashboardCardTitle, { color: colors.light.primary }]}>Cổng Quản trị Admin Portal</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+                </View>
+                <Text style={styles.dashboardCardDesc}>
+                  Xử lý tranh chấp cọc, kiểm duyệt eKYC & giám sát hệ thống
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* CÁC TAB ĐIỀU HƯỚNG */}
         <View style={styles.tabsRow}>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'info' && styles.tabBtnActive]}
@@ -453,8 +509,7 @@ export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScree
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.light.background,
   },
   scrollContent: {
     width: '100%',
@@ -467,9 +522,9 @@ const styles = StyleSheet.create({
     top: 10,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#DCFCE7',
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: colors.light.success,
     borderRadius: 8,
     padding: 10,
     flexDirection: 'row',
@@ -478,17 +533,78 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   toastText: {
-    color: '#10B981',
+    color: colors.light.success,
     fontSize: 13,
     fontWeight: '600',
   },
   headerCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     marginBottom: 16,
+  },
+  dashboardSection: {
+    marginBottom: 18,
+    gap: 10,
+  },
+  dashboardSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginLeft: 4,
+    marginBottom: 2,
+  },
+  dashboardShortcutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.light.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    gap: 12,
+  },
+  dashboardShortcutCardAdmin: {
+    borderColor: colors.light.border,
+  },
+  dashboardIconBoxOwner: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashboardIconBoxAdmin: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashboardCardContent: {
+    flex: 1,
+  },
+  dashboardCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+  },
+  dashboardCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+  dashboardCardDesc: {
+    fontSize: 12,
+    color: colors.light.textSecondary,
+    lineHeight: 16,
   },
   topActionsRow: {
     flexDirection: 'row',
@@ -501,20 +617,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: '#FEE2E2',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
   },
   logoutText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: colors.light.error,
     fontWeight: '600',
   },
   userMainRow: {
@@ -535,7 +651,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: colors.light.primary,
   },
   avatarImgCompact: {
     width: 64,
@@ -546,7 +662,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -564,38 +680,38 @@ const styles = StyleSheet.create({
   userNameText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   userEmailText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   userPhoneText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   rolePill: {
-    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    backgroundColor: colors.light.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     alignSelf: 'flex-start',
     marginTop: 6,
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: colors.light.primary,
   },
   rolePillText: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 11,
     fontWeight: '600',
   },
   trustScoreBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: colors.light.border,
     marginBottom: 14,
   },
   trustHeaderRow: {
@@ -612,34 +728,36 @@ const styles = StyleSheet.create({
   trustScoreTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   trustScoreValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: colors.light.warning,
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#334155',
+    backgroundColor: colors.light.border,
     borderRadius: 3,
     overflow: 'hidden',
     marginVertical: 4,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.light.warning,
   },
   trustBenefit: {
     fontSize: 11,
-    color: '#CBD5E1',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.light.border,
   },
   listDeviceButton: {
     minHeight: 46,
@@ -663,23 +781,25 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   statLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#334155',
+    backgroundColor: colors.light.border,
   },
   tabsRow: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.light.border,
     gap: 4,
     flexWrap: 'wrap',
   },
@@ -693,24 +813,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabBtnActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: colors.light.primary,
   },
   tabBtnText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontWeight: '600',
   },
   tabBtnTextActive: {
-    color: '#38BDF8',
+    color: colors.light.primary,
   },
   sectionCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -721,7 +841,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
   },
   editBtn: {
     flexDirection: 'row',
@@ -730,7 +850,7 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '600',
   },
   fieldGroup: {
@@ -738,29 +858,29 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginBottom: 6,
     fontWeight: '600',
   },
   fieldInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.background,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
-    color: '#FFFFFF',
+    borderColor: colors.light.border,
+    color: colors.light.textPrimary,
     fontSize: 13,
     paddingHorizontal: 12,
     height: 44,
   },
   fieldInputDisabled: {
-    backgroundColor: '#162032',
-    color: '#CBD5E1',
-    borderColor: '#243248',
+    backgroundColor: colors.light.surface,
+    color: colors.light.textSecondary,
+    borderColor: colors.light.border,
   },
   saveBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
@@ -771,13 +891,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   activeTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: colors.light.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   activeTagText: {
-    color: '#10B981',
+    color: colors.light.primary,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -785,20 +905,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   addressDisplayText: {
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
   addressGps: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 11,
     marginTop: 2,
   },
@@ -806,18 +926,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     padding: 12,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   activityIconBox: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#374151',
+    backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -828,23 +948,23 @@ const styles = StyleSheet.create({
   },
   activeStatusText: {
     fontSize: 11,
-    color: '#10B981',
+    color: colors.light.success,
     fontWeight: '700',
   },
   activityPrice: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: colors.light.primary,
     fontWeight: '700',
   },
   activityName: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontWeight: '700',
     marginTop: 2,
   },
   activitySub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
 });
