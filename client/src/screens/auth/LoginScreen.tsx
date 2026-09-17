@@ -10,30 +10,61 @@ import {
   Platform,
   StatusBar,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { apiClient } from '../../config/api';
+import { setAuth } from '../../store/slices/authSlice';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
-  onNavigateToProfile: () => void;
+  onNavigateToHome: () => void;
 }
 
-export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScreenProps) {
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
   const { width } = useWindowDimensions();
   const isCompact = width < 360;
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password) {
       setErrorMsg('Please enter both email and password');
       return;
     }
-    setErrorMsg('');
-    onNavigateToProfile();
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+
+      const response = await apiClient.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      const { token, user } = response.data;
+      if (!token || !user) {
+        throw new Error('Login response is invalid');
+      }
+
+      dispatch(setAuth({ token, user }));
+      onNavigateToHome();
+    } catch (error: any) {
+      const message = error?.response?.data?.message
+        || (axios.isAxiosError(error) && !error.response
+          ? 'Cannot connect to the server. Check that the backend is running and the device is on the same Wi-Fi.'
+          : 'Login failed. Please try again.');
+      setErrorMsg(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -143,9 +174,20 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToProfile }: Login
           </View>
 
           {/* Login button */}
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.8}>
-            <Text style={styles.loginBtnText}>LOG IN</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          <TouchableOpacity
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.loginBtnText}>LOG IN</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}

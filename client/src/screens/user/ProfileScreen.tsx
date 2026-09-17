@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { updateUser } from '../../store/slices/authSlice';
+import { apiClient } from '../../config/api';
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -19,6 +23,9 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onLogout }: ProfileScreenProps) {
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const token = useSelector((state: RootState) => state.auth.token);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('info' as 'info' | 'address' | 'activity');
   const [toastMsg, setToastMsg] = useState('');
@@ -28,11 +35,11 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const isWide = width >= 768;
 
   // User info
-  const [name, setName] = useState('John Nguyen');
-  const [email, setEmail] = useState('an.creator@techshare.vn');
-  const [phone, setPhone] = useState('+1 202 555 0147');
+  const [name, setName] = useState(user?.name || 'John Nguyen');
+  const [email, setEmail] = useState(user?.email || 'an.creator@techshare.vn');
+  const [phone, setPhone] = useState(user?.phone || '+1 202 555 0147');
   const [bio, setBio] = useState('Tech reviewer & creator. Passionate about Sony cameras and premium Apple devices.');
-  const [role, setRole] = useState('both' as 'both' | 'renter' | 'owner');
+  const [role, setRole] = useState((user?.role as 'admin' | 'owner' | 'rental') || 'rental');
 
   // Address
   const [street, setStreet] = useState('Landmark 81 Tower, 720A Dien Bien Phu');
@@ -42,32 +49,103 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
 
   // Avatar
   const [avatarUri, setAvatarUri] = useState(
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
+    user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
   );
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+      setStreet(user.address || '');
+      setAvatarUri(user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
+      setRole((user.role as 'admin' | 'owner' | 'rental') || 'rental');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      if (!token) {
+        return;
+      }
+
+      try {
+        const response = await apiClient.get('/profile/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (isMounted && response.data?.user) {
+          dispatch(updateUser(response.data.user));
+        }
+      } catch (error: any) {
+        if (isMounted && error?.response?.status === 401) {
+          onLogout();
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, token]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 2500);
   };
 
-  const handleSaveInfo = () => {
-    setIsEditing(false);
-    showToast('Profile information saved successfully!');
+  const handleSaveInfo = async () => {
+    try {
+      const response = await apiClient.patch(
+        '/profile/me',
+        { name, phone },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      dispatch(updateUser(response.data.user));
+      setIsEditing(false);
+      showToast('Profile information saved successfully!');
+    } catch (error) {
+      showToast('Unable to save profile information.');
+    }
   };
 
-  const handleSaveAddress = () => {
-    showToast('Default delivery address updated!');
+  const handleSaveAddress = async () => {
+    try {
+      const response = await apiClient.patch(
+        '/profile/me',
+        { address: [street, ward, district, city].filter(Boolean).join(', ') },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      dispatch(updateUser(response.data.user));
+      showToast('Default delivery address updated!');
+    } catch (error) {
+      showToast('Unable to update delivery address.');
+    }
   };
 
-  const handleAvatarChange = () => {
+  const handleAvatarChange = async () => {
     const avatars = [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
     ];
     const next = (avatars.indexOf(avatarUri) + 1) % avatars.length;
-    setAvatarUri(avatars[next]);
-    showToast('Profile photo updated!');
+    try {
+      const response = await apiClient.patch(
+        '/profile/me',
+        { avatar: avatars[next] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAvatarUri(response.data.user.avatar);
+      dispatch(updateUser(response.data.user));
+      showToast('Profile photo updated!');
+    } catch (error) {
+      showToast('Unable to update profile photo.');
+    }
   };
 
   return (
@@ -118,7 +196,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
 
               <View style={styles.rolePill}>
                 <Text style={styles.rolePillText}>
-                  {role === 'both' ? 'Creator & Owner' : role === 'owner' ? 'Owner' : 'Renter'}
+                  {role === 'admin' ? 'Admin' : role === 'owner' ? 'Owner' : 'Rental'}
                 </Text>
               </View>
             </View>

@@ -20,23 +20,7 @@ const seedDatabase = async () => {
   try {
     console.log('🌱 [TechShare Seed] Connecting to MongoDB Atlas...');
     await connectDB();
-    console.log('✅ [TechShare Seed] Connected successfully! Cleaning existing collections...');
-
-    // 1. Clean all 11 collections
-    await Promise.all([
-      User.deleteMany({}),
-      Device.deleteMany({}),
-      Booking.deleteMany({}),
-      Review.deleteMany({}),
-      Message.deleteMany({}),
-      Notification.deleteMany({}),
-      WalletTransaction.deleteMany({}),
-      Voucher.deleteMany({}),
-      Dispute.deleteMany({}),
-      EkycRequest.deleteMany({}),
-      AiCache.deleteMany({}),
-    ]);
-    console.log('🧹 [TechShare Seed] Cleaned all 11 existing collections.');
+    console.log('✅ [TechShare Seed] Connected successfully. Existing collections will be preserved.');
 
     // 2. Fixed IDs for consistent cross-collection relations
     const userAdminId = new mongoose.Types.ObjectId('64e0a12f9b1c2b001a111111');
