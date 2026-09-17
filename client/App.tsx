@@ -8,97 +8,154 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Provider } from 'react-redux';
+import { store } from './src/store';
+import { HomeScreen } from './src/screens/home/HomeScreen';
+import { DeviceDetailScreen } from './src/screens/device/DeviceDetailScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
 
-export type ScreenType = 'login' | 'register' | 'profile';
+export type ScreenType = 'home' | 'login' | 'register' | 'profile';
+
+const ReduxProvider = Provider as any;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('login' as ScreenType);
+  const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
+
+  const handleNavigateToDeviceDetail = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+  };
+
+  const handleBackFromDetail = () => {
+    setSelectedDeviceId(null);
+  };
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#070B13" />
+    <ReduxProvider store={store}>
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor="#070B13" />
 
-      {/* THANH CHUYỂN MÀN HÌNH PREVIEW DÀNH CHO ANDROID (Đăng nhập / Đăng ký / Profile) */}
-      <View style={styles.topTabBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'login' && styles.tabButtonActive]}
-          onPress={() => setCurrentScreen('login')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="log-in-outline"
-            size={16}
-            color={currentScreen === 'login' ? '#FFFFFF' : '#94A3B8'}
-          />
-          <Text
-            style={[styles.tabButtonText, currentScreen === 'login' && styles.tabButtonTextActive]}
-          >
-            Đăng nhập
-          </Text>
-        </TouchableOpacity>
+        {/* THANH CHUYỂN MÀN HÌNH PREVIEW SPRINT 1 (Trang chủ / Đăng nhập / Đăng ký / Profile) */}
+        {!selectedDeviceId && (
+          <View style={styles.topTabBar}>
+            <TouchableOpacity
+              style={[styles.tabButton, currentScreen === 'home' && styles.tabButtonActive]}
+              onPress={() => setCurrentScreen('home')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="home-outline"
+                size={16}
+                color={currentScreen === 'home' ? '#FFFFFF' : '#94A3B8'}
+              />
+              <Text
+                style={[styles.tabButtonText, currentScreen === 'home' && styles.tabButtonTextActive]}
+              >
+                Trang chủ
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'register' && styles.tabButtonActive]}
-          onPress={() => setCurrentScreen('register')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="person-add-outline"
-            size={16}
-            color={currentScreen === 'register' ? '#FFFFFF' : '#94A3B8'}
-          />
-          <Text
-            style={[styles.tabButtonText, currentScreen === 'register' && styles.tabButtonTextActive]}
-          >
-            Đăng ký
-          </Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, currentScreen === 'login' && styles.tabButtonActive]}
+              onPress={() => setCurrentScreen('login')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="log-in-outline"
+                size={16}
+                color={currentScreen === 'login' ? '#FFFFFF' : '#94A3B8'}
+              />
+              <Text
+                style={[styles.tabButtonText, currentScreen === 'login' && styles.tabButtonTextActive]}
+              >
+                Đăng nhập
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'profile' && styles.tabButtonActive]}
-          onPress={() => setCurrentScreen('profile')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="person-circle-outline"
-            size={16}
-            color={currentScreen === 'profile' ? '#FFFFFF' : '#94A3B8'}
-          />
-          <Text
-            style={[styles.tabButtonText, currentScreen === 'profile' && styles.tabButtonTextActive]}
-          >
-            Profile
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={[styles.tabButton, currentScreen === 'register' && styles.tabButtonActive]}
+              onPress={() => setCurrentScreen('register')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={16}
+                color={currentScreen === 'register' ? '#FFFFFF' : '#94A3B8'}
+              />
+              <Text
+                style={[styles.tabButtonText, currentScreen === 'register' && styles.tabButtonTextActive]}
+              >
+                Đăng ký
+              </Text>
+            </TouchableOpacity>
 
-      {/* NỘI DUNG MÀN HÌNH ĐANG CHỌN */}
-      <View style={styles.screenContainer}>
-        {currentScreen === 'login' && (
-          <LoginScreen
-            onNavigateToRegister={() => setCurrentScreen('register')}
-            onNavigateToProfile={() => setCurrentScreen('profile')}
-          />
+            <TouchableOpacity
+              style={[styles.tabButton, currentScreen === 'profile' && styles.tabButtonActive]}
+              onPress={() => setCurrentScreen('profile')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="person-circle-outline"
+                size={16}
+                color={currentScreen === 'profile' ? '#FFFFFF' : '#94A3B8'}
+              />
+              <Text
+                style={[styles.tabButtonText, currentScreen === 'profile' && styles.tabButtonTextActive]}
+              >
+                Profile
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
 
-        {currentScreen === 'register' && (
-          <RegisterScreen
-            onNavigateToLogin={() => setCurrentScreen('login')}
-            onRegisterSuccess={() => setCurrentScreen('profile')}
-          />
-        )}
+        {/* NỘI DUNG MÀN HÌNH ĐANG CHỌN */}
+        <View style={styles.screenContainer}>
+          {selectedDeviceId ? (
+            <DeviceDetailScreen
+              deviceId={selectedDeviceId}
+              onBack={handleBackFromDetail}
+            />
+          ) : (
+            <>
+              {currentScreen === 'home' && (
+                <HomeScreen
+                  onNavigateToDeviceDetail={handleNavigateToDeviceDetail}
+                  onNavigateToSearch={() => {
+                    console.log('Điều hướng Search');
+                  }}
+                  onNavigateToNotifications={() => {
+                    console.log('Điều hướng Notifications');
+                  }}
+                />
+              )}
 
-        {currentScreen === 'profile' && (
-          <ProfileScreen
-            onLogout={() => setCurrentScreen('login')}
-            onNavigateToLogin={() => setCurrentScreen('login')}
-          />
-        )}
-      </View>
-    </SafeAreaView>
+              {currentScreen === 'login' && (
+                <LoginScreen
+                  onNavigateToRegister={() => setCurrentScreen('register')}
+                  onNavigateToProfile={() => setCurrentScreen('profile')}
+                />
+              )}
+
+              {currentScreen === 'register' && (
+                <RegisterScreen
+                  onNavigateToLogin={() => setCurrentScreen('login')}
+                  onRegisterSuccess={() => setCurrentScreen('profile')}
+                />
+              )}
+
+              {currentScreen === 'profile' && (
+                <ProfileScreen
+                  onLogout={() => setCurrentScreen('login')}
+                  onNavigateToLogin={() => setCurrentScreen('login')}
+                />
+              )}
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    </ReduxProvider>
   );
 }
 
@@ -110,18 +167,18 @@ const styles = StyleSheet.create({
   topTabBar: {
     flexDirection: 'row',
     backgroundColor: '#0F172A',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
-    gap: 8,
+    gap: 6,
   },
   tabButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     paddingVertical: 8,
     borderRadius: 10,
     backgroundColor: '#1E293B',
@@ -130,7 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
   },
   tabButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#94A3B8',
   },
