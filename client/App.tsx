@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,8 +12,9 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Provider } from 'react-redux';
-import { store } from './src/store';
+import { Provider, useDispatch, useSelector } from 'react-redux';
+import { store, RootState } from './src/store';
+import { clearAuth } from './src/store/slices/authSlice';
 import { HomeScreen } from './src/screens/home/HomeScreen';
 import { DeviceDetailScreen } from './src/screens/device/DeviceDetailScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
@@ -35,15 +36,38 @@ export default function App() {
 }
 
 function AppContent() {
+  const dispatch = useDispatch();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
   const insets = useSafeAreaInsets();
+
+  const effectiveScreen = useMemo(() => {
+    if (isAuthenticated && currentScreen === 'login') {
+      return 'home';
+    }
+    return currentScreen;
+  }, [currentScreen, isAuthenticated]);
 
   const handleNavigateToDeviceDetail = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
   };
 
   const handleBackFromDetail = () => {
+    setSelectedDeviceId(null);
+  };
+
+  const goToLogin = () => {
+    setCurrentScreen('login');
+  };
+
+  const goToHome = () => {
+    setCurrentScreen('home');
+  };
+
+  const handleLogout = () => {
+    dispatch(clearAuth());
+    setCurrentScreen('login');
     setSelectedDeviceId(null);
   };
 
@@ -59,68 +83,72 @@ function AppContent() {
           ]}
         >
           <TouchableOpacity
-            style={[styles.tabButton, currentScreen === 'home' && styles.tabButtonActive]}
-            onPress={() => setCurrentScreen('home')}
+            style={[styles.tabButton, effectiveScreen === 'home' && styles.tabButtonActive]}
+            onPress={goToHome}
             activeOpacity={0.8}
           >
             <Ionicons
               name="home-outline"
               size={16}
-              color={currentScreen === 'home' ? '#FFFFFF' : '#94A3B8'}
+              color={effectiveScreen === 'home' ? '#FFFFFF' : '#94A3B8'}
             />
             <Text
-              style={[styles.tabButtonText, currentScreen === 'home' && styles.tabButtonTextActive]}
+              style={[styles.tabButtonText, effectiveScreen === 'home' && styles.tabButtonTextActive]}
             >
               Home
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabButton, currentScreen === 'login' && styles.tabButtonActive]}
-            onPress={() => setCurrentScreen('login')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="log-in-outline"
-              size={16}
-              color={currentScreen === 'login' ? '#FFFFFF' : '#94A3B8'}
-            />
-            <Text
-              style={[styles.tabButtonText, currentScreen === 'login' && styles.tabButtonTextActive]}
-            >
-              Login
-            </Text>
-          </TouchableOpacity>
+          {!isAuthenticated ? (
+            <>
+              <TouchableOpacity
+                style={[styles.tabButton, effectiveScreen === 'login' && styles.tabButtonActive]}
+                onPress={goToLogin}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="log-in-outline"
+                  size={16}
+                  color={effectiveScreen === 'login' ? '#FFFFFF' : '#94A3B8'}
+                />
+                <Text
+                  style={[styles.tabButtonText, effectiveScreen === 'login' && styles.tabButtonTextActive]}
+                >
+                  Login
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tabButton, effectiveScreen === 'register' && styles.tabButtonActive]}
+                onPress={() => setCurrentScreen('register')}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="person-add-outline"
+                  size={16}
+                  color={effectiveScreen === 'register' ? '#FFFFFF' : '#94A3B8'}
+                />
+                <Text
+                  style={[styles.tabButtonText, effectiveScreen === 'register' && styles.tabButtonTextActive]}
+                >
+                  Register
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.tabButton, currentScreen === 'register' && styles.tabButtonActive]}
-            onPress={() => setCurrentScreen('register')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="person-add-outline"
-              size={16}
-              color={currentScreen === 'register' ? '#FFFFFF' : '#94A3B8'}
-            />
-            <Text
-              style={[styles.tabButtonText, currentScreen === 'register' && styles.tabButtonTextActive]}
-            >
-              Register
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabButton, currentScreen === 'profile' && styles.tabButtonActive]}
+            style={[styles.tabButton, effectiveScreen === 'profile' && styles.tabButtonActive]}
             onPress={() => setCurrentScreen('profile')}
             activeOpacity={0.8}
           >
             <Ionicons
               name="person-circle-outline"
               size={16}
-              color={currentScreen === 'profile' ? '#FFFFFF' : '#94A3B8'}
+              color={effectiveScreen === 'profile' ? '#FFFFFF' : '#94A3B8'}
             />
             <Text
-              style={[styles.tabButtonText, currentScreen === 'profile' && styles.tabButtonTextActive]}
+              style={[styles.tabButtonText, effectiveScreen === 'profile' && styles.tabButtonTextActive]}
             >
               Profile
             </Text>
@@ -133,7 +161,7 @@ function AppContent() {
           <DeviceDetailScreen deviceId={selectedDeviceId} onBack={handleBackFromDetail} />
         ) : (
           <>
-            {currentScreen === 'home' && (
+            {effectiveScreen === 'home' && (
               <HomeScreen
                 onNavigateToDeviceDetail={handleNavigateToDeviceDetail}
                 onNavigateToSearch={() => {
@@ -145,24 +173,24 @@ function AppContent() {
               />
             )}
 
-            {currentScreen === 'login' && (
+            {effectiveScreen === 'login' && (
               <LoginScreen
                 onNavigateToRegister={() => setCurrentScreen('register')}
-                onNavigateToProfile={() => setCurrentScreen('profile')}
+                onNavigateToHome={goToHome}
               />
             )}
 
-            {currentScreen === 'register' && (
+            {effectiveScreen === 'register' && (
               <RegisterScreen
                 onNavigateToLogin={() => setCurrentScreen('login')}
-                onRegisterSuccess={() => setCurrentScreen('profile')}
+                onRegisterSuccess={goToHome}
               />
             )}
 
-            {currentScreen === 'profile' && (
+            {effectiveScreen === 'profile' && (
               <ProfileScreen
-                onLogout={() => setCurrentScreen('login')}
-                onNavigateToLogin={() => setCurrentScreen('login')}
+                onLogout={handleLogout}
+                onNavigateToLogin={goToLogin}
               />
             )}
           </>

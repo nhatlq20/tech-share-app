@@ -1,4 +1,5 @@
 import User from './User.js';
+import Account from './Account.js';
 import Device from './Device.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
@@ -12,6 +13,7 @@ import AiCache from './AiCache.js';
 
 export {
   User,
+  Account,
   Device,
   Booking,
   Review,
@@ -26,6 +28,7 @@ export {
 
 export default {
   User,
+  Account,
   Device,
   Booking,
   Review,

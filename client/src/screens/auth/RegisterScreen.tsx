@@ -10,30 +10,36 @@ import {
   Platform,
   StatusBar,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch } from 'react-redux';
+import { apiClient } from '../../config/api';
+import { setAuth } from '../../store/slices/authSlice';
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
   onRegisterSuccess?: () => void;
 }
 
-export type UserRole = 'both' | 'renter' | 'owner';
+export type UserRole = 'owner' | 'rental';
 
 export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
+  const dispatch = useDispatch();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('both' as UserRole);
+  const [role, setRole] = useState('rental' as UserRole);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
   const { width } = useWindowDimensions();
   const isCompact = width < 360;
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !phone.trim() || !password) {
       setErrorMsg('Please fill in all required information');
       return;
@@ -51,11 +57,28 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       return;
     }
 
-    setErrorMsg('');
-    if (onRegisterSuccess) {
-      onRegisterSuccess();
-    } else {
-      onNavigateToLogin();
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const response = await apiClient.post('/auth/register', {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password,
+        role,
+      });
+
+      const { token, user } = response.data;
+      if (!token || !user) {
+        throw new Error('Registration response is invalid');
+      }
+
+      dispatch(setAuth({ token, user }));
+      onRegisterSuccess?.();
+    } catch (error: any) {
+      setErrorMsg(error?.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,25 +121,11 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             <Text style={styles.inputLabel}>Your role:</Text>
             <View style={styles.roleTabsRow}>
               <TouchableOpacity
-                style={[styles.roleTab, role === 'both' && styles.roleTabActive]}
-                onPress={() => setRole('both')}
+                style={[styles.roleTab, role === 'rental' && styles.roleTabActive]}
+                onPress={() => setRole('rental')}
               >
-                <Ionicons
-                  name="swap-horizontal"
-                  size={14}
-                  color={role === 'both' ? '#FFFFFF' : '#94A3B8'}
-                />
-                <Text style={[styles.roleTabText, role === 'both' && styles.roleTabTextActive]}>
-                  Both (Recommended)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.roleTab, role === 'renter' && styles.roleTabActive]}
-                onPress={() => setRole('renter')}
-              >
-                <Text style={[styles.roleTabText, role === 'renter' && styles.roleTabTextActive]}>
-                  Renter
+                <Text style={[styles.roleTabText, role === 'rental' && styles.roleTabTextActive]}>
+                  Rental
                 </Text>
               </TouchableOpacity>
 
@@ -260,8 +269,17 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           </TouchableOpacity>
 
           {/* Register button */}
-          <TouchableOpacity style={styles.registerBtn} onPress={handleRegister} activeOpacity={0.8}>
-            <Text style={styles.registerBtnText}>CREATE ACCOUNT</Text>
+          <TouchableOpacity
+            style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+            onPress={handleRegister}
+            activeOpacity={0.8}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.registerBtnText}>CREATE ACCOUNT</Text>
+            )}
           </TouchableOpacity>
 
           {/* Switch to Login */}
@@ -438,6 +456,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 6,
     elevation: 3,
+  },
+  registerBtnDisabled: {
+    opacity: 0.7,
   },
   registerBtnText: {
     color: '#FFFFFF',
