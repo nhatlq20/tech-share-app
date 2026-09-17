@@ -8,6 +8,8 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
@@ -27,9 +29,11 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   
-  const [startDate, setStartDate] = useState(null as string | null);
-  const [endDate, setEndDate] = useState(null as string | null);
+  const [startDate, setStartDate] = useState(null as Date | null);
+  const [endDate, setEndDate] = useState(null as Date | null);
   
+  const [pickerConfig, setPickerConfig] = useState({ visible: false, type: 'start' as 'start' | 'end' });
+
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -45,69 +49,46 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
     };
   }, [deviceId]);
 
-  const onDayPress = (day: any) => {
-    const dateString = day.dateString;
-    
-    if (!startDate || (startDate && endDate)) {
-      // Start a new range
-      setStartDate(dateString);
-      setEndDate(null);
-    } else if (startDate && !endDate) {
-      // Select end date
-      const start = new Date(startDate);
-      const current = new Date(dateString);
-      
-      if (current < start) {
-        // If selected date is before start date, make it the new start date
-        setStartDate(dateString);
-      } else {
-        setEndDate(dateString);
-      }
-    }
+  const openPicker = (type: 'start' | 'end') => {
+    setPickerConfig({ visible: true, type });
   };
 
-  const generateMarkedDates = () => {
-    const marked: any = {};
-    if (startDate) {
-      marked[startDate] = {
-        startingDay: true,
-        color: '#2563EB',
-        textColor: 'white',
-        endingDay: !endDate, // if no end date, it's also ending day to make it rounded
-      };
-    }
+  const handleConfirmPicker = (date: Date) => {
+    const now = new Date();
     
-    if (startDate && endDate) {
-      let curr = new Date(startDate);
-      const end = new Date(endDate);
-      curr.setDate(curr.getDate() + 1);
-      
-      while (curr < end) {
-        const dStr = curr.toISOString().split('T')[0];
-        marked[dStr] = {
-          color: 'rgba(37, 99, 235, 0.2)',
-          textColor: '#FFFFFF',
-        };
-        curr.setDate(curr.getDate() + 1);
+    if (pickerConfig.type === 'start') {
+      if (date < now) {
+        Alert.alert('Lỗi chọn giờ', 'Thời gian bắt đầu không được nằm trong quá khứ.');
+        return;
       }
-      
-      marked[endDate] = {
-        endingDay: true,
-        color: '#2563EB',
-        textColor: 'white',
-      };
+      setStartDate(date);
+      if (endDate && endDate < date) {
+        setEndDate(null);
+      }
+    } else {
+      if (startDate && date <= startDate) {
+        Alert.alert('Lỗi chọn giờ', 'Thời gian trả máy phải sau thời gian bắt đầu.');
+        return;
+      }
+      if (date < now) {
+        Alert.alert('Lỗi chọn giờ', 'Thời gian trả máy không được nằm trong quá khứ.');
+        return;
+      }
+      setEndDate(date);
     }
-    
-    return marked;
+    setPickerConfig({ ...pickerConfig, visible: false });
   };
 
   const calculateDays = () => {
     if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // inclusive of start and end day
-    return diffDays;
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays === 0 ? 1 : diffDays; // minimum 1 day
+  };
+
+  const formatDateTime = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
   if (loading) {
@@ -170,43 +151,27 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Select Rental Period</Text>
           
-          <Calendar
-            markingType={'period'}
-            markedDates={generateMarkedDates()}
-            onDayPress={onDayPress}
-            theme={{
-              backgroundColor: '#0F172A',
-              calendarBackground: '#0F172A',
-              textSectionTitleColor: '#94A3B8',
-              selectedDayBackgroundColor: '#2563EB',
-              selectedDayTextColor: '#ffffff',
-              todayTextColor: '#38BDF8',
-              dayTextColor: '#F1F5F9',
-              textDisabledColor: '#334155',
-              monthTextColor: '#FFFFFF',
-              indicatorColor: '#38BDF8',
-              textDayFontWeight: '500',
-              textMonthFontWeight: 'bold',
-              textDayHeaderFontWeight: '600',
-              textDayFontSize: 14,
-              textMonthFontSize: 16,
-              textDayHeaderFontSize: 13
-            }}
-            minDate={new Date().toISOString().split('T')[0]}
-          />
-          
           <View style={styles.dateSummary}>
-            <View style={styles.dateBox}>
-              <Text style={styles.dateLabel}>Start Date</Text>
-              <Text style={styles.dateValue}>{startDate || 'Select'}</Text>
-            </View>
+            <TouchableOpacity style={styles.dateBox} onPress={() => openPicker('start')} activeOpacity={0.7}>
+              <Text style={styles.dateLabel}>Start Date & Time</Text>
+              <Text style={styles.dateValue}>{startDate ? formatDateTime(startDate) : 'Select'}</Text>
+            </TouchableOpacity>
             <Ionicons name="arrow-forward" size={20} color="#94A3B8" />
-            <View style={styles.dateBox}>
-              <Text style={styles.dateLabel}>End Date</Text>
-              <Text style={styles.dateValue}>{endDate || 'Select'}</Text>
-            </View>
+            <TouchableOpacity style={styles.dateBox} onPress={() => openPicker('end')} activeOpacity={0.7}>
+              <Text style={styles.dateLabel}>End Date & Time</Text>
+              <Text style={styles.dateValue}>{endDate ? formatDateTime(endDate) : 'Select'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
+
+        <CustomDateTimePicker 
+          visible={pickerConfig.visible}
+          type={pickerConfig.type}
+          initialDate={pickerConfig.type === 'start' ? startDate : endDate}
+          minDate={pickerConfig.type === 'end' ? startDate : new Date()}
+          onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
+          onConfirm={handleConfirmPicker}
+        />
 
         {/* Price Breakdown */}
         {rentalDays > 0 && (
@@ -253,6 +218,160 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
     </View>
   );
 }
+
+const getLocalYMD = (d: Date) => {
+  const offset = d.getTimezoneOffset();
+  const adjusted = new Date(d.getTime() - (offset * 60 * 1000));
+  return adjusted.toISOString().split('T')[0];
+};
+
+const hoursList = Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0'));
+const minutesList = Array.from({length: 60}, (_, i) => i.toString().padStart(2, '0'));
+
+const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any) => {
+  const ITEM_HEIGHT = 44;
+  const flatListRef = React.useRef(null as any);
+  
+  // Create a large list to simulate infinite scrolling (50 repetitions)
+  const REPEAT = 50;
+  const data = React.useMemo(() => Array(REPEAT).fill(items).flat(), [items]);
+  
+  React.useEffect(() => {
+    if (visible && flatListRef.current) {
+      const middleRepetition = Math.floor(REPEAT / 2);
+      const originalIndex = items.indexOf(selectedValue);
+      const targetIndex = middleRepetition * items.length + originalIndex;
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollTo({ y: targetIndex * ITEM_HEIGHT, animated: false });
+      }, 50);
+    }
+  }, [visible, items, selectedValue]);
+
+  const handleScroll = (e: any) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const index = Math.max(0, Math.min(data.length - 1, Math.round(y / ITEM_HEIGHT)));
+    const actualItem = data[index];
+    if (actualItem && actualItem !== selectedValue) {
+      onValueChange(actualItem);
+    }
+  };
+
+  return (
+    <View style={{ height: ITEM_HEIGHT * 3, width: 60 }}>
+      {/* Selection Highlight */}
+      <View style={{ position: 'absolute', top: ITEM_HEIGHT, width: '100%', height: ITEM_HEIGHT, backgroundColor: 'rgba(56, 189, 248, 0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.3)' }} pointerEvents="none" />
+      
+      <View style={{ flex: 1, overflow: 'hidden' }}>
+        <React.Fragment>
+          {/* using standard ScrollView like before but with massive content to prevent FlatList render bugs on Web */}
+          <ScrollView
+            ref={flatListRef as any}
+            showsVerticalScrollIndicator={false}
+            snapToInterval={ITEM_HEIGHT}
+            decelerationRate="fast"
+            onMomentumScrollEnd={handleScroll}
+            onScrollEndDrag={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
+          >
+            {data.map((item: string, idx: number) => {
+              const isSelected = item === selectedValue;
+              // Only highlight the item if it's the one we are physically scrolled to, or if it matches value.
+              // To be performant, we just match value
+              return (
+                <View key={idx} style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ 
+                    fontSize: isSelected ? 22 : 16, 
+                    color: isSelected ? '#38BDF8' : '#64748B', 
+                    fontWeight: isSelected ? '700' : '500' 
+                  }}>
+                    {item}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </React.Fragment>
+      </View>
+    </View>
+  );
+};
+
+const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, onConfirm }: any) => {
+  const [date, setDate] = useState(initialDate || new Date());
+  const [hours, setHours] = useState((initialDate || new Date()).getHours().toString().padStart(2, '0'));
+  const [minutes, setMinutes] = useState((initialDate || new Date()).getMinutes().toString().padStart(2, '0'));
+
+  useEffect(() => {
+    if (visible) {
+      const d = initialDate || new Date();
+      setDate(d);
+      setHours(d.getHours().toString().padStart(2, '0'));
+      setMinutes(d.getMinutes().toString().padStart(2, '0'));
+    }
+  }, [visible, initialDate]);
+
+  const handleConfirm = () => {
+    const finalDate = new Date(date);
+    finalDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+    onConfirm(finalDate);
+  };
+
+  const currentDateStr = getLocalYMD(date);
+  const minDateStr = minDate ? getLocalYMD(minDate) : undefined;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>
+            {type === 'start' ? 'Start Date & Time' : 'End Date & Time'}
+          </Text>
+
+          <Calendar
+            current={currentDateStr}
+            minDate={minDateStr}
+            onDayPress={(day: any) => setDate(new Date(day.timestamp))}
+            markedDates={{
+              [currentDateStr]: { selected: true, selectedColor: '#2563EB' }
+            }}
+            theme={{
+              backgroundColor: '#1E293B',
+              calendarBackground: '#1E293B',
+              textSectionTitleColor: '#94A3B8',
+              selectedDayBackgroundColor: '#2563EB',
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: '#38BDF8',
+              dayTextColor: '#F1F5F9',
+              textDisabledColor: '#334155',
+              monthTextColor: '#FFFFFF',
+              arrowColor: '#38BDF8',
+            }}
+          />
+
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeLabel}>Time:</Text>
+            <View style={styles.timeInputRow}>
+              <TimeScrollPicker items={hoursList} selectedValue={hours} onValueChange={setHours} visible={visible} />
+              <Text style={styles.timeColon}>:</Text>
+              <TimeScrollPicker items={minutesList} selectedValue={minutes} onValueChange={setMinutes} visible={visible} />
+            </View>
+          </View>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.modalBtnCancel} onPress={onClose}>
+              <Text style={styles.modalBtnTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirm}>
+              <Text style={styles.modalBtnTextConfirm}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
   root: {
@@ -366,6 +485,11 @@ const styles = StyleSheet.create({
   dateBox: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.3)',
   },
   dateLabel: {
     color: '#94A3B8',
@@ -442,5 +566,76 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  timeLabel: {
+    color: '#94A3B8',
+    fontSize: 16,
+    marginRight: 12,
+  },
+  timeInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeColon: {
+    color: '#94A3B8',
+    fontSize: 24,
+    fontWeight: '700',
+    marginHorizontal: 12,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    backgroundColor: '#334155',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalBtnTextCancel: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalBtnConfirm: {
+    flex: 1,
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalBtnTextConfirm: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
