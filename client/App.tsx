@@ -20,15 +20,19 @@ import { DeviceDetailScreen } from './src/screens/device/DeviceDetailScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
+import { BookingCreateScreen } from './src/screens/booking/BookingCreateScreen';
 
 export type ScreenType = 'home' | 'login' | 'register' | 'profile';
 
 const ReduxProvider = Provider as any;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState("home" as ScreenType);
-  const [selectedDeviceId, setSelectedDeviceId] = useState(
-    null as string | null,
+  return (
+    <ReduxProvider store={store}>
+      <SafeAreaProvider>
+        <AppContent />
+      </SafeAreaProvider>
+    </ReduxProvider>
   );
 }
 
@@ -37,6 +41,7 @@ function AppContent() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
+  const [bookingDeviceId, setBookingDeviceId] = useState(null as string | null);
   const insets = useSafeAreaInsets();
 
   const effectiveScreen = useMemo(() => {
@@ -92,20 +97,9 @@ function AppContent() {
             <Text
               style={[styles.tabButtonText, effectiveScreen === 'home' && styles.tabButtonTextActive]}
             >
-              <Ionicons
-                name="home-outline"
-                size={16}
-                color={currentScreen === "home" ? "#FFFFFF" : "#94A3B8"}
-              />
-              <Text
-                style={[
-                  styles.tabButtonText,
-                  currentScreen === "home" && styles.tabButtonTextActive,
-                ]}
-              >
-                Trang chủ
-              </Text>
-            </TouchableOpacity>
+              Home
+            </Text>
+          </TouchableOpacity>
 
           {!isAuthenticated ? (
             <>
