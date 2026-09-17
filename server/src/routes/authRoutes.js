@@ -57,7 +57,31 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ accountId: account._id }).lean();
+    // Existing profiles may predate the accounts/users link and only contain email.
+    let user = await User.findOne({ accountId: account._id }).lean()
+      || await User.findOne({ email: account.email }).lean();
+
+    if (!user) {
+      const roleRecord = await mongoose.connection.db.collection('roles').findOne({
+        _id: account.roleId,
+      });
+      const role = roleRecord?.code === 'owner'
+        ? 'owner'
+        : roleRecord?.code === 'admin'
+          ? 'admin'
+          : 'rental';
+      const fallbackName = account.username || account.email.split('@')[0];
+
+      user = await User.create({
+        accountId: account._id,
+        name: fallbackName,
+        email: account.email,
+        role,
+        isVerified: false,
+        trustScore: 100,
+      });
+      user = user.toObject();
+    }
     if (!user) {
       return res.status(404).json({
         success: false,
