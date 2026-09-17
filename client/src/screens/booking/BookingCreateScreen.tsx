@@ -10,11 +10,15 @@ import {
   Alert,
   Modal,
   TextInput,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { deviceService } from '../../services/deviceService';
+import { apiClient } from '../../config/api';
 import { Device } from '../../types';
+import { VoucherInput } from './components/VoucherInput';
+import { PriceBreakdownCard } from './components/PriceBreakdownCard';
 
 interface BookingCreateScreenProps {
   deviceId: string;
@@ -33,6 +37,8 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
   const [endDate, setEndDate] = useState(null as Date | null);
   
   const [pickerConfig, setPickerConfig] = useState({ visible: false, type: 'start' as 'start' | 'end' });
+  const [appliedVoucher, setAppliedVoucher] = useState(null as any);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,17 +119,56 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
   }
 
   const rentalDays = calculateDays();
-  const rentalFee = rentalDays * device.dailyRate;
-  const totalAmount = rentalFee + (device.depositValue || 0);
+  const baseRentalFee = rentalDays * device.dailyRate;
+  
+  let longTermDiscountPercent = 0;
+  if (rentalDays >= 7) longTermDiscountPercent = 20;
+  else if (rentalDays >= 3) longTermDiscountPercent = 10;
+  
+  const longTermDiscountAmount = (baseRentalFee * longTermDiscountPercent) / 100;
+  const rentalFeeAfterLongTerm = baseRentalFee - longTermDiscountAmount;
 
-  const handleConfirm = () => {
+  let voucherDiscountAmount = 0;
+  if (appliedVoucher) {
+    if (appliedVoucher.type === 'percent') {
+      voucherDiscountAmount = (rentalFeeAfterLongTerm * appliedVoucher.value) / 100;
+      if (appliedVoucher.maxDiscount && voucherDiscountAmount > appliedVoucher.maxDiscount) {
+        voucherDiscountAmount = appliedVoucher.maxDiscount;
+      }
+    } else {
+      voucherDiscountAmount = appliedVoucher.value;
+    }
+    if (voucherDiscountAmount > rentalFeeAfterLongTerm) {
+      voucherDiscountAmount = rentalFeeAfterLongTerm;
+    }
+  }
+
+  const totalAmount = rentalFeeAfterLongTerm - voucherDiscountAmount + (device.depositValue || 0);
+
+  const handleConfirm = async () => {
     if (!startDate || !endDate) {
-      Alert.alert('Missing Dates', 'Please select a start and end date for your rental.');
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn thời gian nhận và trả máy.');
       return;
     }
-    Alert.alert('Booking Confirmed', 'Your booking request has been submitted!', [
-      { text: 'OK', onPress: onBack }
-    ]);
+
+    setIsSubmitting(true);
+    try {
+      await apiClient.post('/bookings', {
+        deviceId,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        voucherCode: appliedVoucher?.code || '',
+        deliveryMethod: 'pickup',
+      });
+      
+      Alert.alert('Thành công', 'Yêu cầu thuê máy đã được gửi đi!', [
+        { text: 'OK', onPress: onBack }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tạo yêu cầu thuê máy.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -173,27 +218,19 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
           onConfirm={handleConfirmPicker}
         />
 
-        {/* Price Breakdown */}
         {rentalDays > 0 && (
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Price Breakdown</Text>
-            
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Rental Fee ({rentalDays} days)</Text>
-              <Text style={styles.priceValue}>{formatPrice(rentalFee)}</Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Security Deposit</Text>
-              <Text style={styles.priceValue}>{formatPrice(device.depositValue || 0)}</Text>
-            </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.priceRow}>
-              <Text style={styles.totalLabel}>Total Payment</Text>
-              <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
-            </View>
-          </View>
+          <>
+            <VoucherInput 
+              rentalDays={rentalDays} 
+              onApplyVoucher={setAppliedVoucher} 
+            />
+            <PriceBreakdownCard 
+              rentalDays={rentalDays}
+              dailyRate={device.dailyRate}
+              depositValue={device.depositValue || 0}
+              voucher={appliedVoucher}
+            />
+          </>
         )}
       </ScrollView>
 
@@ -207,12 +244,16 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         </View>
 
         <TouchableOpacity
-          style={[styles.confirmBtn, (!startDate || !endDate) && styles.confirmBtnDisabled]}
+          style={[styles.confirmBtn, (!startDate || !endDate || isSubmitting) && styles.confirmBtnDisabled]}
           onPress={handleConfirm}
-          disabled={!startDate || !endDate}
+          disabled={!startDate || !endDate || isSubmitting}
           activeOpacity={0.8}
         >
-          <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -228,7 +269,7 @@ const getLocalYMD = (d: Date) => {
 const hoursList = Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0'));
 const minutesList = Array.from({length: 60}, (_, i) => i.toString().padStart(2, '0'));
 
-const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any) => {
+const TimeScrollPicker = React.memo(({ items, selectedValue, onValueChange, visible }: any) => {
   const ITEM_HEIGHT = 44;
   const flatListRef = React.useRef(null as any);
   
@@ -243,7 +284,7 @@ const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any)
       const targetIndex = middleRepetition * items.length + originalIndex;
       
       setTimeout(() => {
-        flatListRef.current?.scrollTo({ y: targetIndex * ITEM_HEIGHT, animated: false });
+        flatListRef.current?.scrollToOffset({ offset: targetIndex * ITEM_HEIGHT, animated: false });
       }, 50);
     }
   }, [visible, items, selectedValue]);
@@ -264,9 +305,10 @@ const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any)
       
       <View style={{ flex: 1, overflow: 'hidden' }}>
         <React.Fragment>
-          {/* using standard ScrollView like before but with massive content to prevent FlatList render bugs on Web */}
-          <ScrollView
-            ref={flatListRef as any}
+          <FlatList
+            ref={flatListRef}
+            data={data}
+            keyExtractor={(_: any, index: number) => index.toString()}
             showsVerticalScrollIndicator={false}
             snapToInterval={ITEM_HEIGHT}
             decelerationRate="fast"
@@ -274,13 +316,14 @@ const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any)
             onScrollEndDrag={handleScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
-          >
-            {data.map((item: string, idx: number) => {
+            getItemLayout={(data: any, index: number) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+            initialNumToRender={8}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            renderItem={({ item }: { item: string }) => {
               const isSelected = item === selectedValue;
-              // Only highlight the item if it's the one we are physically scrolled to, or if it matches value.
-              // To be performant, we just match value
               return (
-                <View key={idx} style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ 
                     fontSize: isSelected ? 22 : 16, 
                     color: isSelected ? '#38BDF8' : '#64748B', 
@@ -290,13 +333,13 @@ const TimeScrollPicker = ({ items, selectedValue, onValueChange, visible }: any)
                   </Text>
                 </View>
               );
-            })}
-          </ScrollView>
+            }}
+          />
         </React.Fragment>
       </View>
     </View>
   );
-};
+});
 
 const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, onConfirm }: any) => {
   const [date, setDate] = useState(initialDate || new Date());
