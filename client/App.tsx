@@ -26,12 +26,9 @@ export type ScreenType = 'home' | 'login' | 'register' | 'profile';
 const ReduxProvider = Provider as any;
 
 export default function App() {
-  return (
-    <ReduxProvider store={store}>
-      <SafeAreaProvider>
-        <AppContent />
-      </SafeAreaProvider>
-    </ReduxProvider>
+  const [currentScreen, setCurrentScreen] = useState("home" as ScreenType);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(
+    null as string | null,
   );
 }
 
@@ -95,9 +92,20 @@ function AppContent() {
             <Text
               style={[styles.tabButtonText, effectiveScreen === 'home' && styles.tabButtonTextActive]}
             >
-              Home
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="home-outline"
+                size={16}
+                color={currentScreen === "home" ? "#FFFFFF" : "#94A3B8"}
+              />
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  currentScreen === "home" && styles.tabButtonTextActive,
+                ]}
+              >
+                Trang chủ
+              </Text>
+            </TouchableOpacity>
 
           {!isAuthenticated ? (
             <>
@@ -157,8 +165,17 @@ function AppContent() {
       )}
 
       <View style={styles.screenContainer}>
-        {selectedDeviceId ? (
-          <DeviceDetailScreen deviceId={selectedDeviceId} onBack={handleBackFromDetail} />
+        {bookingDeviceId ? (
+          <BookingCreateScreen 
+            deviceId={bookingDeviceId} 
+            onBack={() => setBookingDeviceId(null)} 
+          />
+        ) : selectedDeviceId ? (
+          <DeviceDetailScreen 
+            deviceId={selectedDeviceId} 
+            onBack={handleBackFromDetail} 
+            onBookNow={(id) => setBookingDeviceId(id)}
+          />
         ) : (
           <>
             {effectiveScreen === 'home' && (
@@ -203,38 +220,38 @@ function AppContent() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#070B13',
+    backgroundColor: "#070B13",
   },
   topTabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    flexDirection: "row",
+    backgroundColor: "#0F172A",
     paddingHorizontal: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: "#1E293B",
     gap: 6,
   },
   tabButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
     minHeight: 40,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
   },
   tabButtonActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
   },
   tabButtonText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontWeight: "600",
+    color: "#94A3B8",
   },
   tabButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   screenContainer: {
     flex: 1,

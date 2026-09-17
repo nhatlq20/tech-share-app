@@ -16,13 +16,14 @@ import { Device } from '../../types';
 interface DeviceDetailScreenProps {
   deviceId: string;
   onBack: () => void;
+  onBookNow?: (deviceId: string) => void;
 }
 
 const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ';
 };
 
-export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps) {
+export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetailScreenProps) {
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
 
@@ -179,7 +180,9 @@ export function DeviceDetailScreen({ deviceId, onBack }: DeviceDetailScreenProps
 
         <TouchableOpacity
           style={styles.bookBtn}
-          onPress={() => alert(`Book device: ${device.title}`)}
+          onPress={() => {
+            if (onBookNow) onBookNow(deviceId);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />

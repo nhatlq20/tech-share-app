@@ -28,6 +28,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API Routes
+app.use('/api/devices', deviceRoutes);
+
+// 404 & Error Handler Middlewares
+app.use(notFound);
+app.use(errorHandler);
+
 // Kết nối MongoDB Atlas và khởi động Server
 const startServer = async () => {
   try {
