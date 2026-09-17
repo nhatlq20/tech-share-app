@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
 const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
