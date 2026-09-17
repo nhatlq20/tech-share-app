@@ -9,6 +9,7 @@ import {
   Image,
   StatusBar,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import { RootState } from '../../store';
 import { updateUser } from '../../store/slices/authSlice';
 import { apiClient } from '../../config/api';
 import { colors } from '../../theme/colors';
+import { pickAvatar } from '../../services/cloudinaryService';
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -39,6 +41,7 @@ export function ProfileScreen({
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('info' as 'info' | 'address' | 'activity');
   const [toastMsg, setToastMsg] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width < 360;
@@ -138,23 +141,32 @@ export function ProfileScreen({
   };
 
   const handleAvatarChange = async () => {
-    const avatars = [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-    ];
-    const next = (avatars.indexOf(avatarUri) + 1) % avatars.length;
     try {
-      const response = await apiClient.patch(
-        '/profile/me',
-        { avatar: avatars[next] },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      setUploadingAvatar(true);
+      const avatar = await pickAvatar();
+      if (!avatar) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: avatar.uri,
+        name: avatar.name,
+        type: avatar.type,
+      } as unknown as Blob);
+      const response = await apiClient.post('/profile/me/avatar', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       setAvatarUri(response.data.user.avatar);
       dispatch(updateUser(response.data.user));
       showToast('Profile photo updated!');
-    } catch (error) {
-      showToast('Unable to update profile photo.');
+    } catch (error: any) {
+      showToast(error?.response?.data?.message || 'Unable to update profile photo.');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -191,8 +203,16 @@ export function ProfileScreen({
                 source={{ uri: avatarUri }}
                 style={[styles.avatarImg, compact && styles.avatarImgCompact]}
               />
-              <TouchableOpacity style={styles.cameraIconBtn} onPress={handleAvatarChange}>
-                <Ionicons name="camera" size={14} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.cameraIconBtn}
+                onPress={handleAvatarChange}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="camera" size={14} color="#FFFFFF" />
+                )}
               </TouchableOpacity>
             </View>
 
