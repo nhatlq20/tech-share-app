@@ -17,12 +17,13 @@ import { store, RootState } from './src/store';
 import { clearAuth } from './src/store/slices/authSlice';
 import { HomeScreen } from './src/screens/home/HomeScreen';
 import { DeviceDetailScreen } from './src/screens/device/DeviceDetailScreen';
+import { PostDeviceScreen } from './src/screens/device/PostDeviceScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
 import { BookingCreateScreen } from './src/screens/booking/BookingCreateScreen';
 
-export type ScreenType = 'home' | 'login' | 'register' | 'profile';
+export type ScreenType = 'home' | 'login' | 'register' | 'profile' | 'postDevice';
 
 const ReduxProvider = Provider as any;
 
@@ -65,6 +66,10 @@ function AppContent() {
 
   const goToHome = () => {
     setCurrentScreen('home');
+  };
+
+  const goToPostDevice = () => {
+    setCurrentScreen('postDevice');
   };
 
   const handleLogout = () => {
@@ -184,6 +189,13 @@ function AppContent() {
               />
             )}
 
+            {effectiveScreen === 'postDevice' && (
+              <PostDeviceScreen
+                onBack={goToHome}
+                onPublished={goToHome}
+              />
+            )}
+
             {effectiveScreen === 'login' && (
               <LoginScreen
                 onNavigateToRegister={() => setCurrentScreen('register')}
@@ -202,6 +214,7 @@ function AppContent() {
               <ProfileScreen
                 onLogout={handleLogout}
                 onNavigateToLogin={goToLogin}
+                onNavigateToPostDevice={goToPostDevice}
               />
             )}
           </>

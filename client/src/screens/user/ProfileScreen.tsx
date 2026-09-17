@@ -20,9 +20,10 @@ import { apiClient } from '../../config/api';
 interface ProfileScreenProps {
   onLogout: () => void;
   onNavigateToLogin: () => void;
+  onNavigateToPostDevice: () => void;
 }
 
-export function ProfileScreen({ onLogout }: ProfileScreenProps) {
+export function ProfileScreen({ onLogout, onNavigateToPostDevice }: ProfileScreenProps) {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token);
@@ -234,6 +235,16 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
               <Text style={styles.statLabel}>32 reviews</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.listDeviceButton}
+            onPress={onNavigateToPostDevice}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add-circle-outline" size={19} color="#FFFFFF" />
+            <Text style={styles.listDeviceButtonText}>List Your Device</Text>
+            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* NAV TABS */}
@@ -629,6 +640,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderRadius: 12,
     paddingVertical: 10,
+  },
+  listDeviceButton: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    backgroundColor: '#2563EB',
+    marginTop: 14,
+  },
+  listDeviceButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   statItem: {
     flex: 1,
