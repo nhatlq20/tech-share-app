@@ -252,13 +252,18 @@ export const deviceService = {
       });
 
       if (response.data && Array.isArray(response.data.data)) {
+        console.log('✅ [deviceService] Gọi API Backend thành công! Số lượng devices:', response.data.data.length);
         return response.data.data;
       }
       if (Array.isArray(response.data)) {
         return response.data;
       }
-    } catch {
-      // Backend route chưa triển khai hoặc máy chủ chưa bật -> dùng dữ liệu mẫu chuẩn
+    } catch (error: any) {
+      console.log('❌ [deviceService DEBUG] Request URL:', error?.config?.baseURL ? `${error.config.baseURL}${error.config.url}` : error?.config?.url);
+      console.log('❌ [deviceService DEBUG] Error message:', error?.message);
+      console.log('❌ [deviceService DEBUG] Axios code:', error?.code);
+      console.log('❌ [deviceService DEBUG] HTTP status:', error?.response?.status);
+      console.log('❌ [deviceService DEBUG] Response data:', error?.response?.data);
       console.log('ℹ️ [deviceService] Sử dụng dữ liệu fallback do API backend chưa sẵn sàng.');
     }
 
