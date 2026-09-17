@@ -82,7 +82,7 @@ export function HomeScreen({
   const renderListHeader = useMemo(() => {
     return (
       <View style={styles.headerArea}>
-        {/* TOP BAR: Logo & Thông báo */}
+        {/* TOP BAR: Logo & notifications */}
         <View style={styles.topBar}>
           <View style={styles.brandContainer}>
             <View style={styles.logoBadge}>
@@ -92,7 +92,7 @@ export function HomeScreen({
               <Text style={styles.brandTitle}>TechShare</Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-sharp" size={11} color="#38BDF8" />
-                <Text style={styles.locationText}>Hà Nội, Việt Nam</Text>
+                <Text style={styles.locationText}>Hanoi, Vietnam</Text>
               </View>
             </View>
           </View>
@@ -113,7 +113,7 @@ export function HomeScreen({
             <Ionicons name="search-outline" size={20} color="#94A3B8" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Tìm kiếm thiết bị..."
+              placeholder="Search devices..."
               placeholderTextColor="#64748B"
               value={localSearch}
               onChangeText={handleSearchChange}
@@ -134,7 +134,7 @@ export function HomeScreen({
           </View>
         </View>
 
-        {/* 6 DANH MỤC THIẾT BỊ (CategoryBar) */}
+        {/* 6 DEVICE CATEGORIES */}
         <CategoryBar
           selectedCategory={selectedCategory}
           onSelectCategory={handleSelectCategory}
@@ -143,20 +143,20 @@ export function HomeScreen({
         {/* PROMO BANNER CAROUSEL */}
         <PromoBanner
           onPressBanner={(banner: PromoBannerItem) => {
-            console.log('Chạm vào banner:', banner.title);
+            console.log('Tapped banner:', banner.title);
           }}
         />
 
         {/* SECTION HEADER */}
         <SectionHeader
-          title="Thiết bị đang có sẵn"
+          title="Available devices"
           subtitle={
             selectedCategory === 'all'
-              ? 'Tất cả danh mục công nghệ'
-              : `Lọc theo: ${selectedCategory.toUpperCase()}`
+              ? 'All tech categories'
+              : `Filtered by: ${selectedCategory.toUpperCase()}`
           }
           badgeCount={filteredDevices.length}
-          actionText={selectedCategory !== 'all' ? 'Bỏ lọc' : undefined}
+          actionText={selectedCategory !== 'all' ? 'Clear filter' : undefined}
           onActionPress={
             selectedCategory !== 'all'
               ? () => dispatch(clearFilters())
@@ -194,11 +194,11 @@ export function HomeScreen({
         <View style={styles.emptyIconCircle}>
           <Ionicons name="hardware-chip-outline" size={36} color="#64748B" />
         </View>
-        <Text style={styles.emptyTitle}>Chưa có thiết bị nào khả dụng</Text>
+        <Text style={styles.emptyTitle}>No devices available yet</Text>
         <Text style={styles.emptySubtitle}>
           {searchQuery || selectedCategory !== 'all'
-            ? 'Không tìm thấy thiết bị phù hợp với bộ lọc hiện tại của bạn.'
-            : 'Hiện tại chưa có thiết bị nào sẵn sàng cho thuê.'}
+            ? 'No matching devices were found for your current filters.'
+            : 'There are no devices available for rent at the moment.'}
         </Text>
 
         {(searchQuery || selectedCategory !== 'all') && (
@@ -211,7 +211,7 @@ export function HomeScreen({
             activeOpacity={0.8}
           >
             <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.resetBtnText}>Xem tất cả thiết bị</Text>
+            <Text style={styles.resetBtnText}>View all devices</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -222,7 +222,7 @@ export function HomeScreen({
   const renderErrorState = () => (
     <View style={styles.errorContainer}>
       <Ionicons name="alert-circle-outline" size={40} color="#EF4444" />
-      <Text style={styles.errorTitle}>Có lỗi xảy ra</Text>
+      <Text style={styles.errorTitle}>Something went wrong</Text>
       <Text style={styles.errorSubtitle}>{error}</Text>
       <TouchableOpacity
         style={styles.retryBtn}
@@ -230,7 +230,7 @@ export function HomeScreen({
         activeOpacity={0.8}
       >
         <Ionicons name="reload-outline" size={16} color="#FFFFFF" />
-        <Text style={styles.retryBtnText}>Thử lại</Text>
+        <Text style={styles.retryBtnText}>Retry</Text>
       </TouchableOpacity>
     </View>
   );

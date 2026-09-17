@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,22 +30,24 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   const [role, setRole] = useState('both' as UserRole);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
 
   const handleRegister = () => {
     if (!name.trim() || !email.trim() || !phone.trim() || !password) {
-      setErrorMsg('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      setErrorMsg('Please fill in all required information');
       return;
     }
     if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải từ 6 ký tự trở lên');
+      setErrorMsg('Password must be at least 6 characters');
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMsg('Mật khẩu xác nhận không khớp');
+      setErrorMsg('Passwords do not match');
       return;
     }
     if (!agreeTerms) {
-      setErrorMsg('Bạn cần đồng ý với điều khoản sử dụng');
+      setErrorMsg('You must agree to the terms of use');
       return;
     }
 
@@ -63,7 +66,10 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
     >
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: isCompact ? 14 : 20 },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -73,12 +79,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <Text style={styles.appTitle}>Tạo tài khoản</Text>
-            <Text style={styles.appSubtitle}>Gia nhập cộng đồng cho thuê công nghệ</Text>
+            <Text style={styles.appTitle}>Create account</Text>
+            <Text style={styles.appSubtitle}>Join the tech rental community</Text>
           </View>
         </View>
 
-        {/* THẺ FORM */}
+        {/* FORM CARD */}
         <View style={styles.card}>
           {errorMsg ? (
             <View style={styles.errorBanner}>
@@ -87,9 +93,9 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           ) : null}
 
-          {/* Chọn vai trò (Role) */}
+          {/* Select role */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Vai trò của bạn:</Text>
+            <Text style={styles.inputLabel}>Your role:</Text>
             <View style={styles.roleTabsRow}>
               <TouchableOpacity
                 style={[styles.roleTab, role === 'both' && styles.roleTabActive]}
@@ -101,7 +107,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                   color={role === 'both' ? '#FFFFFF' : '#94A3B8'}
                 />
                 <Text style={[styles.roleTabText, role === 'both' && styles.roleTabTextActive]}>
-                  Cả hai (Khuyên dùng)
+                  Both (Recommended)
                 </Text>
               </TouchableOpacity>
 
@@ -110,7 +116,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 onPress={() => setRole('renter')}
               >
                 <Text style={[styles.roleTabText, role === 'renter' && styles.roleTabTextActive]}>
-                  Người thuê
+                  Renter
                 </Text>
               </TouchableOpacity>
 
@@ -119,22 +125,22 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 onPress={() => setRole('owner')}
               >
                 <Text style={[styles.roleTabText, role === 'owner' && styles.roleTabTextActive]}>
-                  Chủ máy
+                  Owner
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Input Họ tên */}
+          {/* Full name input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Họ và tên *</Text>
+            <Text style={styles.inputLabel}>Full name *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="person-outline" size={18} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="VD: Nguyễn Văn An"
+                placeholder="e.g. John Doe"
                 placeholderTextColor="#64748B"
                 value={name}
                 onChangeText={(t: string) => {
@@ -145,7 +151,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           </View>
 
-          {/* Input Email */}
+          {/* Email input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Email *</Text>
             <View style={styles.inputWrap}>
@@ -154,7 +160,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="VD: an.nguyen@techshare.vn"
+                placeholder="e.g. john@techshare.vn"
                 placeholderTextColor="#64748B"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -167,16 +173,16 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           </View>
 
-          {/* Input Số điện thoại */}
+          {/* Phone input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Số điện thoại *</Text>
+            <Text style={styles.inputLabel}>Phone number *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="call-outline" size={18} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="VD: 0912345678"
+                placeholder="e.g. 0912345678"
                 placeholderTextColor="#64748B"
                 keyboardType="phone-pad"
                 value={phone}
@@ -188,16 +194,16 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           </View>
 
-          {/* Input Mật khẩu */}
+          {/* Password input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Mật khẩu (tối thiểu 6 ký tự) *</Text>
+            <Text style={styles.inputLabel}>Password (minimum 6 characters) *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter password"
                 placeholderTextColor="#64748B"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -219,16 +225,16 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           </View>
 
-          {/* Input Xác nhận mật khẩu */}
+          {/* Confirm password input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Xác nhận mật khẩu *</Text>
+            <Text style={styles.inputLabel}>Confirm password *</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="shield-checkmark-outline" size={18} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Nhập lại mật khẩu"
+                placeholder="Re-enter password"
                 placeholderTextColor="#64748B"
                 secureTextEntry={!showPassword}
                 value={confirmPassword}
@@ -240,7 +246,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           </View>
 
-          {/* Điều khoản */}
+          {/* Terms */}
           <TouchableOpacity
             style={styles.termsRow}
             onPress={() => setAgreeTerms(!agreeTerms)}
@@ -249,20 +255,20 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               {agreeTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
             </View>
             <Text style={styles.termsText}>
-              Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản sử dụng</Text> & <Text style={styles.termsLink}>Chính sách bảo mật</Text> của TechShare
+              I agree to the <Text style={styles.termsLink}>Terms of Use</Text> and <Text style={styles.termsLink}>Privacy Policy</Text> of TechShare
             </Text>
           </TouchableOpacity>
 
-          {/* Nút Đăng ký */}
+          {/* Register button */}
           <TouchableOpacity style={styles.registerBtn} onPress={handleRegister} activeOpacity={0.8}>
-            <Text style={styles.registerBtnText}>ĐĂNG KÝ TÀI KHOẢN</Text>
+            <Text style={styles.registerBtnText}>CREATE ACCOUNT</Text>
           </TouchableOpacity>
 
-          {/* Chuyển sang Đăng nhập */}
+          {/* Switch to Login */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Đã có tài khoản? </Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+              <Text style={styles.loginLink}>Log in now</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -274,13 +280,15 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: '#0B0F19',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    width: '100%',
     paddingTop: 10,
     paddingBottom: 30,
+    paddingHorizontal: 18,
   },
   headerBox: {
     flexDirection: 'row',
