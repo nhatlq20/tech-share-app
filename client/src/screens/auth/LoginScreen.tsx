@@ -21,7 +21,8 @@ import { colors } from '../../theme/colors';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
-  onNavigateToHome: () => void;
+  /** Gọi sau khi login thành công, truyền role của user để App routing */
+  onNavigateToHome: (role?: string) => void;
 }
 
 export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScreenProps) {
@@ -56,7 +57,8 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
       }
 
       dispatch(setAuth({ token, user }));
-      onNavigateToHome();
+      // Truyền role để App.tsx điều hướng đúng dashboard
+      onNavigateToHome(user?.role);
     } catch (error: any) {
       const message = error?.response?.data?.message
         || (axios.isAxiosError(error) && !error.response

@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { HeaderActions } from '../../components/navigation/HeaderActions';
 import { useAppDispatch, useAppSelector } from '../../store';
 import {
   fetchDevices,
@@ -33,11 +34,19 @@ interface HomeScreenProps {
   onNavigateToDeviceDetail: (deviceId: string) => void;
   onNavigateToSearch?: () => void;
   onNavigateToNotifications?: () => void;
+  onNavigateToChat?: () => void;
+  /** Số tin nhắn chưa đọc — hiện badge nếu > 0 */
+  unreadMessages?: number;
+  /** Số thông báo chưa đọc — hiện badge nếu > 0 */
+  unreadNotifications?: number;
 }
 
 export function HomeScreen({
   onNavigateToDeviceDetail,
   onNavigateToNotifications,
+  onNavigateToChat,
+  unreadMessages = 2,
+  unreadNotifications = 5,
 }: HomeScreenProps) {
   const dispatch = useAppDispatch();
   const {
@@ -101,14 +110,13 @@ export function HomeScreen({
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.notificationBtn}
-            onPress={onNavigateToNotifications}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="notifications-outline" size={20} color={colors.light.textPrimary} />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          {/* Chat + Thông báo — dùng HeaderActions component */}
+          <HeaderActions
+            unreadMessages={unreadMessages}
+            unreadNotifications={unreadNotifications}
+            onPressChat={onNavigateToChat}
+            onPressNotifications={onNavigateToNotifications}
+          />
         </View>
 
         {/* SEARCH BAR */}
