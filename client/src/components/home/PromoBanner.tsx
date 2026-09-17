@@ -8,6 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
+import { colors } from '../../theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_CARD_WIDTH = SCREEN_WIDTH - 32; // 16px padding on each side
@@ -164,9 +165,9 @@ const styles = StyleSheet.create({
     height: 156,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     elevation: 3,
   },
   bannerImage: {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
   },
   textContainer: {
     flex: 1,
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: '#F1F5F9',
     lineHeight: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
@@ -224,10 +225,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#334155',
+    backgroundColor: colors.light.border,
   },
   indicatorDotActive: {
     width: 18,
-    backgroundColor: '#38BDF8',
+    backgroundColor: colors.light.primary,
   },
 });

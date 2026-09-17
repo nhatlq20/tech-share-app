@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../theme/colors';
 
 interface SectionHeaderProps {
   title: string;
@@ -38,7 +39,7 @@ export function SectionHeader({
           activeOpacity={0.7}
         >
           <Text style={styles.actionText}>{actionText}</Text>
-          <Ionicons name="chevron-forward" size={14} color="#38BDF8" />
+          <Ionicons name="chevron-forward" size={14} color={colors.light.primary} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -65,25 +66,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     letterSpacing: 0.3,
   },
   badge: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.primaryLight,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: colors.light.primary,
   },
   subtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   actionBtn: {
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontWeight: '600',
   },
 });

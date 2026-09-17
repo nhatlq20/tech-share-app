@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
@@ -133,7 +132,6 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       virtuals: true,
       transform: (doc, ret) => {
-        delete ret.passwordHash;
         delete ret.__v;
         return ret;
       },
@@ -142,10 +140,15 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Virtual aliases for backward compatibility
-userSchema.virtual('password').set(function (val) {
-  this.passwordHash = val;
+// Virtual reference to Account
+userSchema.virtual('account', {
+  ref: 'Account',
+  localField: 'accountId',
+  foreignField: '_id',
+  justOne: true,
 });
+
+// Virtual helpers for backward compatibility
 userSchema.virtual('favoriteDevices').get(function () {
   return this.wishlist;
 }).set(function (val) {
@@ -155,19 +158,6 @@ userSchema.virtual('favoriteDevices').get(function () {
 // Indexes
 userSchema.index({ location: '2dsphere' });
 userSchema.index({ trustScore: -1 });
-
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('passwordHash')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-  next();
-});
-
-// Compare password helper
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.passwordHash);
-};
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 

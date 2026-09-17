@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Device } from '../../types';
+import { colors } from '../../theme/colors';
 
 interface DeviceCardProps {
   device: Device;
@@ -25,11 +26,13 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
       ? device.images[0]
       : 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600';
 
+  const isAvailable = device.status === 'available';
+
   return (
     <TouchableOpacity
       style={[styles.card, width ? { width } : styles.defaultWidth]}
       onPress={() => onPress(device._id)}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       {/* Device image & status badge */}
       <View style={styles.imageContainer}>
@@ -44,25 +47,26 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
           <Text style={styles.brandText}>{device.brand}</Text>
         </View>
 
-        {/* Status badge */}
+        {/* Badge trạng thái (Tuân thủ theme-skill.md) */}
         <View
           style={[
             styles.statusBadge,
-            device.status === 'available'
-              ? styles.statusAvailable
-              : styles.statusOther,
+            isAvailable ? styles.statusAvailable : styles.statusRented,
           ]}
         >
           <View
             style={[
               styles.statusDot,
-              device.status === 'available'
-                ? styles.statusDotAvailable
-                : styles.statusDotOther,
+              isAvailable ? styles.statusDotAvailable : styles.statusDotRented,
             ]}
           />
-          <Text style={styles.statusText}>
-            {device.status === 'available' ? 'Available' : 'Rented'}
+          <Text
+            style={[
+              styles.statusText,
+              isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
+            ]}
+          >
+            {isAvailable ? 'Có sẵn' : 'Đang thuê'}
           </Text>
         </View>
       </View>
@@ -76,7 +80,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
         {/* Rating & Lượt đánh giá */}
         <View style={styles.metaRow}>
           <View style={styles.ratingBox}>
-            <Ionicons name="star" size={13} color="#FBBF24" />
+            <Ionicons name="star" size={13} color={colors.light.ratingStar} />
             <Text style={styles.ratingText}>
               {device.rating ? device.rating.toFixed(1) : '5.0'}
             </Text>
@@ -86,7 +90,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
           {/* Địa điểm */}
           {device.location?.address ? (
             <View style={styles.locationBox}>
-              <Ionicons name="location-outline" size={12} color="#94A3B8" />
+              <Ionicons name="location-outline" size={12} color={colors.light.textSecondary} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {device.location.address.split(',').slice(-2).join(',').trim()}
               </Text>
@@ -112,12 +116,16 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     marginBottom: 14,
   },
   defaultWidth: {
@@ -126,7 +134,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 140,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
     position: 'relative',
   },
   image: {
@@ -137,15 +145,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.light.border,
   },
   brandText: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -162,14 +170,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusAvailable: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: colors.light.primary,
   },
-  statusOther: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+  statusRented: {
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: colors.light.warning,
   },
   statusDot: {
     width: 6,
@@ -177,15 +185,20 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusDotAvailable: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.light.primary,
   },
-  statusDotOther: {
-    backgroundColor: '#F59E0B',
+  statusDotRented: {
+    backgroundColor: colors.light.warning,
   },
   statusText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FFFFFF',
+  },
+  statusTextAvailable: {
+    color: colors.light.primaryDark,
+  },
+  statusTextRented: {
+    color: colors.light.warning,
   },
   content: {
     padding: 12,
@@ -193,7 +206,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     lineHeight: 18,
     minHeight: 36,
   },
@@ -213,11 +226,11 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FBBF24',
+    color: colors.light.textPrimary,
   },
   reviewCount: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   locationBox: {
     flex: 1,
@@ -228,7 +241,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -236,22 +249,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: colors.light.border,
   },
   priceLabel: {
     fontSize: 10,
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   priceText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: colors.light.primary,
   },
   arrowBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -165,14 +165,14 @@ function AppContent() {
 
       <View style={styles.screenContainer}>
         {bookingDeviceId ? (
-          <BookingCreateScreen 
-            deviceId={bookingDeviceId} 
-            onBack={() => setBookingDeviceId(null)} 
+          <BookingCreateScreen
+            deviceId={bookingDeviceId}
+            onBack={() => setBookingDeviceId(null)}
           />
         ) : selectedDeviceId ? (
-          <DeviceDetailScreen 
-            deviceId={selectedDeviceId} 
-            onBack={handleBackFromDetail} 
+          <DeviceDetailScreen
+            deviceId={selectedDeviceId}
+            onBack={handleBackFromDetail}
             onBookNow={(id) => setBookingDeviceId(id)}
           />
         ) : (
@@ -227,38 +227,38 @@ function AppContent() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#070B13",
+    backgroundColor: '#070B13',
   },
   topTabBar: {
-    flexDirection: "row",
-    backgroundColor: "#0F172A",
+    flexDirection: 'row',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E293B",
+    borderBottomColor: '#1E293B',
     gap: 6,
   },
   tabButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     minHeight: 40,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#1E293B",
+    backgroundColor: '#1E293B',
   },
   tabButtonActive: {
-    backgroundColor: "#2563EB",
+    backgroundColor: '#2563EB',
   },
   tabButtonText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#94A3B8",
+    fontWeight: '600',
+    color: '#94A3B8',
   },
   tabButtonTextActive: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
   },
   screenContainer: {
     flex: 1,

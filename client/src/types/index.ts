@@ -6,7 +6,29 @@
 // ==========================================
 // 1. Phân hệ Người dùng (Users & Auth)
 // ==========================================
-export type UserRole = 'renter' | 'owner' | 'both' | 'admin';
+export type UserRole = 'renter' | 'owner' | 'admin';
+
+export interface Role {
+  _id: string;
+  code: UserRole;
+  name: string;
+  description?: string;
+  permissions?: string[];
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Account {
+  _id: string;
+  username: string;
+  email: string;
+  roleId: string | Role;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface GeoPoint {
   type: 'Point';
@@ -23,16 +45,25 @@ export interface UserAddress {
 
 export interface User {
   _id: string;
+  accountId?: string | Account;
+  account?: Account;
   name: string;
-  email: string;
+  username?: string;
+  email?: string;
   phone?: string;
   avatar?: string;
-  role: UserRole;
+  role?: UserRole;
   address?: UserAddress;
   location?: GeoPoint;
   favoriteDevices?: string[];
   rating?: number;
   totalReviews?: number;
+  trustScore?: number;
+  walletBalance?: number;
+  walletEscrowBalance?: number;
+  badges?: string[];
+  referralCode?: string;
+  referredBy?: string;
   isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -216,3 +247,187 @@ export type MainTabParamList = {
   WishlistTab: undefined;
   NotificationTab: undefined;
 };
+
+// ==========================================
+// 7. Phân hệ Quản trị Admin (Admin Hub N-08)
+// ==========================================
+export interface CategoryDistributionItem {
+  category: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AdminAnalytics {
+  totalUsers: number;
+  verifiedUsers: number;
+  totalDevices: number;
+  rentedDevices: number;
+  availableDevices: number;
+  activeBookings: number;
+  completedBookingsCount: number;
+  totalRentalRevenue: number;
+  platformCommission: number;
+  categoryDistribution: CategoryDistributionItem[];
+  pendingTasks: {
+    disputes: number;
+    ekyc: number;
+    total: number;
+  };
+}
+
+export type DisputeStatus = 'pending' | 'resolved';
+export type DisputeDecision = 'full_refund' | 'partial_deduct' | 'full_deduct';
+
+export interface DisputeItem {
+  _id: string;
+  bookingId: {
+    _id: string;
+    bookingCode: string;
+    deviceId: {
+      _id: string;
+      name: string;
+      brand: string;
+      images: string[];
+      category: string;
+      pricePerDay: number;
+      depositAmount: number;
+    };
+    renterId: {
+      _id: string;
+      name: string;
+      avatar?: string;
+      phone?: string;
+      trustScore?: number;
+      rating?: number;
+    };
+    ownerId: {
+      _id: string;
+      name: string;
+      avatar?: string;
+      phone?: string;
+      trustScore?: number;
+      rating?: number;
+    };
+    startDate: string;
+    endDate: string;
+    totalDays: number;
+    rentalFee: number;
+    depositFee: number;
+    status: string;
+    paymentStatus: string;
+    handoverPhotos?: {
+      beforeRental?: string[];
+      afterRental?: string[];
+    };
+  };
+  raisedBy: {
+    _id: string;
+    name: string;
+    avatar?: string;
+    phone?: string;
+  };
+  reason: string;
+  evidenceImages: string[];
+  requestedDeductAmount: number;
+  status: DisputeStatus;
+  adminDecision?: DisputeDecision;
+  finalDeductAmount?: number;
+  resolvedBy?: {
+    _id: string;
+    name: string;
+  };
+  resolvedAt?: string;
+  createdAt?: string;
+}
+
+export interface ResolveDisputePayload {
+  decision: DisputeDecision;
+  finalDeductAmount?: number;
+  note?: string;
+}
+
+export interface EkycItem {
+  _id: string;
+  userId: {
+    _id: string;
+    name: string;
+    avatar?: string;
+    phone?: string;
+    email?: string;
+    trustScore?: number;
+    isVerified?: boolean;
+    badges?: string[];
+  };
+  idCardFrontUrl: string;
+  idCardBackUrl: string;
+  selfieUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectReason?: string;
+  reviewedBy?: {
+    _id: string;
+    name: string;
+  };
+  reviewedAt?: string;
+  createdAt?: string;
+}
+
+export interface AdminDeviceItem {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  condition: string;
+  pricePerDay: number;
+  depositAmount: number;
+  images: string[];
+  status: string;
+  isDeleted: boolean;
+  ownerId?: {
+    _id: string;
+    name: string;
+    avatar?: string;
+    phone?: string;
+  };
+  createdAt?: string;
+}
+
+// ==========================================
+// 8. Phân hệ Báo cáo Doanh thu Chủ máy (K-05 Owner Analytics)
+// ==========================================
+export interface OwnerOverviewStats {
+  totalRevenue: number;
+  activeRentals: number;
+  escrowHolding: number;
+  utilizationRate: number;
+}
+
+export interface OwnerRevenueChartData {
+  period: 'week' | 'month';
+  labels: string[];
+  datasets: Array<{
+    data: number[];
+    color?: (opacity?: number) => string;
+    strokeWidth?: number;
+  }>;
+}
+
+export interface FleetDeviceItem {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  imageUrl: string;
+  pricePerDay: number;
+  rentalCount: number;
+  ratingAvg: number;
+  revenueTotal: number;
+  status: string;
+}
+
+export interface OwnerAnalyticsResponse {
+  overview: OwnerOverviewStats;
+  revenueChart: OwnerRevenueChartData;
+  fleet: FleetDeviceItem[];
+}
+
+
