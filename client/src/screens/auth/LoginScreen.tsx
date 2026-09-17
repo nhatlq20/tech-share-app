@@ -25,7 +25,7 @@ interface LoginScreenProps {
 
 export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScreenProps) {
   const dispatch = useDispatch();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -35,8 +35,8 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
   const isCompact = width < 360;
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setErrorMsg('Please enter both email and password');
+    if (!identifier.trim() || !password) {
+      setErrorMsg('Please enter username/email and password');
       return;
     }
 
@@ -45,7 +45,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
       setErrorMsg('');
 
       const response = await apiClient.post('/auth/login', {
-        email: email.trim().toLowerCase(),
+        identifier: identifier.trim(),
         password,
       });
 
@@ -103,23 +103,23 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
             </View>
           ) : null}
 
-          {/* Email input */}
+          {/* Username or email input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email</Text>
+            <Text style={styles.inputLabel}>Username or email</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="mail-outline" size={20} color="#94A3B8" />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="e.g. user@techshare.vn"
+                placeholder="Enter username or email"
                 placeholderTextColor="#64748B"
-                value={email}
+                value={identifier}
                 onChangeText={(text: string) => {
-                  setEmail(text);
+                  setIdentifier(text);
                   if (errorMsg) setErrorMsg('');
                 }}
-                keyboardType="email-address"
+                keyboardType="default"
                 autoCapitalize="none"
               />
             </View>

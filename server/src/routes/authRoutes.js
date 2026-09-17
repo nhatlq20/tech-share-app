@@ -28,17 +28,21 @@ const createToken = user => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { identifier, username, email, password } = req.body || {};
+    const loginIdentifier = String(identifier || username || email || '').trim();
 
-    if (!email || !password) {
+    if (!loginIdentifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required',
+        message: 'Username/email and password are required',
       });
     }
 
     const account = await Account.findOne({
-      email: String(email).trim().toLowerCase(),
+      $or: [
+        { username: loginIdentifier },
+        { email: loginIdentifier.toLowerCase() },
+      ],
       isActive: { $ne: false },
     }).select('+passwordHash');
 
@@ -123,13 +127,14 @@ router.post('/login', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body || {};
+    const { username, name, email, phone, password } = req.body || {};
+    const normalizedUsername = String(username || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!name?.trim() || !normalizedEmail || !phone?.trim() || !password) {
+    if (!normalizedUsername || !name?.trim() || !normalizedEmail || !phone?.trim() || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, phone, and password are required',
+        message: 'Username, name, email, phone, and password are required',
       });
     }
 
@@ -140,7 +145,12 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const existingAccount = await Account.findOne({ email: normalizedEmail });
+    const existingAccount = await Account.findOne({
+      $or: [
+        { username: normalizedUsername },
+        { email: normalizedEmail },
+      ],
+    });
     if (existingAccount) {
       return res.status(409).json({
         success: false,
@@ -148,17 +158,8 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const allowedRoles = ['owner', 'rental'];
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Only owner or rental accounts can register publicly',
-      });
-    }
-
-    const normalizedRole = role === 'rental' ? 'renter' : role;
     const roleRecord = await mongoose.connection.db.collection('roles').findOne({
-      code: normalizedRole,
+      code: 'renter',
     });
 
     if (!roleRecord) {
@@ -168,10 +169,9 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const username = normalizedEmail.split('@')[0];
     const passwordHash = await bcrypt.hash(password, 10);
     const account = await Account.create({
-      username,
+      username: normalizedUsername,
       email: normalizedEmail,
       passwordHash,
       roleId: roleRecord._id,
@@ -181,8 +181,9 @@ router.post('/register', async (req, res) => {
     const user = await User.create({
       accountId: account._id,
       name: name.trim(),
+      email: account.email,
       phone: phone.trim(),
-      role,
+      role: 'rental',
       isVerified: false,
       trustScore: 100,
     });

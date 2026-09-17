@@ -22,17 +22,15 @@ interface RegisterScreenProps {
   onRegisterSuccess?: () => void;
 }
 
-export type UserRole = 'owner' | 'rental';
-
 export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
   const dispatch = useDispatch();
+  const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('rental' as UserRole);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +38,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   const isCompact = width < 360;
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+    if (!username.trim() || !name.trim() || !email.trim() || !phone.trim() || !password) {
       setErrorMsg('Please fill in all required information');
       return;
     }
@@ -62,10 +60,10 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       setErrorMsg('');
       const response = await apiClient.post('/auth/register', {
         name: name.trim(),
+        username: username.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
-        role,
       });
 
       const { token, user } = response.data;
@@ -116,27 +114,23 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
             </View>
           ) : null}
 
-          {/* Select role */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Your role:</Text>
-            <View style={styles.roleTabsRow}>
-              <TouchableOpacity
-                style={[styles.roleTab, role === 'rental' && styles.roleTabActive]}
-                onPress={() => setRole('rental')}
-              >
-                <Text style={[styles.roleTabText, role === 'rental' && styles.roleTabTextActive]}>
-                  Rental
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.roleTab, role === 'owner' && styles.roleTabActive]}
-                onPress={() => setRole('owner')}
-              >
-                <Text style={[styles.roleTabText, role === 'owner' && styles.roleTabTextActive]}>
-                  Owner
-                </Text>
-              </TouchableOpacity>
+            <Text style={styles.inputLabel}>Username *</Text>
+            <View style={styles.inputWrap}>
+              <View style={styles.iconBox}>
+                <Ionicons name="at-outline" size={18} color="#94A3B8" />
+              </View>
+              <TextInput
+                style={styles.inputField}
+                placeholder="e.g. johntech"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                value={username}
+                onChangeText={(text: string) => {
+                  setUsername(text);
+                  if (errorMsg) setErrorMsg('');
+                }}
+              />
             </View>
           </View>
 
