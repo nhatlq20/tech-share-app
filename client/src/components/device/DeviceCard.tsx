@@ -16,7 +16,7 @@ interface DeviceCardProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ/ngày';
+  return price.toLocaleString('vi-VN') + ' đ/day';
 };
 
 export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
@@ -31,7 +31,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
       onPress={() => onPress(device._id)}
       activeOpacity={0.8}
     >
-      {/* Ảnh thiết bị & Badge trạng thái */}
+      {/* Device image & status badge */}
       <View style={styles.imageContainer}>
         <Image
           source={{ uri: imageUrl }}
@@ -39,12 +39,12 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
           resizeMode="cover"
         />
 
-        {/* Badge thương hiệu */}
+        {/* Brand badge */}
         <View style={styles.brandBadge}>
           <Text style={styles.brandText}>{device.brand}</Text>
         </View>
 
-        {/* Badge trạng thái */}
+        {/* Status badge */}
         <View
           style={[
             styles.statusBadge,
@@ -62,12 +62,12 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
             ]}
           />
           <Text style={styles.statusText}>
-            {device.status === 'available' ? 'Có sẵn' : 'Đang thuê'}
+            {device.status === 'available' ? 'Available' : 'Rented'}
           </Text>
         </View>
       </View>
 
-      {/* Nội dung thông tin thiết bị */}
+      {/* Device info content */}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>
           {device.title}
