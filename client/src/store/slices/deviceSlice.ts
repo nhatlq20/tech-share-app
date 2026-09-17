@@ -88,13 +88,19 @@ export const deviceSlice = createSlice({
   extraReducers: builder => {
     // fetchDevices
     builder
-      .addCase(fetchDevices.pending, state => {
+      .addCase(fetchDevices.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
+        if (action.meta.arg?.category !== undefined) {
+          state.selectedCategory = action.meta.arg.category;
+        }
       })
-      .addCase(fetchDevices.fulfilled, (state, action: PayloadAction<Device[]>) => {
+      .addCase(fetchDevices.fulfilled, (state, action) => {
         state.isLoading = false;
         state.devices = action.payload;
+        if (action.meta.arg?.category !== undefined) {
+          state.selectedCategory = action.meta.arg.category;
+        }
         state.filteredDevices = filterList(action.payload, state.selectedCategory, state.searchQuery);
       })
       .addCase(fetchDevices.rejected, (state, action) => {
@@ -107,9 +113,12 @@ export const deviceSlice = createSlice({
       .addCase(refreshDevices.pending, state => {
         state.isRefreshing = true;
       })
-      .addCase(refreshDevices.fulfilled, (state, action: PayloadAction<Device[]>) => {
+      .addCase(refreshDevices.fulfilled, (state, action) => {
         state.isRefreshing = false;
         state.devices = action.payload;
+        if (action.meta.arg?.category !== undefined) {
+          state.selectedCategory = action.meta.arg.category;
+        }
         state.filteredDevices = filterList(action.payload, state.selectedCategory, state.searchQuery);
       })
       .addCase(refreshDevices.rejected, (state, action) => {

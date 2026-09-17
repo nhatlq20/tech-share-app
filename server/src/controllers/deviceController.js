@@ -8,10 +8,18 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
  * @access  Public
  */
 export const getDevices = asyncHandler(async (req, res) => {
-  const devices = await Device.find({
+  const { category } = req.query;
+
+  const filter = {
     status: 'available',
     isDeleted: false,
-  })
+  };
+
+  if (category && category !== 'all') {
+    filter.category = category.trim().toLowerCase();
+  }
+
+  const devices = await Device.find(filter)
     .populate('ownerId', 'name avatar rating isVerified phone email address')
     .sort({ createdAt: -1 });
 
