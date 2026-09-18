@@ -38,6 +38,25 @@ export const getDevices = asyncHandler(async (req, res) => {
   });
 });
 
+export const getDeviceById = asyncHandler(async (req, res) => {
+  const device = await Device.findOne({
+    _id: req.params.id,
+    isDeleted: false,
+  }).populate("ownerId", "name avatar rating isVerified phone email address");
+
+  if (!device) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy thiết bị",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: device,
+  });
+});
+
 export const createDevice = asyncHandler(async (req, res) => {
   const {
     name,
