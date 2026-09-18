@@ -333,11 +333,10 @@ export const deviceService = {
       if (response.data) {
         return response.data;
       }
-    } catch {
-      // Fallback
+    } catch (error) {
+      console.error("[deviceService] Không thể lấy chi tiết thiết bị:", error);
     }
-    const found = FALLBACK_DEVICES.find((d) => d._id === id);
-    return found || null;
+    return null;
   },
 
   async getMyDevices(token: string): Promise<Device[]> {

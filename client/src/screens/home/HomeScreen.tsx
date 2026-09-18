@@ -30,6 +30,7 @@ import { colors } from '../../theme/colors';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px screen padding + 8px gap
 
+
 interface HomeScreenProps {
   onNavigateToDeviceDetail: (deviceId: string) => void;
   onNavigateToSearch?: () => void;
