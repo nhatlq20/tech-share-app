@@ -21,14 +21,10 @@ export const getDevices = asyncHandler(async (req, res) => {
 
   if (q && q.trim()) {
     const keyword = q.trim();
-    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedKeyword, 'i');
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escapedKeyword, "i");
 
-    filter.$or = [
-      { name: regex },
-      { brand: regex },
-      { description: regex },
-    ];
+    filter.$or = [{ name: regex }, { brand: regex }, { description: regex }];
   }
 
   const devices = await Device.find(filter)
@@ -89,3 +85,23 @@ export const createDevice = asyncHandler(async (req, res) => {
     data: device,
   });
 });
+
+export const getMyDevices = async (req, res) => {
+  try {
+    const devices = await Device.find({
+      ownerId: req.auth.id,
+      isDeleted: false,
+    }).sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      message: "Lấy danh sách thiết bị thành công",
+      data: devices,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Không thể lấy danh sách thiết bị",
+      error: error.message,
+    });
+  }
+};
