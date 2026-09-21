@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Alert,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { RootState } from '../store';
 import { clearAuth } from '../store/slices/authSlice';
 import { socketService } from '../services/socketService';
 import { adminService } from '../services/adminService';
+import { LogoutConfirmModal } from '../components/common/LogoutConfirmModal';
 
 interface AdminMenuItem {
   id: string;
@@ -86,6 +86,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
     disputes: 1,
     ekyc: 2,
   });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     adminService
@@ -117,19 +118,11 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn đăng xuất khỏi TechShare Admin?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Đăng xuất',
-        style: 'destructive',
-        onPress: () => {
-          navigation.closeDrawer();
-          socketService.disconnect();
-          dispatch(clearAuth());
-        },
-      },
-    ]);
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    navigation.closeDrawer();
+    socketService.disconnect();
+    dispatch(clearAuth());
   };
 
   return (
@@ -263,13 +256,21 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         {/* Nút Đăng xuất */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={handleLogout}
+          onPress={() => setShowLogoutModal(true)}
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
           <Text style={styles.logoutButtonText}>Đăng xuất phiên Admin</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── 4. MODAL XÁC NHẬN ĐĂNG XUẤT (TÁI SỬ DỤNG) ── */}
+      <LogoutConfirmModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+        subtitle="Bạn có chắc chắn muốn kết thúc phiên làm việc và đăng xuất khỏi TechShare Admin?"
+      />
     </View>
   );
 }
@@ -456,10 +457,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: theme.colors.danger[50],
-    borderRadius: theme.radii.md,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.danger[500],
+    borderRadius: theme.radii.full,
+    paddingVertical: 12,
   },
   logoutButtonText: {
     color: theme.colors.danger[600],
