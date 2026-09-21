@@ -1,255 +1,17 @@
 import { apiClient } from "../config/api";
-import { Device, DeviceCategory } from "../types";
+import { Device, DeviceCategory, ManagedDeviceStatus } from "../types";
 
 // Mock seed devices matching server/src/seeds/seedData.js
-export const FALLBACK_DEVICES: Device[] = [
-  {
-    _id: "64e0a12f9b1c2b001a000001",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "iPhone 15 Pro Max 256GB Natural Titanium",
-    brand: "Apple",
-    category: "smartphone",
-    dailyRate: 250000,
-    depositValue: 15000000,
-    images: [
-      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800",
-      "https://images.unsplash.com/photo-1695048065057-de12e8ebf036?w=800",
-    ],
-    specs: {
-      Chip: "Apple A17 Pro 3nm",
-      RAM: "8GB",
-      Camera: "48MP + 12MP + 12MP (5x Optical Zoom)",
-      Display: "6.7 inch Super Retina XDR OLED 120Hz",
-      Battery: "4422 mAh, USB-C 3.0",
-    },
-    description:
-      "Like-new 99% flagship for Apple ProRes Log filming in ads, travel vlogs, and cinematic projects.",
-    location: {
-      type: "Point",
-      coordinates: [105.7826, 21.0285],
-      address: "Tran Thai Tong, Cau Giay, Hanoi",
-    },
-    status: "available",
-    rating: 4.9,
-    reviewCount: 15,
-    viewsCount: 24,
-    aiAnalysis: {
-      summary:
-        "The iPhone 15 Pro Max is a premium flagship for content creators, delivering cinema-grade Apple Log video quality.",
-      pros: [
-        "Cinematic video quality",
-        "Ultra-light titanium frame",
-        "Sharp 5x optical zoom camera",
-      ],
-      cons: [
-        "Glass back can attract fingerprints",
-        "Gets warm during continuous 4K60 Log filming",
-      ],
-      rentalRecommendation:
-        "Ideal for 2-3 day rentals for music videos, events, or travel vlogs.",
-    },
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000002",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "Samsung Galaxy S24 Ultra 512GB Titanium Gray",
-    brand: "Samsung",
-    category: "smartphone",
-    dailyRate: 240000,
-    depositValue: 14000000,
-    images: [
-      "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800",
-    ],
-    specs: {
-      Chip: "Snapdragon 8 Gen 3 for Galaxy",
-      RAM: "12GB",
-      Camera: "200MP + 50MP + 12MP + 10MP",
-      Display: "6.8 inch Dynamic AMOLED 2X 2600 nits",
-    },
-    description:
-      "Full Galaxy AI toolkit with a bright anti-glare flat screen that excels in outdoor productivity under strong sunlight.",
-    location: {
-      type: "Point",
-      coordinates: [105.8275, 21.0183],
-      address: "Chua Boc, Dong Da, Hanoi",
-    },
-    status: "available",
-    rating: 4.8,
-    reviewCount: 9,
-    viewsCount: 16,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000003",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "Sony Alpha A7 IV Mirrorless + Lens 24-70mm GM II",
-    brand: "Sony",
-    category: "camera",
-    dailyRate: 450000,
-    depositValue: 25000000,
-    images: [
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800",
-    ],
-    specs: {
-      Sensor: "33MP Full-Frame Exmor R BSI CMOS",
-      Video: "4K60p 10-bit 4:2:2, S-Cinetone, S-Log3",
-      Lens: "Sony FE 24-70mm f/2.8 GM II",
-    },
-    description:
-      "One of the best commercial camera kits for weddings, ad shoots, and school or event photography.",
-    location: {
-      type: "Point",
-      coordinates: [105.7826, 21.0285],
-      address: "Duy Tan, Cau Giay, Hanoi",
-    },
-    status: "available",
-    rating: 5.0,
-    reviewCount: 32,
-    viewsCount: 45,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000004",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "MacBook Pro 16 inch M3 Max (36GB RAM / 1TB SSD)",
-    brand: "Apple",
-    category: "laptop",
-    dailyRate: 380000,
-    depositValue: 28000000,
-    images: [
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
-    ],
-    specs: {
-      Chip: "Apple M3 Max 14-core CPU, 30-core GPU",
-      RAM: "36GB Unified Memory",
-      Storage: "1TB Superfast NVMe SSD",
-      Screen: "16.2 inch Liquid Retina XDR 120Hz Promotion",
-    },
-    description:
-      "A premium mobile workstation for 8K editing in Premiere/DaVinci Resolve and 3D rendering in Blender.",
-    location: {
-      type: "Point",
-      coordinates: [105.8019, 21.0125],
-      address: "Nguyen Trai, Thanh Xuan, Hanoi",
-    },
-    status: "available",
-    rating: 4.9,
-    reviewCount: 18,
-    viewsCount: 30,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000005",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "DJI Mavic 3 Pro Cine Fly More Combo (3 Pin)",
-    brand: "DJI",
-    category: "drone",
-    dailyRate: 550000,
-    depositValue: 32000000,
-    images: [
-      "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800",
-    ],
-    specs: {
-      Camera: "Hasselblad 4/3 CMOS 20MP + 70mm + 166mm Tele",
-      Video: "Apple ProRes 422 HQ, 5.1K/50fps, 4K/120fps D-Log",
-      FlightTime: "43 phút / pin (kèm 3 pin thông minh)",
-    },
-    description:
-      "A triple-lens aerial camera system with Hollywood-level video quality and an RC Pro controller with a bright built-in screen.",
-    location: {
-      type: "Point",
-      coordinates: [105.8542, 21.0285],
-      address: "Trang Tien, Hoan Kiem, Hanoi",
-    },
-    status: "available",
-    rating: 5.0,
-    reviewCount: 22,
-    viewsCount: 38,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000006",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "Tai nghe Sony WH-1000XM5 Chống Ồn Cao Cấp",
-    brand: "Sony",
-    category: "audio",
-    dailyRate: 110000,
-    depositValue: 5000000,
-    images: ["https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800"],
-    specs: {
-      ANC: "Dual Processor V1 + QN1 8 micro khử ồn chủ động",
-      Battery: "30 giờ nghe liên tục, sạc nhanh 3 phút được 3 giờ",
-      Codec: "LDAC, Hi-Res Audio Wireless, DSEE Extreme",
-    },
-    description:
-      "A world-class noise-canceling headset perfect for long flights, office focus, or casual audio mixing.",
-    location: {
-      type: "Point",
-      coordinates: [105.8194, 21.0333],
-      address: "Kim Ma, Ba Dinh, Hanoi",
-    },
-    status: "available",
-    rating: 4.8,
-    reviewCount: 14,
-    viewsCount: 20,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000007",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "Gimbal DJI RS 3 Pro Combo (Follow Focus)",
-    brand: "DJI",
-    category: "accessory",
-    dailyRate: 180000,
-    depositValue: 8000000,
-    images: [
-      "https://images.unsplash.com/photo-1589256469067-ea99122bbdc4?w=800",
-    ],
-    specs: {
-      Payload: "4.5kg tải trọng tay đòn bằng sợi carbon",
-      Feature: "Khóa trục tự động thế hệ mới, màn hình OLED cảm ứng 1.8 inch",
-    },
-    description:
-      "A heavy-duty gimbal for cinema cameras, including the Focus Motor and RavenEye wireless video transmission kit.",
-    location: {
-      type: "Point",
-      coordinates: [105.7826, 21.0285],
-      address: "Tran Thai Tong, Cau Giay, Hanoi",
-    },
-    status: "available",
-    rating: 4.9,
-    reviewCount: 11,
-    viewsCount: 19,
-  },
-  {
-    _id: "64e0a12f9b1c2b001a000008",
-    owner: "64e0a12f9b1c2b001a222222",
-    title: "Laptop Dell XPS 15 9530 Core i9 RTX 4070 OLED",
-    brand: "Dell",
-    category: "laptop",
-    dailyRate: 350000,
-    depositValue: 24000000,
-    images: [
-      "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=800",
-    ],
-    specs: {
-      CPU: "Intel Core i9-13900H 14 Cores 20 Threads",
-      GPU: "NVIDIA GeForce RTX 4070 8GB GDDR6",
-      RAM: "32GB DDR5 4800MHz",
-      Screen: "15.6 inch 3.5K OLED Touch 400 nits",
-    },
-    description:
-      "A high-performance Windows workstation with a 100% DCI-P3 OLED display for professional color work and graphics.",
-    location: {
-      type: "Point",
-      coordinates: [105.8019, 21.0125],
-      address: "Le Van Luong, Cau Giay, Hanoi",
-    },
-    status: "available",
-    rating: 4.7,
-    reviewCount: 8,
-    viewsCount: 15,
-  },
-];
+
+export type DeviceSort = "price_asc" | "price_desc" | "rating_desc" | "newest";
 
 export interface GetDevicesParams {
   category?: DeviceCategory | "all";
   search?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+  sort?: DeviceSort;
 }
 
 export interface CreateDevicePayload {
@@ -274,18 +36,40 @@ export const deviceService = {
    * Nếu backend chưa có endpoint hoặc server chưa chạy, trả về danh sách fallback chuẩn
    */
   async getDevices(params?: GetDevicesParams): Promise<Device[]> {
+    const keyword = (params?.q || params?.search || "").trim();
+    const cat = params?.category && params.category !== "all" ? params.category : undefined;
+    const queryParams = {
+      category: cat,
+      q: keyword || undefined,
+      page: params?.page,
+      limit: params?.limit,
+      sort: params?.sort,
+    };
+    const fullRequestUrl = apiClient.getUri({ url: "/devices", params: queryParams });
+
+    if (keyword) {
+      console.log("[SEARCH DEBUG]");
+      console.log(`q: ${keyword}`);
+      console.log(`category: ${cat || "all"}`);
+      console.log(`Request URL: ${fullRequestUrl}`);
+    } else {
+      console.log(`[deviceService] Request:\n${fullRequestUrl}`);
+    }
+
     try {
       const response = await apiClient.get("/devices", {
-        params: {
-          category:
-            params?.category && params.category !== "all"
-              ? params.category
-              : undefined,
-          q: params?.search || undefined,
-        },
+        params: queryParams,
       });
 
       if (response.data && Array.isArray(response.data.data)) {
+        if (keyword) {
+          console.log(`HTTP status: ${response.status}`);
+          console.log(`Results: ${response.data.data.length}`);
+          console.log("Source: BACKEND");
+        } else {
+          console.log(`[deviceService] Response status: ${response.status}`);
+          console.log("[deviceService] Source: BACKEND");
+        }
         console.log(
           "✅ [deviceService] Gọi API Backend thành công! Số lượng devices:",
           response.data.data.length,
@@ -293,9 +77,22 @@ export const deviceService = {
         return response.data.data;
       }
       if (Array.isArray(response.data)) {
+        if (keyword) {
+          console.log(`HTTP status: ${response.status}`);
+          console.log(`Results: ${response.data.length}`);
+          console.log("Source: BACKEND");
+        } else {
+          console.log(`[deviceService] Response status: ${response.status}`);
+          console.log("[deviceService] Source: BACKEND");
+        }
         return response.data;
       }
     } catch (error: any) {
+      if (keyword) {
+        console.log(`HTTP status: ${error?.response?.status || "ERR_NETWORK"}`);
+        console.log("Results: 0");
+        console.log("Source: FALLBACK");
+      }
       console.log(
         "❌ [deviceService DEBUG] Request URL:",
         error?.config?.baseURL
@@ -318,14 +115,15 @@ export const deviceService = {
     }
 
     // Áp dụng bộ lọc local trên dữ liệu fallback
+    console.log("[deviceService] Source: FALLBACK");
     let result = [...FALLBACK_DEVICES];
 
     if (params?.category && params.category !== "all") {
       result = result.filter((d) => d.category === params.category);
     }
 
-    if (params?.search && params.search.trim()) {
-      const query = params.search.toLowerCase().trim();
+    if (keyword) {
+      const query = keyword.toLowerCase();
       result = result.filter(
         (d) =>
           d.title.toLowerCase().includes(query) ||
@@ -334,16 +132,34 @@ export const deviceService = {
       );
     }
 
-    return result;
+    // Mirror API ordering and pagination when using the existing offline fallback.
+    result.sort((a, b) => {
+      let difference = 0;
+      switch (params?.sort) {
+        case "price_asc": difference = a.dailyRate - b.dailyRate; break;
+        case "price_desc": difference = b.dailyRate - a.dailyRate; break;
+        case "rating_desc": difference = b.rating - a.rating; break;
+        default:
+          // Seed fallback records have no creation timestamps; use a stable ID order.
+          difference = Date.parse(b.createdAt || "1970-01-01") - Date.parse(a.createdAt || "1970-01-01");
+      }
+      return difference || a._id.localeCompare(b._id);
+    });
+    const limit = Number.isSafeInteger(params?.limit) && params!.limit! > 0
+      ? Math.min(params!.limit!, 100) : 10;
+    const requestedPage = Number.isSafeInteger(params?.page) && params!.page! > 0 ? params!.page! : 1;
+    const page = Number.isSafeInteger((requestedPage - 1) * limit) ? requestedPage : 1;
+    return result.slice((page - 1) * limit, page * limit);
   },
 
   /**
    * Lấy chi tiết thiết bị theo ID
    */
-  async getDeviceById(id: string): Promise<Device | null> {
+  async getDeviceById(id: string, options?: { throwOnError?: boolean }): Promise<Device | null> {
     try {
       const response = await apiClient.get(`/devices/${id}`);
       if (response.data && response.data.data) {
+        console.log(`[deviceDetail] GET /devices/${id} -> ${response.status}; Source: BACKEND; id: ${response.data.data._id}`);
         return response.data.data;
       }
       if (response.data) {
@@ -351,6 +167,7 @@ export const deviceService = {
       }
     } catch (error) {
       console.error("[deviceService] Không thể lấy chi tiết thiết bị:", error);
+      if (options?.throwOnError) throw error;
     }
     return null;
   },
@@ -378,7 +195,11 @@ export const deviceService = {
     return response.data.data;
   },
 
-  async uploadDeviceImage(token: string, uri: string, index: number): Promise<string> {
+  async uploadDeviceImage(
+    token: string,
+    uri: string,
+    index: number,
+  ): Promise<string> {
     const formData = new FormData();
     const extension = uri.split(".").pop()?.toLowerCase() || "jpg";
     const mimeType = extension === "png" ? "image/png" : "image/jpeg";
@@ -396,5 +217,23 @@ export const deviceService = {
     });
 
     return response.data.data.url;
+  },
+
+  async updateDeviceStatus(
+    token: string,
+    deviceId: string,
+    status: ManagedDeviceStatus,
+  ) {
+    const response = await apiClient.patch(
+      `/devices/${deviceId}/status`,
+      { status },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+      return response.data.data;
   },
 };

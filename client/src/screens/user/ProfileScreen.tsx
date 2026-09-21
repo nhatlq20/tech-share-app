@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { updateUser } from '../../store/slices/authSlice';
+import { updateUser, UserRole } from '../../store/slices/authSlice';
 import { apiClient } from '../../config/api';
 import { colors } from '../../theme/colors';
 import { pickAvatar } from '../../services/cloudinaryService';
@@ -24,6 +24,7 @@ interface ProfileScreenProps {
   onLogout: () => void;
   onNavigateToLogin?: () => void;
   onNavigateToPostDevice?: () => void;
+  onNavigateToMyDevices: () => void;
   onNavigateToOwnerDashboard?: () => void;
   onNavigateToAdminDashboard?: () => void;
 }
@@ -32,6 +33,7 @@ export function ProfileScreen({
   onLogout,
   onNavigateToLogin,
   onNavigateToPostDevice,
+  onNavigateToMyDevices,
   onNavigateToOwnerDashboard,
   onNavigateToAdminDashboard,
 }: ProfileScreenProps) {
@@ -52,7 +54,7 @@ export function ProfileScreen({
   const [email, setEmail] = useState(user?.email || 'an.creator@techshare.vn');
   const [phone, setPhone] = useState(user?.phone || '0988 123 456');
   const [bio, setBio] = useState('Tech Reviewer & Content Creator. Đam mê máy ảnh Sony & Apple Flagships.');
-  const [role, setRole] = useState((user?.role as 'admin' | 'owner' | 'rental' | 'renter') || 'rental');
+  const [role, setRole] = useState((user?.role || 'renter') as UserRole);
 
   // Address
   const [street, setStreet] = useState('Landmark 81 Tower, 720A Dien Bien Phu');
@@ -72,7 +74,7 @@ export function ProfileScreen({
       setPhone(user.phone || '');
       setStreet(user.address || '');
       setAvatarUri(user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
-      setRole((user.role as 'admin' | 'owner' | 'rental') || 'rental');
+      setRole(user.role || 'renter');
     }
   }, [user]);
 
@@ -276,12 +278,31 @@ export function ProfileScreen({
           </TouchableOpacity>
         </View>
 
+        <View style={styles.dashboardSection}>
+          <Text style={styles.dashboardSectionTitle}>My Account</Text>
+          <TouchableOpacity
+            style={styles.dashboardShortcutCard}
+            onPress={onNavigateToMyDevices}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="My Devices"
+          >
+            <View style={styles.dashboardIconBoxOwner}>
+              <Ionicons name="cube-outline" size={20} color={colors.light.primary} />
+            </View>
+            <View style={styles.dashboardCardContent}>
+              <Text style={styles.dashboardCardTitle}>My Devices</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
+          </TouchableOpacity>
+        </View>
+
         {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS DỰA TRÊN ROLE) */}
         {(role === 'owner' || role === 'admin') && (
           <View style={styles.dashboardSection}>
             <Text style={styles.dashboardSectionTitle}>Cổng Quản lý Chuyên dụng</Text>
             
-            {(role === 'owner' || role === 'admin') && onNavigateToOwnerDashboard && (
+            {role === 'owner' && onNavigateToOwnerDashboard && (
               <TouchableOpacity
                 style={styles.dashboardShortcutCard}
                 onPress={onNavigateToOwnerDashboard}

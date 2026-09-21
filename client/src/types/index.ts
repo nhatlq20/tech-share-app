@@ -88,7 +88,7 @@ export type DeviceCategory =
   | 'audio' 
   | 'accessory';
 
-export type DeviceStatus = 'available' | 'rented' | 'maintenance' | 'hidden';
+
 
 export interface DeviceAiAnalysis {
   summary: string;
@@ -106,6 +106,7 @@ export interface DeviceLocation {
 
 export interface Device {
   _id: string;
+  addressText?: string;
   owner: User | string;
   title: string;
   brand: string;
@@ -124,7 +125,25 @@ export interface Device {
   createdAt?: string;
   updatedAt?: string;
 }
+export type DeviceStatus =
+  | "available"
+  | "rented"
+  | "maintenance"
+  | "hidden";
 
+export type ManagedDeviceStatus =
+  Exclude<DeviceStatus, "rented">;
+
+export interface OwnedDevice {
+  _id: string;
+  image: string;
+  title: string;
+  category: string;
+  dailyRate: number;
+  rentalCount: number;
+  ratingAvg: number;
+  status: ManagedDeviceStatus;
+}
 // ==========================================
 // 3. Phân hệ Đơn thuê (Bookings)
 // ==========================================

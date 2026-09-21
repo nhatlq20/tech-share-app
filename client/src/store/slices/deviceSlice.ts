@@ -8,8 +8,10 @@ export interface DeviceState {
   selectedCategory: DeviceCategory | 'all';
   searchQuery: string;
   isLoading: boolean;
+  isInitialLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
+  currentRequestId: string | null;
 }
 
 const initialState: DeviceState = {
@@ -18,8 +20,10 @@ const initialState: DeviceState = {
   selectedCategory: 'all',
   searchQuery: '',
   isLoading: false,
+  isInitialLoading: true,
   isRefreshing: false,
   error: null,
+  currentRequestId: null,
 };
 
 // Async thunk tải danh sách thiết bị
@@ -90,7 +94,9 @@ export const deviceSlice = createSlice({
     builder
       .addCase(fetchDevices.pending, (state, action) => {
         state.isLoading = true;
+        state.isRefreshing = false;
         state.error = null;
+        state.currentRequestId = action.meta.requestId;
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
         }
@@ -99,7 +105,12 @@ export const deviceSlice = createSlice({
         }
       })
       .addCase(fetchDevices.fulfilled, (state, action) => {
+        // Tránh Race Condition: Chỉ nhận kết quả từ request mới nhất
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isLoading = false;
+        state.isInitialLoading = false;
         state.devices = action.payload;
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
@@ -110,17 +121,34 @@ export const deviceSlice = createSlice({
         state.filteredDevices = action.payload;
       })
       .addCase(fetchDevices.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isLoading = false;
+        state.isInitialLoading = false;
         state.error = (action.payload as string) || 'Lỗi khi tải dữ liệu';
       });
 
     // refreshDevices
     builder
-      .addCase(refreshDevices.pending, state => {
+      .addCase(refreshDevices.pending, (state, action) => {
         state.isRefreshing = true;
+        state.isLoading = false;
+        state.error = null;
+        state.currentRequestId = action.meta.requestId;
+        if (action.meta.arg?.category !== undefined) {
+          state.selectedCategory = action.meta.arg.category;
+        }
+        if (action.meta.arg?.search !== undefined) {
+          state.searchQuery = action.meta.arg.search;
+        }
       })
       .addCase(refreshDevices.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isRefreshing = false;
+        state.isInitialLoading = false;
         state.devices = action.payload;
         if (action.meta.arg?.category !== undefined) {
           state.selectedCategory = action.meta.arg.category;
@@ -131,7 +159,11 @@ export const deviceSlice = createSlice({
         state.filteredDevices = action.payload;
       })
       .addCase(refreshDevices.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isRefreshing = false;
+        state.isInitialLoading = false;
         state.error = (action.payload as string) || 'Lỗi khi làm mới dữ liệu';
       });
   },

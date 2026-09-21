@@ -10,6 +10,9 @@ import { AdminDrawerNavigator } from './AdminDrawerNavigator';
 import { MainBottomTabNavigator } from './MainBottomTabNavigator';
 
 // Auth Screens
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDrawer } from './AppDrawer';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 
@@ -19,6 +22,10 @@ import { BookingCreateScreen } from '../screens/booking/BookingCreateScreen';
 import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
+import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
+import { colors } from '../theme/colors';
+import { clearAuth } from '../store/slices/authSlice';
+import { RootState } from '../store';
 
 export type RootStackParamList = {
   // Auth
@@ -28,6 +35,8 @@ export type RootStackParamList = {
   AdminRoot: undefined;
   MainTabs: undefined;
   // Shared Screens
+  Main: undefined;
+  MyDevices: undefined;
   DeviceDetail: { deviceId: string };
   BookingCreate: { deviceId: string };
   PostDevice: undefined;
@@ -175,6 +184,58 @@ export function RootNavigator() {
             </Stack.Screen>
           </Stack.Group>
         )}
+        <Stack.Screen name="Main">
+          {({ navigation }) => (
+            <AppDrawer
+              onLogout={() => {
+                dispatch(clearAuth());
+                navigation.replace('Login');
+              }}
+              onOpenDevice={(deviceId: string) => navigation.navigate('DeviceDetail', { deviceId })}
+              onOpenMyDevices={() => navigation.navigate('MyDevices')}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="MyDevices" options={{ title: 'My Devices' }}>
+          {({ navigation }) => (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
+              <MyDevicesScreen onBack={() => navigation.goBack()} />
+            </SafeAreaView>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="DeviceDetail">
+          {({ route, navigation }) => (
+            <DeviceDetailScreen
+              deviceId={route.params.deviceId}
+              onBack={() => navigation.goBack()}
+              onBookNow={(deviceId: string) => navigation.navigate('BookingCreate', { deviceId })}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="BookingCreate">
+          {({ route, navigation }) => (
+            <BookingCreateScreen
+              deviceId={route.params.deviceId}
+              onBack={() => navigation.goBack()}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Login">
+          {({ navigation }) => (
+            <LoginScreen
+              onNavigateToRegister={() => navigation.navigate('Register')}
+              onNavigateToHome={() => navigation.replace('Main')}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Register">
+          {({ navigation }) => (
+            <RegisterScreen
+              onNavigateToLogin={() => navigation.goBack()}
+              onRegisterSuccess={() => navigation.replace('Main')}
+            />
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

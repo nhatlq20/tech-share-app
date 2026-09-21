@@ -27,15 +27,26 @@ const formatPrice = (price: number): string => {
 export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetailScreenProps) {
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
     (async () => {
       setLoading(true);
-      const data = await deviceService.getDeviceById(deviceId);
-      if (isMounted) {
-        setDevice(data);
-        setLoading(false);
+      setDevice(null);
+      setError('');
+      try {
+        const data = await deviceService.getDeviceById(deviceId, { throwOnError: true });
+        if (isMounted) setDevice(data);
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (isMounted) {
+          setError(status === 404 ? 'Không tìm thấy thiết bị'
+            : status === 400 ? 'ID thiết bị không hợp lệ'
+            : 'Không thể tải thiết bị. Vui lòng kiểm tra kết nối và thử lại.');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     })();
     return () => {
@@ -56,7 +67,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.light.error} />
-        <Text style={styles.errorTitle}>Không tìm thấy thiết bị</Text>
+        <Text style={styles.errorTitle}>{error || 'Không tìm thấy thiết bị'}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
           <Text style={styles.backBtnText}>Quay lại trang chủ</Text>
         </TouchableOpacity>
@@ -139,11 +150,11 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
               </Text>
             </View>
 
-            {device.location?.address && (
+            {(device.addressText || device.location?.address) && (
               <View style={styles.addressBox}>
                 <Ionicons name="location-sharp" size={14} color={colors.light.primary} />
                 <Text style={styles.addressText} numberOfLines={1}>
-                  {device.location.address}
+                  {device.addressText || device.location?.address}
                 </Text>
               </View>
             )}

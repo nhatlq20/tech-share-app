@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { setApiAuthToken } from '../../config/api';
 
+export type UserRole = 'admin' | 'owner' | 'renter';
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ export interface AuthUser {
   phone?: string;
   address?: string;
   avatar?: string;
-  role?: string;
+  role?: UserRole;
   isVerified?: boolean;
   trustScore?: number;
 }
