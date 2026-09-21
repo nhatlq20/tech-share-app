@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -24,8 +24,15 @@ interface RegisterScreenProps {
   onRegisterSuccess?: (role?: string) => void;
 }
 
+type RegisterStep = 'form' | 'otp';
+
 export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
   const dispatch = useDispatch();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
+
+  // Form State
+  const [step, setStep] = useState('form' as RegisterStep);
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,49 +41,188 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { width } = useWindowDimensions();
-  const isCompact = width < 360;
 
-  const handleRegister = async () => {
-    if (!username.trim() || !name.trim() || !email.trim() || !phone.trim() || !password) {
-      setErrorMsg('Please fill in all required information');
+  // OTP State (6 digits)
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef(null as any);
+  const otpInputRefs = useRef([] as any[]);
+
+  // UI State
+  const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Cooldown countdown timer effect
+  useEffect(() => {
+    if (countdown > 0) {
+      timerRef.current = setTimeout(() => {
+        setCountdown((prev: number) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [countdown]);
+
+  // Step 1: Send OTP to user's email
+  const handleRequestOtp = async () => {
+    const trimmedUsername = username.trim();
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedUsername || !trimmedName || !trimmedEmail || !trimmedPhone || !password) {
+      setErrorMsg('Vui lòng điền đầy đủ tất cả các trường thông tin');
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMsg('Địa chỉ email không đúng định dạng');
+      return;
+    }
+
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
+      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 6 ký tự');
       return;
     }
+
     if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
+      setErrorMsg('Mật khẩu xác nhận không khớp');
       return;
     }
+
     if (!agreeTerms) {
-      setErrorMsg('You must agree to the terms of use');
+      setErrorMsg('Bạn cần đồng ý với Điều khoản dịch vụ của TechShare');
       return;
     }
 
     try {
       setLoading(true);
       setErrorMsg('');
+      setInfoMsg('');
+
+      const res = await apiClient.post('/auth/send-otp', {
+        email: trimmedEmail,
+        username: trimmedUsername,
+        name: trimmedName,
+      });
+
+      if (res.data?.success) {
+        setStep('otp');
+        setCountdown(60);
+        setOtp(['', '', '', '', '', '']);
+        setInfoMsg(res.data.message || 'Mã xác thực OTP đã được gửi đến email của bạn');
+        setTimeout(() => {
+          otpInputRefs.current[0]?.focus();
+        }, 400);
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.';
+      setErrorMsg(msg);
+      if (err?.response?.data?.remainingSeconds) {
+        setCountdown(err.response.data.remainingSeconds);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Resend OTP
+  const handleResendOtp = async () => {
+    if (countdown > 0 || loading) return;
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      setInfoMsg('');
+
+      const res = await apiClient.post('/auth/send-otp', {
+        email: email.trim().toLowerCase(),
+        username: username.trim(),
+        name: name.trim(),
+      });
+
+      if (res.data?.success) {
+        setCountdown(60);
+        setOtp(['', '', '', '', '', '']);
+        setInfoMsg('Mã OTP mới đã được gửi đến email của bạn');
+        otpInputRefs.current[0]?.focus();
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle individual OTP digit change
+  const handleOtpChange = (value: string, index: number) => {
+    // If user pastes entire 6-digit code
+    const cleanValue = value.replace(/\D/g, '');
+    if (cleanValue.length > 1) {
+      const pastedDigits = cleanValue.slice(0, 6).split('');
+      const newOtp = [...otp];
+      pastedDigits.forEach((digit: string, i: number) => {
+        newOtp[i] = digit;
+      });
+      setOtp(newOtp);
+      setErrorMsg('');
+      const nextFocus = Math.min(pastedDigits.length, 5);
+      otpInputRefs.current[nextFocus]?.focus();
+      return;
+    }
+
+    const newOtp = [...otp];
+    newOtp[index] = cleanValue;
+    setOtp(newOtp);
+    if (errorMsg) setErrorMsg('');
+
+    // Auto-focus next input if digit entered
+    if (cleanValue && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle Backspace navigation across OTP boxes
+  const handleOtpKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Step 2: Verify OTP and Register Account
+  const handleVerifyAndRegister = async () => {
+    const fullOtp = otp.join('').trim();
+    if (fullOtp.length < 6) {
+      setErrorMsg('Vui lòng nhập đủ 6 chữ số mã OTP');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      setInfoMsg('');
+
       const response = await apiClient.post('/auth/register', {
         name: name.trim(),
         username: username.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
+        otp: fullOtp,
       });
 
       const { token, user } = response.data;
       if (!token || !user) {
-        throw new Error('Registration response is invalid');
+        throw new Error('Dữ liệu phản hồi đăng ký không hợp lệ');
       }
 
       dispatch(setAuth({ token, user }));
       onRegisterSuccess?.(user?.role);
-    } catch (error: any) {
-      setErrorMsg(error?.response?.data?.message || 'Registration failed. Please try again.');
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || 'Xác thực OTP hoặc đăng ký thất bại.');
     } finally {
       setLoading(false);
     }
@@ -98,197 +244,356 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       >
         {/* HEADER */}
         <View style={styles.headerBox}>
-          <TouchableOpacity style={styles.backBtn} onPress={onNavigateToLogin} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={step === 'otp' ? () => setStep('form') : onNavigateToLogin}
+            activeOpacity={0.7}
+          >
             <Ionicons name="arrow-back" size={20} color={colors.light.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <Text style={styles.appTitle}>Tạo tài khoản</Text>
-            <Text style={styles.appSubtitle}>Gia nhập cộng đồng cho thuê công nghệ TechShare</Text>
+            <Text style={styles.appTitle}>
+              {step === 'form' ? 'Tạo tài khoản' : 'Xác thực OTP'}
+            </Text>
+            <Text style={styles.appSubtitle}>
+              {step === 'form'
+                ? 'Gia nhập cộng đồng cho thuê công nghệ TechShare'
+                : 'Bảo mật tài khoản với xác thực email'}
+            </Text>
           </View>
         </View>
 
-        {/* FORM CARD */}
-        <View style={styles.card}>
-          {errorMsg ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color={colors.light.error} />
-              <Text style={styles.errorText}>{errorMsg}</Text>
+        {/* STEP PROGRESS INDICATOR */}
+        <View style={styles.stepProgressRow}>
+          <View style={[styles.stepItem, step === 'form' ? styles.stepActive : styles.stepDone]}>
+            <View style={[styles.stepDot, step === 'form' ? styles.stepDotActive : styles.stepDotDone]}>
+              {step === 'otp' ? (
+                <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+              ) : (
+                <Text style={styles.stepNumber}>1</Text>
+              )}
             </View>
-          ) : null}
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Username *</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="at-outline" size={18} color="#94A3B8" />
-              </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="e.g. johntech"
-                placeholderTextColor="#64748B"
-                autoCapitalize="none"
-                value={username}
-                onChangeText={(text: string) => {
-                  setUsername(text);
-                  if (errorMsg) setErrorMsg('');
-                }}
-              />
-            </View>
+            <Text style={[styles.stepLabel, step === 'form' ? styles.stepLabelActive : styles.stepLabelDone]}>
+              Thông tin
+            </Text>
           </View>
-
-          {/* Full name input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Full name *</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="VD: Nguyễn Văn An"
-                placeholderTextColor={colors.light.textSecondary}
-                value={name}
-                onChangeText={(t: string) => {
-                  setName(t);
-                  if (errorMsg) setErrorMsg('');
-                }}
-              />
+          <View style={[styles.stepConnector, step === 'otp' && styles.stepConnectorActive]} />
+          <View style={[styles.stepItem, step === 'otp' ? styles.stepActive : styles.stepInactive]}>
+            <View style={[styles.stepDot, step === 'otp' ? styles.stepDotActive : styles.stepDotInactive]}>
+              <Text style={[styles.stepNumber, step !== 'otp' && styles.stepNumberInactive]}>2</Text>
             </View>
+            <Text style={[styles.stepLabel, step === 'otp' ? styles.stepLabelActive : styles.stepLabelInactive]}>
+              Xác thực OTP
+            </Text>
           </View>
+        </View>
 
-          {/* Email input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email *</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="VD: an.nguyen@email.com"
-                placeholderTextColor={colors.light.textSecondary}
-                value={email}
-                onChangeText={(t: string) => {
-                  setEmail(t);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+        {/* ERROR / INFO BANNERS */}
+        {errorMsg ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color={colors.light.error} />
+            <Text style={styles.errorText}>{errorMsg}</Text>
           </View>
+        ) : null}
 
-          {/* Phone input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Phone number *</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="VD: 0912 345 678"
-                placeholderTextColor={colors.light.textSecondary}
-                value={phone}
-                onChangeText={(t: string) => {
-                  setPhone(t);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                keyboardType="phone-pad"
-              />
-            </View>
+        {infoMsg && !errorMsg ? (
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle" size={18} color={colors.light.primary} />
+            <Text style={styles.infoText}>{infoMsg}</Text>
           </View>
+        ) : null}
 
-          {/* Password input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Mật khẩu * (Tối thiểu 6 ký tự)</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="Nhập mật khẩu an toàn"
-                placeholderTextColor={colors.light.textSecondary}
-                value={password}
-                onChangeText={(t: string) => {
-                  setPassword(t);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={colors.light.textSecondary}
+        {/* STEP 1: REGISTRATION FORM */}
+        {step === 'form' ? (
+          <View style={styles.card}>
+            {/* Username input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Tên tài khoản (Username) *</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="at-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="VD: nhatle20"
+                  placeholderTextColor={colors.light.textSecondary}
+                  autoCapitalize="none"
+                  value={username}
+                  onChangeText={(text: string) => {
+                    setUsername(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
                 />
+              </View>
+            </View>
+
+            {/* Full name input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Họ và tên *</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="VD: Nguyễn Văn An"
+                  placeholderTextColor={colors.light.textSecondary}
+                  value={name}
+                  onChangeText={(text: string) => {
+                    setName(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* Email input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email (Nhận mã xác thực OTP) *</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="VD: an.nguyen@email.com"
+                  placeholderTextColor={colors.light.textSecondary}
+                  value={email}
+                  onChangeText={(text: string) => {
+                    setEmail(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* Phone input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Số điện thoại liên hệ *</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="VD: 0912 345 678"
+                  placeholderTextColor={colors.light.textSecondary}
+                  value={phone}
+                  onChangeText={(text: string) => {
+                    setPhone(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            {/* Password input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Mật khẩu * (Tối thiểu 6 ký tự)</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Nhập mật khẩu an toàn"
+                  placeholderTextColor={colors.light.textSecondary}
+                  value={password}
+                  onChangeText={(text: string) => {
+                    setPassword(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={colors.light.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Confirm Password input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Xác nhận mật khẩu *</Text>
+              <View style={styles.inputWrap}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.light.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Nhập lại mật khẩu"
+                  placeholderTextColor={colors.light.textSecondary}
+                  value={confirmPassword}
+                  onChangeText={(text: string) => {
+                    setConfirmPassword(text);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  secureTextEntry={!showPassword}
+                />
+              </View>
+            </View>
+
+            {/* Terms checkbox */}
+            <TouchableOpacity
+              style={styles.termsRow}
+              onPress={() => setAgreeTerms(!agreeTerms)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
+                {agreeTerms && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.termsText}>
+                Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
+                <Text style={styles.termsLink}>Chính sách bảo mật ký quỹ</Text> của TechShare.
+              </Text>
+            </TouchableOpacity>
+
+            {/* CTA: Next to OTP Step */}
+            <TouchableOpacity
+              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+              onPress={handleRequestOtp}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <View style={styles.btnContentRow}>
+                  <Text style={styles.primaryBtnText}>TIẾP TỤC (NHẬN MÃ OTP)</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Switch to Login */}
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Đã có tài khoản? </Text>
+              <TouchableOpacity onPress={onNavigateToLogin}>
+                <Text style={styles.loginLink}>Đăng nhập ngay</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Xác nhận Mật khẩu */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Confirm password *</Text>
-            <View style={styles.inputWrap}>
-              <View style={styles.iconBox}>
-                <Ionicons name="shield-checkmark-outline" size={18} color={colors.light.textSecondary} />
+        ) : (
+          /* STEP 2: OTP VERIFICATION */
+          <View style={styles.card}>
+            {/* Visual Icon */}
+            <View style={styles.otpHeaderBadgeWrap}>
+              <View style={styles.otpHeaderBadge}>
+                <Ionicons name="mail-unread-outline" size={36} color={colors.light.primary} />
               </View>
-              <TextInput
-                style={styles.inputField}
-                placeholder="Nhập lại mật khẩu"
-                placeholderTextColor={colors.light.textSecondary}
-                value={confirmPassword}
-                onChangeText={(t: string) => {
-                  setConfirmPassword(t);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                secureTextEntry={!showPassword}
-              />
             </View>
-          </View>
 
-          {/* Điều khoản sử dụng */}
-          <TouchableOpacity
-            style={styles.termsRow}
-            onPress={() => setAgreeTerms(!agreeTerms)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
-              {agreeTerms && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
-            </View>
-            <Text style={styles.termsText}>
-              Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
-              <Text style={styles.termsLink}>Chính sách bảo mật ký quỹ</Text> của TechShare.
+            <Text style={styles.otpCardTitle}>Kiểm tra hộp thư của bạn</Text>
+            <Text style={styles.otpCardSubtitle}>
+              Mã xác thực 6 chữ số đã được gửi tới địa chỉ:
             </Text>
-          </TouchableOpacity>
 
-          {/* Nút Đăng ký (CTA bo góc 12px theo theme-skill.md) */}
-          <TouchableOpacity
-            style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
-            onPress={handleRegister}
-            activeOpacity={0.85}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.registerBtnText}>ĐĂNG KÝ TÀI KHOẢN</Text>
-            )}
-          </TouchableOpacity>
+            {/* Email display chip with change email action */}
+            <View style={styles.emailChipRow}>
+              <View style={styles.emailChip}>
+                <Ionicons name="mail" size={14} color={colors.light.primary} />
+                <Text style={styles.emailChipText} numberOfLines={1}>
+                  {email}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.changeEmailBtn}
+                onPress={() => setStep('form')}
+              >
+                <Text style={styles.changeEmailText}>Thay đổi</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Switch to Login */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginLink}>Log in now</Text>
+            {/* 6 OTP Input Boxes */}
+            <View style={styles.otpBoxesRow}>
+              {otp.map((digit: string, idx: number) => (
+                <TextInput
+                  key={idx}
+                  ref={(ref: any) => {
+                    otpInputRefs.current[idx] = ref;
+                  }}
+                  style={[
+                    styles.otpBox,
+                    digit ? styles.otpBoxFilled : null,
+                  ]}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={digit}
+                  onChangeText={(val: string) => handleOtpChange(val, idx)}
+                  onKeyPress={(e: any) => handleOtpKeyPress(e, idx)}
+                  selectTextOnFocus
+                  textAlign="center"
+                  placeholder="-"
+                  placeholderTextColor="#CBD5E1"
+                />
+              ))}
+            </View>
+
+            {/* Expiry note */}
+            <Text style={styles.expiryNote}>
+              ⏱️ Mã có hiệu lực trong 5 phút. Vui lòng kiểm tra cả thư rác (Spam).
+            </Text>
+
+            {/* Resend Cooldown Section */}
+            <View style={styles.resendSection}>
+              {countdown > 0 ? (
+                <Text style={styles.resendCountdownText}>
+                  Gửi lại mã xác thực sau:{' '}
+                  <Text style={styles.countdownBold}>
+                    00:{countdown < 10 ? `0${countdown}` : countdown}
+                  </Text>
+                </Text>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleResendOtp}
+                  disabled={loading}
+                  style={styles.resendBtn}
+                >
+                  <Ionicons name="refresh-outline" size={15} color={colors.light.primary} />
+                  <Text style={styles.resendBtnText}>Gửi lại mã OTP mới</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* CTA: Verify and Finish Registration */}
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                (otp.join('').length < 6 || loading) && styles.primaryBtnDisabled,
+              ]}
+              onPress={handleVerifyAndRegister}
+              activeOpacity={0.85}
+              disabled={otp.join('').length < 6 || loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <View style={styles.btnContentRow}>
+                  <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.primaryBtnText}>XÁC THỰC & ĐĂNG KÝ</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Back to Step 1 Button */}
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => setStep('form')}
+            >
+              <Text style={styles.secondaryBtnText}>Quay lại chỉnh sửa thông tin</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -309,7 +614,7 @@ const styles = StyleSheet.create({
   headerBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 12,
   },
   backBtn: {
@@ -335,6 +640,77 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     marginTop: 2,
   },
+
+  // Steps Progress
+  stepProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepActive: {
+    opacity: 1,
+  },
+  stepDone: {
+    opacity: 1,
+  },
+  stepInactive: {
+    opacity: 0.6,
+  },
+  stepDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotActive: {
+    backgroundColor: colors.light.primary,
+  },
+  stepDotDone: {
+    backgroundColor: colors.light.success,
+  },
+  stepDotInactive: {
+    backgroundColor: '#E2E8F0',
+  },
+  stepNumber: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepNumberInactive: {
+    color: '#64748B',
+  },
+  stepLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stepLabelActive: {
+    color: colors.light.primary,
+  },
+  stepLabelDone: {
+    color: colors.light.success,
+  },
+  stepLabelInactive: {
+    color: colors.light.textSecondary,
+  },
+  stepConnector: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 10,
+  },
+  stepConnectorActive: {
+    backgroundColor: colors.light.primary,
+  },
+
+  // Card
   card: {
     backgroundColor: colors.light.surface,
     borderRadius: 20,
@@ -350,18 +726,38 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#FEE2E2',
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.light.error,
+    borderColor: '#FCA5A5',
     marginBottom: 14,
   },
   errorText: {
+    flex: 1,
     color: colors.light.error,
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '500',
+    lineHeight: 17,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.light.primaryLight,
+    marginBottom: 14,
+  },
+  infoText: {
+    flex: 1,
+    color: colors.light.primary,
+    fontSize: 12.5,
+    fontWeight: '500',
+    lineHeight: 17,
   },
   inputGroup: {
     marginBottom: 12,
@@ -371,34 +767,6 @@ const styles = StyleSheet.create({
     color: colors.light.textPrimary,
     fontWeight: '600',
     marginBottom: 6,
-  },
-  roleTabsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  roleTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    backgroundColor: colors.light.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-  },
-  roleTabActive: {
-    backgroundColor: colors.light.primary,
-    borderColor: colors.light.primaryDark,
-  },
-  roleTabText: {
-    fontSize: 11,
-    color: colors.light.textSecondary,
-    fontWeight: '600',
-  },
-  roleTabTextActive: {
-    color: '#FFFFFF',
   },
   inputWrap: {
     flexDirection: 'row',
@@ -452,27 +820,44 @@ const styles = StyleSheet.create({
     color: colors.light.primary,
     fontWeight: '600',
   },
-  registerBtn: {
+
+  // Buttons
+  primaryBtn: {
     backgroundColor: colors.light.primary,
     height: 48,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 10,
     elevation: 2,
     shadowColor: colors.light.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
   },
-  registerBtnDisabled: {
-    opacity: 0.7,
+  primaryBtnDisabled: {
+    opacity: 0.6,
   },
-  registerBtnText: {
+  primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  btnContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    color: colors.light.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   footerRow: {
     flexDirection: 'row',
@@ -485,6 +870,122 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   loginLink: {
+    fontSize: 13,
+    color: colors.light.primary,
+    fontWeight: '700',
+  },
+
+  // OTP Step UI
+  otpHeaderBadgeWrap: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  otpHeaderBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpCardTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: colors.light.textPrimary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  otpCardSubtitle: {
+    fontSize: 13,
+    color: colors.light.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emailChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  emailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.light.background,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    maxWidth: '75%',
+  },
+  emailChipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.light.textPrimary,
+  },
+  changeEmailBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  changeEmailText: {
+    color: colors.light.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  otpBoxesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginVertical: 10,
+    paddingHorizontal: 4,
+  },
+  otpBox: {
+    flex: 1,
+    aspectRatio: 0.85,
+    maxHeight: 54,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.light.border,
+    backgroundColor: colors.light.background,
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.light.primaryDark,
+    textAlign: 'center',
+  },
+  otpBoxFilled: {
+    borderColor: colors.light.primary,
+    backgroundColor: '#F0F7FF',
+  },
+  expiryNote: {
+    fontSize: 11.5,
+    color: colors.light.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  resendSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  resendCountdownText: {
+    fontSize: 13,
+    color: colors.light.textSecondary,
+  },
+  countdownBold: {
+    color: colors.light.primary,
+    fontWeight: '700',
+  },
+  resendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  resendBtnText: {
     fontSize: 13,
     color: colors.light.primary,
     fontWeight: '700',
