@@ -36,6 +36,9 @@ import { MyBookingsScreen } from './src/screens/booking/MyBookingsScreen';
 import { MapScreen } from './src/screens/map/MapScreen';
 import { OwnerDashboardScreen } from './src/screens/owner/OwnerDashboardScreen';
 import { AdminDashboardScreen } from './src/screens/admin/AdminDashboardScreen';
+import { NotificationScreen } from './src/screens/notification/NotificationScreen';
+import { socketService } from './src/services/socketService';
+import { fetchUnreadCount, fetchNotifications } from './src/store/slices/notificationSlice';
 
 // ── Navigation Components ─────────────────────────────────────────────────────
 import { BottomTabNavigator } from './src/components/navigation/BottomTabNavigator';
@@ -51,7 +54,8 @@ export type ScreenType =
   | 'admin'
   | 'login'
   | 'register'
-  | 'profile';
+  | 'profile'
+  | 'notification';
 
 /** Các tab xuất hiện trên Bottom Tab Bar */
 const BOTTOM_TAB_SCREENS: ScreenType[] = ['home', 'bookings', 'map', 'profile'];
@@ -75,10 +79,24 @@ export default function App() {
 function AppContent() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const unreadNotificationsCount = useSelector(
+    (state: RootState) => state.notifications?.unreadCount ?? 0
+  );
   const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
   const [bookingDeviceId, setBookingDeviceId] = useState(null as string | null);
   const insets = useSafeAreaInsets();
+
+  // Kết nối Socket.IO và nạp thông báo khi người dùng đăng nhập
+  React.useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      socketService.connect(user.id);
+      dispatch(fetchUnreadCount() as any);
+      dispatch(fetchNotifications(undefined) as any);
+    } else {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, user?.id, dispatch]);
 
   // Redirect theo role sau khi đăng nhập thành công
   // - admin  → AdminDashboardScreen
@@ -111,9 +129,11 @@ function AppContent() {
     return 'home';
   }, [effectiveScreen]);
 
-  // Ẩn Bottom Tab khi xem chi tiết hoặc đặt thuê
+  // Ẩn Bottom Tab khi xem chi tiết, đặt thuê hoặc mở Trung tâm Thông báo
   const showBottomTab =
-    selectedDeviceId === null && bookingDeviceId === null;
+    selectedDeviceId === null &&
+    bookingDeviceId === null &&
+    effectiveScreen !== 'notification';
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -128,6 +148,7 @@ function AppContent() {
   const goToPostDevice = () => setCurrentScreen('postDevice');
 
   const handleLogout = () => {
+    socketService.disconnect();
     dispatch(clearAuth());
     setCurrentScreen('home');
     setSelectedDeviceId(null);
@@ -162,8 +183,7 @@ function AppContent() {
   };
 
   const handlePressNotifications = () => {
-    // TODO: navigate to NotificationScreen khi Nhật implement
-    console.log('[Nav] Notifications pressed');
+    setCurrentScreen('notification');
   };
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -197,7 +217,7 @@ function AppContent() {
                 onNavigateToNotifications={handlePressNotifications}
                 onNavigateToChat={handlePressChat}
                 unreadMessages={2}
-                unreadNotifications={5}
+                unreadNotifications={unreadNotificationsCount}
               />
             )}
 
@@ -251,6 +271,20 @@ function AppContent() {
                 onNavigateToPostDevice={goToPostDevice}
                 onNavigateToOwnerDashboard={() => setCurrentScreen('owner')}
                 onNavigateToAdminDashboard={() => setCurrentScreen('admin')}
+              />
+            )}
+
+            {effectiveScreen === 'notification' && (
+              <NotificationScreen
+                onBack={() => setCurrentScreen('home')}
+                onNavigateToBooking={() => {
+                  setCurrentScreen('bookings');
+                }}
+                onNavigateToDevice={(deviceId) => {
+                  if (deviceId) {
+                    setSelectedDeviceId(deviceId);
+                  }
+                }}
               />
             )}
           </>

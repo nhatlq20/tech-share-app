@@ -197,21 +197,27 @@ export interface Review {
 // 5. Phân hệ Thông báo (Notifications)
 // ==========================================
 export type NotificationType =
+  | 'order'
+  | 'message'
+  | 'promo'
+  | 'system'
+  | 'reminder'
   | 'booking_request'
   | 'booking_approved'
-  | 'booking_cancelled'
-  | 'reminder'
-  | 'system';
+  | 'booking_cancelled';
 
 export interface Notification {
   _id: string;
-  recipient: string;
+  userId?: string;
+  recipient?: string;
   title: string;
   body: string;
   type: NotificationType;
+  relatedId?: string | null;
   data?: {
     bookingId?: string;
     deviceId?: string;
+    [key: string]: any;
   };
   isRead: boolean;
   createdAt?: string;

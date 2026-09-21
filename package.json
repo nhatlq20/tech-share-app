@@ -9,6 +9,7 @@
     "client:clear": "npm --prefix client start -c",
     "server": "npm --prefix server run dev",
     "server:seed": "npm --prefix server run seed",
+    "test:notifications": "npm --prefix server run test:notifications",
     "install:all": "npm --prefix server install && npm --prefix client install"
   },
   "keywords": [
