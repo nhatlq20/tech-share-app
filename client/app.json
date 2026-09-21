@@ -7,6 +7,9 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Cho phép TechShare truy cập vị trí để lưu địa điểm thiết bị cho thuê."
+      },
       "bundleIdentifier": "com.techshare.mma301"
     },
     "android": {

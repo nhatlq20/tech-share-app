@@ -37,7 +37,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
       {/* Device image & status badge */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: `imageUrl` }}
           style={styles.image}
           resizeMode="cover"
         />

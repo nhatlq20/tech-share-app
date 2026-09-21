@@ -22,6 +22,12 @@ type PostDeviceScreenProps = {
   onPublished?: () => void;
 };
 
+type Specification = {
+  id: number;
+  name: string;
+  value: string;
+};
+
 const categories = [
   "Smartphone",
   "Laptop",
@@ -31,6 +37,8 @@ const categories = [
   "Gaming",
   "Accessory",
 ];
+
+const FIXED_DEVICE_LOCATION: [number, number] = [105.8342, 21.0278];
 
 function SectionTitle({
   title,
@@ -58,7 +66,8 @@ export function PostDeviceScreen({
   const [category, setCategory] = useState("Smartphone");
   const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
-  const [deposit, setDeposit] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [addressText, setAddressText] = useState("");
   const [description, setDescription] = useState("");
   const [showCategories, setShowCategories] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -69,6 +78,11 @@ export function PostDeviceScreen({
   const [devices, setDevices] = useState([] as Device[]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState("");
+  const [specifications, setSpecifications] = useState(
+    () => [] as Specification[],
+  );
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -90,12 +104,12 @@ export function PostDeviceScreen({
     getMyDevices();
   }, [token]);
   const isDirty = Boolean(
-    deviceName || brand || price || deposit || description,
+    deviceName || brand || price || depositAmount || addressText || description,
   );
 
   const handleBack = () => {
     if (!isDirty || submitted) {
-      onBack();
+        onBack();
       return;
     }
 
@@ -109,25 +123,103 @@ export function PostDeviceScreen({
     );
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     setSubmitted(true);
     setValidateSignal((value: number) => value + 1);
+    setPublishError("");
 
     const isBasicInfoValid = Boolean(
       deviceName.trim() &&
       brand.trim() &&
       price.trim() &&
-      deposit.trim() &&
+      depositAmount.trim() &&
+      addressText.trim() &&
       description.trim(),
     );
 
-    if (!isBasicInfoValid || !specificationsValid) return;
+    if (
+      !isBasicInfoValid ||
+      !specificationsValid ||
+      !Number.isFinite(Number(price)) ||
+      !Number.isFinite(Number(depositAmount))
+    ) {
+      setPublishError("Price and deposit must be valid numbers.");
+      return;
+    }
 
-    Alert.alert(
-      "Listing published",
-      "Your device is now ready for renters to discover.",
-      [{ text: "Done", onPress: () => onPublished?.() }],
-    );
+    if (!token) {
+      setPublishError("Please log in before publishing a device.");
+      return;
+    }
+
+    const specs: Record<string, string> = {};
+    specifications.forEach((item: Specification) => {
+      specs[item.name] = item.value;
+    });
+
+    setIsPublishing(true);
+    try {
+      if (photoUris.length === 0) {
+        throw new Error("Please add at least one device image.");
+      }
+
+      const selectedImages = photoUris.filter(
+        (uri: string): uri is string => Boolean(uri),
+      );
+      if (selectedImages.length === 0) {
+        throw new Error("Please add at least one valid device image.");
+      }
+
+      let uploadedImages: string[];
+      try {
+        uploadedImages = await Promise.all(
+          selectedImages.map((uri: string, index: number) =>
+            deviceService.uploadDeviceImage(token, uri, index),
+          ),
+        );
+      } catch (error: any) {
+        throw new Error(
+          error?.response?.data?.message ?? "Could not upload device image.",
+        );
+      }
+
+      try {
+        await deviceService.createDevice(token, {
+          name: deviceName.trim(),
+          brand: brand.trim(),
+          category: category.toLowerCase(),
+          description: description.trim(),
+          images: uploadedImages,
+          specs,
+          pricePerDay: Number(price),
+          depositAmount: Number(depositAmount),
+          location: {
+            type: "Point",
+            coordinates: FIXED_DEVICE_LOCATION,
+          },
+          addressText: addressText.trim(),
+        });
+      } catch (error: any) {
+        throw new Error(
+          error?.response?.data?.message ?? "Images uploaded, but device creation failed.",
+        );
+      }
+
+      setDevices(await deviceService.getMyDevices(token));
+      Alert.alert(
+        "Listing published",
+        "Your device is now ready for renters to discover.",
+        [{ text: "Done", onPress: () => onPublished?.() }],
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ??
+        error?.message ??
+        "Could not publish this device. Please try again.";
+      setPublishError(message);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -216,17 +308,23 @@ export function PostDeviceScreen({
           </View>
 
           {isLoadingDevices ? (
-            <Text style={styles.deviceListMessage}>Loading your devices...</Text>
+            <Text style={styles.deviceListMessage}>
+              Loading your devices...
+            </Text>
           ) : devicesError ? (
             <Text style={styles.deviceListError}>{devicesError}</Text>
           ) : devices.length === 0 ? (
-            <Text style={styles.deviceListMessage}>You have not listed any device yet.</Text>
+            <Text style={styles.deviceListMessage}>
+              You have not listed any device yet.
+            </Text>
           ) : (
             devices.map((device: Device) => (
               <View key={device._id} style={styles.deviceListCard}>
                 <Image
                   source={{
-                    uri: device.images?.[0] ?? "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400",
+                    uri:
+                      device.images?.[0] ??
+                      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400",
                   }}
                   style={styles.deviceListImage}
                 />
@@ -235,7 +333,8 @@ export function PostDeviceScreen({
                     {device.title}
                   </Text>
                   <Text style={styles.deviceListMeta}>
-                    {device.category} • {device.dailyRate.toLocaleString("vi-VN")} VND/day
+                    {device.category} •{" "}
+                    {device.dailyRate.toLocaleString("vi-VN")} VND/day
                   </Text>
                   <Text
                     style={[
@@ -245,7 +344,9 @@ export function PostDeviceScreen({
                         : styles.deviceListStatusMuted,
                     ]}
                   >
-                    {device.status === "available" ? "Available" : device.status}
+                    {device.status === "available"
+                      ? "Available"
+                      : device.status}
                   </Text>
                 </View>
               </View>
@@ -266,6 +367,7 @@ export function PostDeviceScreen({
                   <Image
                     source={{ uri: photoUris[0] }}
                     style={styles.primaryPhoto}
+                    resizeMode="cover"
                   />
                   <View style={styles.photoOverlay}>
                     <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
@@ -399,6 +501,23 @@ export function PostDeviceScreen({
           {submitted && !brand.trim() && (
             <Text style={styles.errorText}>Brand is required</Text>
           )}
+
+          <Text style={styles.fieldLabel}>
+            Display Address<Text style={styles.required}> *</Text>
+          </Text>
+          <TextInput
+            value={addressText}
+            onChangeText={setAddressText}
+            placeholder="e.g. 123 Nguyen Trai, Thanh Xuan, Hanoi"
+            placeholderTextColor="#64748B"
+            style={[
+              styles.input,
+              submitted && !addressText.trim() && styles.inputError,
+            ]}
+          />
+          {submitted && !addressText.trim() && (
+            <Text style={styles.errorText}>Display address is required</Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -434,23 +553,25 @@ export function PostDeviceScreen({
           <View
             style={[
               styles.currencyInput,
-              submitted && !deposit.trim() && styles.currencyInputError,
+              submitted && !depositAmount.trim() && styles.currencyInputError,
             ]}
           >
             <TextInput
-              value={deposit}
-              onChangeText={setDeposit}
+              value={depositAmount}
+              onChangeText={setDepositAmount}
               placeholder="Enter security deposit"
               placeholderTextColor="#64748B"
               keyboardType="numeric"
               style={[
                 styles.currencyTextInput,
-                submitted && !deposit.trim() && styles.currencyTextInputError,
+                submitted &&
+                  !depositAmount.trim() &&
+                  styles.currencyTextInputError,
               ]}
             />
             <Text style={styles.currency}>VND</Text>
           </View>
-          {submitted && !deposit.trim() && (
+          {submitted && !depositAmount.trim() && (
             <Text style={styles.errorText}>Security deposit is required</Text>
           )}
           <Text style={styles.helperText}>
@@ -491,16 +612,23 @@ export function PostDeviceScreen({
             category={category}
             validateSignal={validateSignal}
             onValidityChange={setSpecificationsValid}
+            onChange={setSpecifications}
           />
         </View>
 
         <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.publishButton}
+            style={[
+              styles.publishButton,
+              isPublishing && styles.publishButtonDisabled,
+            ]}
             onPress={handlePublish}
+            disabled={isPublishing}
             activeOpacity={0.8}
           >
-            <Text style={styles.publishText}>Publish Listing</Text>
+            <Text style={styles.publishText}>
+              {isPublishing ? "Publishing..." : "Publish Listing"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.draftButton}
@@ -521,6 +649,7 @@ export function PostDeviceScreen({
               Please complete all technical specifications.
             </Text>
           )}
+          {publishError && <Text style={styles.errorText}>{publishError}</Text>}
         </View>
       </ScrollView>
     </View>
@@ -640,9 +769,10 @@ const styles = StyleSheet.create({
   },
   primaryPhoto: {
     ...StyleSheet.absoluteFillObject,
-    width: undefined,
-    height: undefined,
+
     borderRadius: 12,
+    width: 200,
+    height: 200,
   },
   photoOverlay: {
     position: "absolute",

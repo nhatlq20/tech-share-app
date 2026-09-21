@@ -15,39 +15,21 @@ type SpecsInputFormProps = {
   onValidityChange?: (isValid: boolean) => void;
 };
 
-const examples: Record<string, Array<{ name: string; value: string }>> = {
-  Smartphone: [
-    { name: 'Storage', value: '256GB' },
-    { name: 'RAM', value: '8GB' },
-    { name: 'Color', value: 'Black' },
-    { name: 'Battery Health', value: '92%' },
-  ],
-  Laptop: [
-    { name: 'Processor', value: 'Apple M3 Pro' },
-    { name: 'RAM', value: '18GB' },
-    { name: 'Storage', value: '512GB' },
-    { name: 'Screen Size', value: '14 inch' },
-  ],
-  Camera: [
-    { name: 'Sensor', value: 'Full Frame' },
-    { name: 'Resolution', value: '33MP' },
-    { name: 'Lens Mount', value: 'E-mount' },
-  ],
-};
+
 
 export function SpecsInputForm({ category = 'Smartphone', onChange, validateSignal = 0, onValidityChange }: SpecsInputFormProps) {
   const [specifications, setSpecifications] = useState([] as Specification[]);
   const [nextId, setNextId] = useState(1);
   const [touched, setTouched] = useState([] as number[]);
 
-  useEffect(() => {
-    const categoryExamples = examples[category] || [];
-    const seeded = categoryExamples.map((item, index) => ({ ...item, id: index + 1 }));
-    setSpecifications(seeded);
-    setNextId(seeded.length + 1);
-    setTouched([]);
-    onValidityChange?.(true);
-  }, [category]);
+  // useEffect(() => {
+  //   const categoryExamples =  [];
+  //   const seeded = categoryExamples.map((item, index) => ({ ...item, id: index + 1 }));
+  //   setSpecifications(seeded);
+  //   setNextId(seeded.length + 1);
+  //   setTouched([]);
+  //   onValidityChange?.(true);
+  // }, [category]);
 
   useEffect(() => {
     if (validateSignal === 0) return;
