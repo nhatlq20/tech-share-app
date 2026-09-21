@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
 
+import { API_BASE_URL } from '../../config/api';
+
 interface DeviceCardProps {
   device: Device;
   onPress: (deviceId: string) => void;
@@ -20,11 +22,37 @@ const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ/day';
 };
 
+const resolveImageUri = (url?: string): string => {
+  const fallbackPlaceholder = 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600';
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return fallbackPlaceholder;
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('/')) {
+    const origin = API_BASE_URL.replace(/\/api\/?$/, '');
+    return `${origin}${url}`;
+  }
+  return url;
+};
+
 export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
-  const imageUrl =
-    device.images && device.images.length > 0
-      ? device.images[0]
-      : 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600';
+  const rawImages: unknown = device.images || (device as any).image || (device as any).imageUrl;
+  const rawUrl =
+    Array.isArray(rawImages) && rawImages.length > 0
+      ? rawImages[0]
+      : typeof rawImages === 'string' && rawImages.trim()
+        ? rawImages
+        : undefined;
+
+  const finalUri = resolveImageUri(rawUrl);
+
+  console.log('[DeviceCard IMAGE DEBUG]', {
+    name: device.title || (device as any).name,
+    images: device.images,
+    finalUri,
+  });
 
   const isAvailable = device.status === 'available';
 
@@ -37,7 +65,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
       {/* Device image & status badge */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: `imageUrl` }}
+          source={{ uri: finalUri }}
           style={styles.image}
           resizeMode="cover"
         />

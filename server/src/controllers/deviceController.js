@@ -2,6 +2,19 @@ import Device from "../models/Device.js";
 import User from "../models/User.js"; // Registers 'User' model for Mongoose populate
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 
+const DEVICE_SORTS = new Map([
+  ["price_asc", { pricePerDay: 1, _id: 1 }],
+  ["price_desc", { pricePerDay: -1, _id: 1 }],
+  ["rating_desc", { ratingAvg: -1, _id: 1 }],
+  ["newest", { createdAt: -1, _id: 1 }],
+]);
+
+const positiveInteger = (value, fallback) => {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 export const uploadDeviceImageToCloudinary = asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({
@@ -55,6 +68,18 @@ export const uploadDeviceImageToCloudinary = asyncHandler(async (req, res) => {
  */
 export const getDevices = asyncHandler(async (req, res) => {
   const { category, q } = req.query;
+  for (const [key, value] of Object.entries({ category, q })) {
+    if (value !== undefined && typeof value !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: `${key} must be a single string`,
+      });
+    }
+  }
+  const limit = Math.min(positiveInteger(req.query.limit, 10), 100);
+  const requestedPage = positiveInteger(req.query.page, 1);
+  const page = Number.isSafeInteger((requestedPage - 1) * limit) ? requestedPage : 1;
+  const sort = DEVICE_SORTS.get(req.query.sort) || DEVICE_SORTS.get("newest");
 
   const filter = {
     status: "available",
@@ -73,22 +98,35 @@ export const getDevices = asyncHandler(async (req, res) => {
     filter.$or = [{ name: regex }, { brand: regex }, { description: regex }];
   }
 
-  const devices = await Device.find(filter)
-    .populate("ownerId", "name avatar rating isVerified phone email address")
-    .sort({ createdAt: -1 });
+  const [devices, totalItems] = await Promise.all([
+    Device.find(filter)
+      .populate("ownerId", "name avatar rating isVerified phone email address")
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Device.countDocuments(filter),
+  ]);
 
   res.status(200).json({
     success: true,
     count: devices.length,
     data: devices,
+    pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) },
   });
 });
 
 export const getDeviceById = asyncHandler(async (req, res) => {
+  if (!/^[a-fA-F0-9]{24}$/.test(req.params.id)) {
+    return res.status(400).json({
+      success: false,
+      message: "ID thiết bị không hợp lệ",
+    });
+  }
+
   const device = await Device.findOne({
     _id: req.params.id,
     isDeleted: false,
-  }).populate("ownerId", "name avatar rating isVerified phone email address");
+  }).populate("ownerId", "name avatar rating isVerified");
 
   if (!device) {
     return res.status(404).json({

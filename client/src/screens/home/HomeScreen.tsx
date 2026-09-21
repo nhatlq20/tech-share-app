@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -55,40 +55,97 @@ export function HomeScreen({
     selectedCategory,
     searchQuery,
     isLoading,
+    isInitialLoading,
     isRefreshing,
     error,
   } = useAppSelector(state => state.devices);
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const isFirstMount = useRef(true);
+  const debounceTimerRef = useRef(null as ReturnType<typeof setTimeout> | null);
+  const isClearingRef = useRef(false);
 
-  // Gọi fetchDevices lần đầu khi mount
+  const selectedCategoryRef = useRef(selectedCategory);
+  selectedCategoryRef.current = selectedCategory;
+
+  const initialFiltersRef = useRef({ category: selectedCategory, search: searchQuery });
+
+  // Restore the active filters when returning from Device Detail.
   useEffect(() => {
-    dispatch(fetchDevices(undefined));
+    dispatch(fetchDevices(initialFiltersRef.current));
   }, [dispatch]);
 
-  // Cập nhật tìm kiếm vào Redux và gọi Backend API
+  // Debounce 400ms cho việc tìm kiếm: TextInput hiển thị ngay, chỉ gọi API sau khi ngừng gõ 400ms
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Nếu vừa bấm nút Clear thì đã gọi API tức thì, không cần gọi lại sau 400ms
+    if (isClearingRef.current) {
+      isClearingRef.current = false;
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      console.log(`[LIVE SEARCH] Debounce 400ms completed: "${localSearch}" (Category: ${selectedCategoryRef.current}) -> Calling API`);
+      dispatch(fetchDevices({ category: selectedCategoryRef.current, search: localSearch }));
+    }, 400);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [localSearch, dispatch]);
+
+  // Khi gõ text: cập nhật TextInput ngay lập tức không bị delay
   const handleSearchChange = (text: string) => {
     setLocalSearch(text);
-    dispatch(setSearchQuery(text));
-    dispatch(fetchDevices({ category: selectedCategory, search: text }));
   };
 
   const handleClearSearch = () => {
+    console.log('[LIVE SEARCH] Clear button tapped');
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    isClearingRef.current = true;
     setLocalSearch('');
     dispatch(setSearchQuery(''));
     dispatch(fetchDevices({ category: selectedCategory, search: '' }));
   };
 
   const handleSelectCategory = (category: DeviceCategory | 'all') => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     dispatch(setSelectedCategory(category));
     dispatch(fetchDevices({ category, search: localSearch }));
   };
 
+  const handleSubmitSearch = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    dispatch(fetchDevices({ category: selectedCategory, search: localSearch }));
+  };
+
   const handleRefresh = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     dispatch(refreshDevices({ category: selectedCategory, search: localSearch }));
   };
 
   const handleRetry = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     dispatch(fetchDevices({ category: selectedCategory, search: localSearch }));
   };
 
@@ -130,14 +187,17 @@ export function HomeScreen({
               placeholderTextColor="#64748B"
               value={localSearch}
               onChangeText={handleSearchChange}
+              onSubmitEditing={handleSubmitSearch}
               returnKeyType="search"
             />
             {localSearch.length > 0 ? (
               <TouchableOpacity
                 onPress={handleClearSearch}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ padding: 6 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                <Ionicons name="close-circle" size={20} color="#94A3B8" />
               </TouchableOpacity>
             ) : (
               <View style={styles.searchFilterIcon}>
@@ -173,6 +233,9 @@ export function HomeScreen({
           onActionPress={
             selectedCategory !== 'all'
               ? () => {
+                  if (debounceTimerRef.current) {
+                    clearTimeout(debounceTimerRef.current);
+                  }
                   dispatch(setSelectedCategory('all'));
                   dispatch(fetchDevices({ category: 'all', search: localSearch }));
                 }
@@ -201,7 +264,7 @@ export function HomeScreen({
 
   // Empty State
   const renderEmptyState = () => {
-    if (isLoading) {
+    if (isInitialLoading) {
       return renderLoadingSkeleton();
     }
 
@@ -221,6 +284,9 @@ export function HomeScreen({
           <TouchableOpacity
             style={styles.resetBtn}
             onPress={() => {
+              if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+              }
               setLocalSearch('');
               dispatch(clearFilters());
               dispatch(fetchDevices({ category: 'all' }));
