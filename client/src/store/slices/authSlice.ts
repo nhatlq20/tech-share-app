@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { setApiAuthToken } from '../../config/api';
 
 export interface AuthUser {
   id: string;
@@ -35,11 +36,13 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.isAuthenticated = true;
+      setApiAuthToken(action.payload.token);
     },
     clearAuth: state => {
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;
+      setApiAuthToken(null);
     },
     updateUser: (state, action: PayloadAction<Partial<AuthUser>>) => {
       if (!state.user) {

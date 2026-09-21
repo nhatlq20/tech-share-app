@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
-import { ScreenType } from '../../../App';
+import { ScreenType } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -69,8 +69,9 @@ const startServer = async () => {
     httpServer = http.createServer(app);
     initSocket(httpServer);
 
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 [TechShare Server] Đang chạy tại http://localhost:${PORT}`);
+      console.log(`📡 [LAN IP]            http://192.168.1.46:${PORT}`);
       console.log(`🩺 [Health Check]     http://localhost:${PORT}/api/health`);
       console.log(`🔐 [Login API]       http://localhost:${PORT}/api/auth/login`);
       console.log(`⚡ [Socket.IO]       Đã sẵn sàng nhận kết nối thời gian thực`);

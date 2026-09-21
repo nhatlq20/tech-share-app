@@ -1,13 +1,23 @@
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '../config/api';
-import { store } from '../store';
-import { receiveRealtimeNotification } from '../store/slices/notificationSlice';
 import { Notification } from '../types';
 
 let socket: Socket | null = null;
 let currentUserId: string | null = null;
+type NotificationListener = (notification: Notification) => void;
+let notificationListeners: NotificationListener[] = [];
 
 export const socketService = {
+  /**
+   * Đăng ký nhận thông báo realtime từ socket
+   */
+  onNewNotification: (listener: NotificationListener) => {
+    notificationListeners.push(listener);
+    return () => {
+      notificationListeners = notificationListeners.filter(l => l !== listener);
+    };
+  },
+
   /**
    * Kết nối tới Socket.IO Server và gia nhập room của user
    */
@@ -43,7 +53,13 @@ export const socketService = {
 
       socket.on('new_notification', (notification: Notification) => {
         console.log('🔔 [Socket.IO Client] Nhận thông báo mới:', notification.title);
-        store.dispatch(receiveRealtimeNotification(notification));
+        notificationListeners.forEach(listener => {
+          try {
+            listener(notification);
+          } catch (e) {
+            console.warn('Listener error in socketService:', e);
+          }
+        });
       });
 
       socket.on('disconnect', (reason) => {

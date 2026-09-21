@@ -1,6 +1,5 @@
-import { apiClient } from '../config/api';
+import { apiClient, getApiAuthToken } from '../config/api';
 import { Notification } from '../types';
-import { store } from '../store';
 
 export const FALLBACK_NOTIFICATIONS: Notification[] = [
   {
@@ -42,7 +41,7 @@ export const FALLBACK_NOTIFICATIONS: Notification[] = [
 ];
 
 const getHeaders = (token?: string) => {
-  const authToken = token || store.getState().auth.token;
+  const authToken = token || getApiAuthToken();
   return authToken ? { Authorization: `Bearer ${authToken}` } : {};
 };
 

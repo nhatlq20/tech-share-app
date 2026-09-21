@@ -436,4 +436,16 @@ export interface OwnerAnalyticsResponse {
   fleet: FleetDeviceItem[];
 }
 
+export type ScreenType =
+  | 'home'
+  | 'bookings'
+  | 'map'
+  | 'postDevice'
+  | 'owner'
+  | 'admin'
+  | 'login'
+  | 'register'
+  | 'profile'
+  | 'notification';
+
 
