@@ -24,6 +24,7 @@ interface ProfileScreenProps {
   onLogout: () => void;
   onNavigateToLogin?: () => void;
   onNavigateToPostDevice?: () => void;
+  onNavigateToMyDevices: () => void;
   onNavigateToOwnerDashboard?: () => void;
   onNavigateToAdminDashboard?: () => void;
 }
@@ -32,6 +33,7 @@ export function ProfileScreen({
   onLogout,
   onNavigateToLogin,
   onNavigateToPostDevice,
+  onNavigateToMyDevices,
   onNavigateToOwnerDashboard,
   onNavigateToAdminDashboard,
 }: ProfileScreenProps) {
@@ -273,6 +275,25 @@ export function ProfileScreen({
             <Ionicons name="add-circle-outline" size={19} color="#FFFFFF" />
             <Text style={styles.listDeviceButtonText}>List Your Device</Text>
             <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.dashboardSection}>
+          <Text style={styles.dashboardSectionTitle}>My Account</Text>
+          <TouchableOpacity
+            style={styles.dashboardShortcutCard}
+            onPress={onNavigateToMyDevices}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="My Devices"
+          >
+            <View style={styles.dashboardIconBoxOwner}>
+              <Ionicons name="cube-outline" size={20} color={colors.light.primary} />
+            </View>
+            <View style={styles.dashboardCardContent}>
+              <Text style={styles.dashboardCardTitle}>My Devices</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
           </TouchableOpacity>
         </View>
 
