@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -11,6 +12,9 @@ import adminRoutes from './routes/adminRoutes.js';
 import ownerAnalyticsRoutes from './routes/ownerAnalyticsRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import voucherRoutes from './routes/voucherRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import { initSocket } from './socket.js';
+import { startReminderScheduler, stopReminderScheduler } from './services/reminderScheduler.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -43,6 +47,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/devices', deviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/vouchers', voucherRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 & Error Handler Middlewares
 app.use(notFound);
@@ -61,11 +66,19 @@ const startServer = async () => {
     console.log(`⚡ Port:     ${conn.connection.port}`);
     console.log('==================================================');
 
-    httpServer = app.listen(PORT, () => {
+    httpServer = http.createServer(app);
+    initSocket(httpServer);
+
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 [TechShare Server] Đang chạy tại http://localhost:${PORT}`);
+      console.log(`📡 [LAN IP]            http://192.168.1.46:${PORT}`);
       console.log(`🩺 [Health Check]     http://localhost:${PORT}/api/health`);
       console.log(`🔐 [Login API]       http://localhost:${PORT}/api/auth/login`);
+      console.log(`⚡ [Socket.IO]       Đã sẵn sàng nhận kết nối thời gian thực`);
       console.log('==================================================');
+
+      // Khởi động scheduler nhắc hạn trả máy tự động
+      startReminderScheduler();
     });
 
     httpServer.on('error', error => {
@@ -88,6 +101,8 @@ const startServer = async () => {
 
 const shutdown = async (exitCode = 0) => {
   try {
+    stopReminderScheduler();
+
     if (httpServer) {
       await new Promise(resolve => httpServer.close(resolve));
       httpServer = null;

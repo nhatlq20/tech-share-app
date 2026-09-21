@@ -1,6 +1,7 @@
 import Booking from '../models/Booking.js';
 import Device from '../models/Device.js';
 import Voucher from '../models/Voucher.js';
+import { createAndSendNotification } from '../services/notificationService.js';
 
 // @desc    Create new booking
 // @route   POST /api/bookings
@@ -101,6 +102,21 @@ export const createBooking = async (req, res) => {
       paymentStatus: 'unpaid',
       timeline: [{ status: 'pending', note: 'Booking created' }]
     });
+
+    // Tự động bắn thông báo tức thì đến chủ máy
+    if (device.ownerId) {
+      createAndSendNotification({
+        userId: device.ownerId,
+        title: 'Yêu cầu thuê thiết bị mới! 📦',
+        body: `Có khách hàng vừa gửi yêu cầu thuê thiết bị "${device.name}" (${totalDays} ngày). Mã đơn: #${bookingCode}.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          deviceId: device._id.toString(),
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo cho chủ máy:', err.message));
+    }
 
     res.status(201).json(booking);
   } catch (error) {

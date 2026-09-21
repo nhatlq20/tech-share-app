@@ -9,6 +9,7 @@ import {
   WalletTransaction,
   Notification,
 } from '../models/index.js';
+import { createAndSendNotification } from '../services/notificationService.js';
 
 /**
  * 1. GET /api/admin/analytics
@@ -259,28 +260,26 @@ export const resolveDispute = async (req, res) => {
     });
     await booking.save();
 
-    // 4. Bắn thông báo cho 2 bên
-    const notifications = [];
+    // 4. Bắn thông báo real-time và push cho 2 bên
     if (renter) {
-      notifications.push({
+      await createAndSendNotification({
         userId: renter._id,
         title: 'Phán quyết tranh chấp tiền cọc ⚖️',
         body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn được hoàn ${refundAmount.toLocaleString()} đ tiền cọc.`,
         type: 'system',
         relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
       });
     }
     if (owner) {
-      notifications.push({
+      await createAndSendNotification({
         userId: owner._id,
         title: 'Phán quyết tranh chấp tiền cọc ⚖️',
         body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn nhận được ${deductAmount.toLocaleString()} đ tiền bồi thường thiệt hại.`,
         type: 'system',
         relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
       });
-    }
-    if (notifications.length > 0) {
-      await Notification.insertMany(notifications);
     }
 
     return res.status(200).json({
@@ -370,7 +369,7 @@ export const approveEkyc = async (req, res) => {
       await user.save();
 
       // Bắn thông báo chúc mừng
-      await Notification.create({
+      await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC đã được phê duyệt! 🎉',
         body: 'Chúc mừng bạn! Hồ sơ căn cước công dân đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín trên TechShare.',
@@ -421,7 +420,7 @@ export const rejectEkyc = async (req, res) => {
       user.isVerified = false;
       await user.save();
 
-      await Notification.create({
+      await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC chưa được phê duyệt ⚠️',
         body: `Hồ sơ xác minh căn cước của bạn đã bị từ chối. Lý do: ${request.rejectReason}. Vui lòng chụp lại ảnh rõ nét và gửi lại.`,
