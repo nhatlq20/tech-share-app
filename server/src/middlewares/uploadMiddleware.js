@@ -2,13 +2,16 @@ import multer from 'multer';
 
 const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-export const uploadAvatar = multer({
+const imageUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     if (!allowedMimeTypes.has(file.mimetype)) {
-      return callback(new Error('Avatar must be JPG, PNG, or WEBP'));
+      return callback(new Error('Image must be JPG, PNG, or WEBP'));
     }
     callback(null, true);
   },
-}).single('avatar');
+});
+
+export const uploadAvatar = imageUpload.single('avatar');
+export const uploadDeviceImage = imageUpload.single('image');

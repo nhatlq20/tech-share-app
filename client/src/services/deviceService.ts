@@ -252,6 +252,22 @@ export interface GetDevicesParams {
   search?: string;
 }
 
+export interface CreateDevicePayload {
+  name: string;
+  brand: string;
+  category: string;
+  description: string;
+  images: string[];
+  specs: Record<string, string>;
+  pricePerDay: number;
+  depositAmount: number;
+  location: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  addressText: string;
+}
+
 export const deviceService = {
   /**
    * Gọi API GET /api/devices, tự động chuyển đổi sang danh sách chuẩn Device[]
@@ -347,5 +363,38 @@ export const deviceService = {
     });
 
     return response.data.data;
+  },
+
+  async createDevice(
+    token: string,
+    payload: CreateDevicePayload,
+  ): Promise<Device> {
+    const response = await apiClient.post("/devices", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data.data;
+  },
+
+  async uploadDeviceImage(token: string, uri: string, index: number): Promise<string> {
+    const formData = new FormData();
+    const extension = uri.split(".").pop()?.toLowerCase() || "jpg";
+    const mimeType = extension === "png" ? "image/png" : "image/jpeg";
+    formData.append("image", {
+      uri,
+      name: `device-${Date.now()}-${index}.${extension}`,
+      type: mimeType,
+    } as unknown as Blob);
+
+    const response = await apiClient.post("/devices/upload-image", formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data.data.url;
   },
 };

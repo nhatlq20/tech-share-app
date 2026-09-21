@@ -2,6 +2,52 @@ import Device from "../models/Device.js";
 import User from "../models/User.js"; // Registers 'User' model for Mongoose populate
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 
+export const uploadDeviceImageToCloudinary = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "Device image is required",
+    });
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) {
+    return res.status(500).json({
+      success: false,
+      message: "Cloudinary is not configured",
+    });
+  }
+
+  const formData = new FormData();
+  formData.append(
+    "file",
+    new Blob([req.file.buffer], { type: req.file.mimetype }),
+    req.file.originalname,
+  );
+  formData.append("upload_preset", uploadPreset);
+  formData.append("folder", "techshare/devices");
+
+  const cloudinaryResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: "POST", body: formData },
+  );
+  const cloudinaryData = await cloudinaryResponse.json();
+
+  if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+    console.error("Device image upload error:", cloudinaryData);
+    return res.status(502).json({
+      success: false,
+      message: cloudinaryData?.error?.message || "Device image upload failed",
+    });
+  }
+
+  return res.status(201).json({
+    success: true,
+    data: { url: cloudinaryData.secure_url },
+  });
+});
+
 /**
  * @desc    Lấy danh sách các thiết bị đang có sẵn (available)
  * @route   GET /api/devices
