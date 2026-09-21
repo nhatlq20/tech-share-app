@@ -106,6 +106,7 @@ export interface DeviceLocation {
 
 export interface Device {
   _id: string;
+  addressText?: string;
   owner: User | string;
   title: string;
   brand: string;
