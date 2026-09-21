@@ -147,9 +147,11 @@ function AppContent() {
    * Nhận `role` từ response API (tránh phụ thuộc vào Redux timing).
    */
   const handleNavigateAfterAuth = (role?: string) => {
-    if (role === 'admin') {
+    const normalizedRole = role?.toLowerCase();
+
+    if (normalizedRole === 'admin') {
       setCurrentScreen('admin');
-    } else if (role === 'owner') {
+    } else if (normalizedRole === 'owner') {
       setCurrentScreen('owner');
     } else {
       setCurrentScreen('home');

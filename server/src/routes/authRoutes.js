@@ -61,26 +61,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const roleRecord = await mongoose.connection.db.collection('roles').findOne({
+      _id: account.roleId,
+    });
+    const accountRole = ['admin', 'owner', 'renter'].includes(roleRecord?.code)
+      ? roleRecord.code
+      : 'renter';
+
     // Existing profiles may predate the accounts/users link and only contain email.
     let user = await User.findOne({ accountId: account._id }).lean()
       || await User.findOne({ email: account.email }).lean();
 
     if (!user) {
-      const roleRecord = await mongoose.connection.db.collection('roles').findOne({
-        _id: account.roleId,
-      });
-      const role = roleRecord?.code === 'owner'
-        ? 'owner'
-        : roleRecord?.code === 'admin'
-          ? 'admin'
-          : 'rental';
       const fallbackName = account.username || account.email.split('@')[0];
 
       user = await User.create({
         accountId: account._id,
         name: fallbackName,
         email: account.email,
-        role,
+        role: accountRole,
         isVerified: false,
         trustScore: 100,
       });
@@ -96,6 +95,7 @@ router.post('/login', async (req, res) => {
     const userWithAccountEmail = {
       ...user,
       email: account.email,
+      role: accountRole,
     };
     const token = createToken(userWithAccountEmail);
 
@@ -110,7 +110,7 @@ router.post('/login', async (req, res) => {
         phone: user.phone,
         address: user.address,
         avatar: user.avatar,
-        role: user.role || 'rental',
+        role: accountRole,
         isVerified: user.isVerified,
         trustScore: user.trustScore,
       },
@@ -183,7 +183,7 @@ router.post('/register', async (req, res) => {
       name: name.trim(),
       email: account.email,
       phone: phone.trim(),
-      role: 'rental',
+      role: 'renter',
       isVerified: false,
       trustScore: 100,
     });
