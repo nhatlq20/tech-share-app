@@ -11,6 +11,7 @@ import Voucher from './Voucher.js';
 import Dispute from './Dispute.js';
 import EkycRequest from './EkycRequest.js';
 import AiCache from './AiCache.js';
+import Otp from './Otp.js';
 
 export {
   Role,
@@ -26,6 +27,7 @@ export {
   Dispute,
   EkycRequest,
   AiCache,
+  Otp,
 };
 
 export default {
@@ -42,4 +44,5 @@ export default {
   Dispute,
   EkycRequest,
   AiCache,
+  Otp,
 };
