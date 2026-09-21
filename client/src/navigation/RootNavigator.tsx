@@ -1,12 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDrawer } from './AppDrawer';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { DeviceDetailScreen } from '../screens/device/DeviceDetailScreen';
 import { BookingCreateScreen } from '../screens/booking/BookingCreateScreen';
+import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
+import { colors } from '../theme/colors';
 import { clearAuth } from '../store/slices/authSlice';
 import { RootState } from '../store';
 
@@ -14,6 +17,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Main: undefined;
+  MyDevices: undefined;
   DeviceDetail: { deviceId: string };
   BookingCreate: { deviceId: string };
 };
@@ -39,7 +43,15 @@ export function RootNavigator() {
                 navigation.replace('Login');
               }}
               onOpenDevice={(deviceId: string) => navigation.navigate('DeviceDetail', { deviceId })}
+              onOpenMyDevices={() => navigation.navigate('MyDevices')}
             />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="MyDevices" options={{ title: 'My Devices' }}>
+          {({ navigation }) => (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
+              <MyDevicesScreen onBack={() => navigation.goBack()} />
+            </SafeAreaView>
           )}
         </Stack.Screen>
         <Stack.Screen name="DeviceDetail">

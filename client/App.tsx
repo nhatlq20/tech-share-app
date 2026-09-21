@@ -9,11 +9,12 @@
  * Theme: Tuân thủ theme-skill.md (Light mode mặc định, White & Blue)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -31,6 +32,7 @@ import { PostDeviceScreen } from './src/screens/device/PostDeviceScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
+import { MyDevicesScreen } from './src/screens/user/MyDevicesScreen';
 import { BookingCreateScreen } from './src/screens/booking/BookingCreateScreen';
 import { MyBookingsScreen } from './src/screens/booking/MyBookingsScreen';
 import { MapScreen } from './src/screens/map/MapScreen';
@@ -47,6 +49,7 @@ export type ScreenType =
   | 'bookings'
   | 'map'
   | 'postDevice'
+  | 'myDevices'
   | 'owner'
   | 'admin'
   | 'login'
@@ -101,6 +104,7 @@ function AppContent() {
       effectiveScreen === 'login' ||
       effectiveScreen === 'register' ||
       effectiveScreen === 'admin' ||
+      effectiveScreen === 'myDevices' ||
       effectiveScreen === 'owner'
     ) {
       return 'profile';
@@ -109,6 +113,16 @@ function AppContent() {
       return effectiveScreen;
     }
     return 'home';
+  }, [effectiveScreen]);
+
+  useEffect(() => {
+    if (effectiveScreen !== 'myDevices') return;
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCurrentScreen('profile');
+      return true;
+    });
+    return () => subscription.remove();
   }, [effectiveScreen]);
 
   // Ẩn Bottom Tab khi xem chi tiết hoặc đặt thuê
@@ -251,9 +265,13 @@ function AppContent() {
                 onLogout={handleLogout}
                 onNavigateToLogin={goToLogin}
                 onNavigateToPostDevice={goToPostDevice}
+                onNavigateToMyDevices={() => setCurrentScreen('myDevices')}
                 onNavigateToOwnerDashboard={() => setCurrentScreen('owner')}
                 onNavigateToAdminDashboard={() => setCurrentScreen('admin')}
               />
+            )}
+            {effectiveScreen === 'myDevices' && (
+              <MyDevicesScreen onBack={() => setCurrentScreen('profile')} />
             )}
           </>
         )}
