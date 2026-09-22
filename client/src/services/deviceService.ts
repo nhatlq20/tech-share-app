@@ -258,6 +258,13 @@ export interface GetDevicesParams {
   sort?: DeviceSort;
 }
 
+export interface GetNearbyDevicesParams {
+  latitude: number;
+  longitude: number;
+  /** Radius in meters; the backend defaults to 5000. */
+  maxDistance?: number;
+}
+
 export interface CreateDevicePayload {
   name: string;
   brand: string;
@@ -275,6 +282,18 @@ export interface CreateDevicePayload {
 }
 
 export const deviceService = {
+  /** Nearby devices from MongoDB, nearest first. API errors propagate to the caller. */
+  async getNearbyDevices(params: GetNearbyDevicesParams): Promise<Device[]> {
+    const response = await apiClient.get<{ success: boolean; count: number; data: Device[] }>("/devices/nearby", {
+      params: {
+        lat: params.latitude,
+        lng: params.longitude,
+        maxDistance: params.maxDistance,
+      },
+    });
+    return response.data.data;
+  },
+
   /**
    * Gọi API GET /api/devices, tự động chuyển đổi sang danh sách chuẩn Device[]
    * Nếu backend chưa có endpoint hoặc server chưa chạy, trả về danh sách fallback chuẩn

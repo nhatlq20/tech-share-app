@@ -115,6 +115,45 @@ export const getDevices = asyncHandler(async (req, res) => {
   });
 });
 
+/** GET /api/devices/nearby — maxDistance in meters (default: 5000). */
+export const getNearbyDevices = asyncHandler(async (req, res) => {
+  const values = {};
+  for (const key of ["lat", "lng", "maxDistance"]) {
+    const raw = req.query[key];
+    if (key === "maxDistance" && raw === undefined) {
+      values[key] = 5000;
+      continue;
+    }
+    if (typeof raw !== "string" || raw.trim() === "" || !Number.isFinite(Number(raw))) {
+      return res.status(400).json({ success: false, message: `${key} must be a single finite number` });
+    }
+    values[key] = Number(raw);
+  }
+  const { lat, lng, maxDistance } = values;
+  if (lat < -90 || lat > 90) {
+    return res.status(400).json({ success: false, message: "lat must be between -90 and 90" });
+  }
+  if (lng < -180 || lng > 180) {
+    return res.status(400).json({ success: false, message: "lng must be between -180 and 180" });
+  }
+  if (maxDistance <= 0) {
+    return res.status(400).json({ success: false, message: "maxDistance must be greater than 0 meters" });
+  }
+
+  // GeoJSON requires longitude first. $nearSphere orders results by proximity.
+  const devices = await Device.find({
+    status: "available",
+    isDeleted: false,
+    location: {
+      $nearSphere: {
+        $geometry: { type: "Point", coordinates: [lng, lat] },
+        $maxDistance: maxDistance,
+      },
+    },
+  });
+  res.status(200).json({ success: true, count: devices.length, data: devices });
+});
+
 export const getDeviceById = asyncHandler(async (req, res) => {
   if (!/^[a-fA-F0-9]{24}$/.test(req.params.id)) {
     return res.status(400).json({

@@ -1,5 +1,5 @@
 import express from "express";
-import { createDevice, getDeviceById, getDevices, getMyDevices, uploadDeviceImageToCloudinary } from "../controllers/deviceController.js";
+import { createDevice, getDeviceById, getDevices, getNearbyDevices, getMyDevices, uploadDeviceImageToCloudinary } from "../controllers/deviceController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 import { uploadDeviceImage } from "../middlewares/uploadMiddleware.js";
 
@@ -10,5 +10,6 @@ router.get("/", getDevices);
 router.post("/upload-image", requireAuth, uploadDeviceImage, uploadDeviceImageToCloudinary);
 router.post("/",requireAuth,createDevice);
 router.get("/myDevices",requireAuth,getMyDevices);
+router.get("/nearby", getNearbyDevices);
 router.get("/:id", getDeviceById);
 export default router;
