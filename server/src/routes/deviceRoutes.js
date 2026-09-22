@@ -1,5 +1,5 @@
 import express from "express";
-import { createDevice, getDeviceById, getDevices, getNearbyDevices, getMyDevices, uploadDeviceImageToCloudinary } from "../controllers/deviceController.js";
+import { createDevice, getDeviceById, getDevices, getNearbyDevices, getMyDevices, updateDeviceStatus, uploadDeviceImageToCloudinary } from "../controllers/deviceController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 import { uploadDeviceImage } from "../middlewares/uploadMiddleware.js";
 

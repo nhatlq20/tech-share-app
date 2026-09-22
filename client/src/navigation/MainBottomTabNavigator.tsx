@@ -102,6 +102,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onLogout={handleLogout}
             onNavigateToLogin={() => navigation.navigate('Login')}
             onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
+            onNavigateToMyDevices={() => navigation.navigate('MyDevices')}
             onNavigateToOwnerDashboard={() => navigation.navigate('OwnerDashboard')}
             onNavigateToAdminDashboard={() => navigation.navigate('AdminRoot')}
           />
