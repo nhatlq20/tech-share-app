@@ -10,11 +10,13 @@ const Tab = createBottomTabNavigator();
 interface BottomTabNavigatorProps {
   onLogout: () => void;
   onOpenDevice: (deviceId: string) => void;
+  onOpenMyDevices: () => void;
 }
 
 export function BottomTabNavigator({
   onLogout,
   onOpenDevice,
+  onOpenMyDevices,
 }: BottomTabNavigatorProps) {
   return (
     <Tab.Navigator
@@ -46,11 +48,12 @@ export function BottomTabNavigator({
         )}
       </Tab.Screen>
       <Tab.Screen name="Profile">
-        {() => (
+        {({ navigation }) => (
           <ProfileScreen
             onLogout={onLogout}
             onNavigateToLogin={onLogout}
             onNavigateToPostDevice={() => navigation.navigate("PostDevice")}
+            onNavigateToMyDevices={onOpenMyDevices}
           />
         )}
       </Tab.Screen>

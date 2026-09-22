@@ -8,9 +8,10 @@ const Drawer = createDrawerNavigator();
 interface AppDrawerProps {
   onLogout: () => void;
   onOpenDevice: (deviceId: string) => void;
+  onOpenMyDevices: () => void;
 }
 
-export function AppDrawer({ onLogout, onOpenDevice }: AppDrawerProps) {
+export function AppDrawer({ onLogout, onOpenDevice, onOpenMyDevices }: AppDrawerProps) {
   return (
     <Drawer.Navigator
       screenOptions={{
@@ -31,7 +32,13 @@ export function AppDrawer({ onLogout, onOpenDevice }: AppDrawerProps) {
           ),
         }}
       >
-        {() => <BottomTabNavigator onLogout={onLogout} onOpenDevice={onOpenDevice} />}
+        {() => (
+          <BottomTabNavigator
+            onLogout={onLogout}
+            onOpenDevice={onOpenDevice}
+            onOpenMyDevices={onOpenMyDevices}
+          />
+        )}
       </Drawer.Screen>
     </Drawer.Navigator>
   );

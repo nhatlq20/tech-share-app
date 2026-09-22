@@ -2,18 +2,25 @@
  * App.tsx — Root entry point của TechShare Mobile App
  *
  * Kiến trúc điều hướng:
- * - State-based navigation (không dùng React Navigation để tránh re-write toàn bộ)
- * - Bottom Tab Bar được tách ra thành component BottomTabNavigator
- * - Header Actions (Chat + Thông báo) được tách ra thành HeaderActions
+ * - React Navigation 7 với Role-Based Conditional Routing (RootNavigator)
+ * - Khách/Chưa đăng nhập: AuthStackNavigator (Login / Register)
+ * - Quản trị viên (Role === 'admin'): AdminDrawerNavigator (Left Drawer, Không có Bottom Tab)
+ * - Người dùng/Chủ máy (Role !== 'admin'): MainBottomTabNavigator (4 Bottom Tabs)
  *
- * Theme: Tuân thủ theme-skill.md (Light mode mặc định, White & Blue)
+ * Theme: Tuân thủ 100% theme-skill.md (src/constants/theme.ts)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect } from 'react';
+import { StatusBar, LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['Require cycle:']);
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -21,8 +28,17 @@ import {
 } from 'react-native-safe-area-context';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { store, RootState } from './src/store';
-import { clearAuth } from './src/store/slices/authSlice';
 import { theme } from './src/constants/theme';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { socketService } from './src/services/socketService';
+import {
+  fetchUnreadCount,
+  fetchNotifications,
+  receiveRealtimeNotification,
+} from './src/store/slices/notificationSlice';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type { ScreenType } from './src/types';
 
 // ── Screens ──────────────────────────────────────────────────────────────────
 import { HomeScreen } from './src/screens/home/HomeScreen';
@@ -31,6 +47,7 @@ import { PostDeviceScreen } from './src/screens/device/PostDeviceScreen';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { ProfileScreen } from './src/screens/user/ProfileScreen';
+import { MyDevicesScreen } from './src/screens/user/MyDevicesScreen';
 import { BookingCreateScreen } from './src/screens/booking/BookingCreateScreen';
 import { MyBookingsScreen } from './src/screens/booking/MyBookingsScreen';
 import { MapScreen } from './src/screens/map/MapScreen';
@@ -47,6 +64,7 @@ export type ScreenType =
   | 'bookings'
   | 'map'
   | 'postDevice'
+  | 'myDevices'
   | 'owner'
   | 'admin'
   | 'login'
@@ -64,43 +82,37 @@ export default function App() {
   return (
     <ReduxProvider store={store}>
       <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" backgroundColor={theme.card} />
         <AppContent />
       </SafeAreaProvider>
     </ReduxProvider>
   );
 }
 
-// ─── AppContent ───────────────────────────────────────────────────────────────
+// ─── AppContent Lifecycle & Socket Manager ────────────────────────────────────
 
 function AppContent() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-  const [currentScreen, setCurrentScreen] = useState('home' as ScreenType);
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
-  const [bookingDeviceId, setBookingDeviceId] = useState(null as string | null);
-  const insets = useSafeAreaInsets();
 
-  // Redirect theo role sau khi đăng nhập thành công
-  // - admin  → AdminDashboardScreen
-  // - owner  → OwnerDashboardScreen
-  // - user   → HomeScreen (mặc định)
-  const effectiveScreen: ScreenType = useMemo(() => {
-    if (!isAuthenticated && currentScreen === 'home') return 'home';
-    if (isAuthenticated && currentScreen === 'login') {
-      // Tự động redirect theo role khi vừa đăng nhập từ LoginScreen
-      if (user?.role === 'admin') return 'admin';
-      if (user?.role === 'owner') return 'owner';
-      return 'home';
-    }
-    return currentScreen;
-  }, [currentScreen, isAuthenticated, user?.role]);
+  // Kết nối Socket.IO và nạp thông báo khi người dùng đăng nhập
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      socketService.connect(user.id);
+      dispatch(fetchUnreadCount() as any);
+      dispatch(fetchNotifications(undefined) as any);
 
+      const unsubscribe = socketService.onNewNotification((notification) => {
+        dispatch(receiveRealtimeNotification(notification));
+      });
+      return unsubscribe;
   // Active tab cho BottomTabNavigator — login/register/admin/owner map về tab profile
   const activeTab: ScreenType = useMemo(() => {
     if (
       effectiveScreen === 'login' ||
       effectiveScreen === 'register' ||
       effectiveScreen === 'admin' ||
+      effectiveScreen === 'myDevices' ||
       effectiveScreen === 'owner'
     ) {
       return 'profile';
@@ -109,6 +121,16 @@ function AppContent() {
       return effectiveScreen;
     }
     return 'home';
+  }, [effectiveScreen]);
+
+  useEffect(() => {
+    if (effectiveScreen !== 'myDevices') return;
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCurrentScreen('profile');
+      return true;
+    });
+    return () => subscription.remove();
   }, [effectiveScreen]);
 
   // Ẩn Bottom Tab khi xem chi tiết hoặc đặt thuê
@@ -137,10 +159,11 @@ function AppContent() {
     if (tab === 'profile' && !isAuthenticated) {
       setCurrentScreen('login');
     } else {
-      setCurrentScreen(tab);
+      socketService.disconnect();
     }
-  };
+  }, [isAuthenticated, user?.id, dispatch]);
 
+  return <RootNavigator />;
   /**
    * Sau khi LoginScreen/RegisterScreen xác thực thành công,
    * điều hướng dựa trên role của user vừa được lưu vào Redux.
@@ -251,9 +274,13 @@ function AppContent() {
                 onLogout={handleLogout}
                 onNavigateToLogin={goToLogin}
                 onNavigateToPostDevice={goToPostDevice}
+                onNavigateToMyDevices={() => setCurrentScreen('myDevices')}
                 onNavigateToOwnerDashboard={() => setCurrentScreen('owner')}
                 onNavigateToAdminDashboard={() => setCurrentScreen('admin')}
               />
+            )}
+            {effectiveScreen === 'myDevices' && (
+              <MyDevicesScreen onBack={() => setCurrentScreen('profile')} />
             )}
           </>
         )}
@@ -271,16 +298,3 @@ function AppContent() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.card,            // #FFFFFF
-  },
-  screenContainer: {
-    flex: 1,
-    backgroundColor: theme.background,     // #F8FAFC
-  },
-});

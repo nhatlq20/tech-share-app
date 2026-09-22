@@ -12,4 +12,6 @@ router.post("/",requireAuth,createDevice);
 router.get("/myDevices",requireAuth,getMyDevices);
 router.get("/nearby", getNearbyDevices);
 router.get("/:id", getDeviceById);
+router.patch("/:id/status", requireAuth, updateDeviceStatus);
+
 export default router;

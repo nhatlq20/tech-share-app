@@ -18,10 +18,25 @@ const getBaseUrl = () => {
 
 export const API_BASE_URL = getBaseUrl();
 
+let globalAuthToken: string | null = null;
+
+export const setApiAuthToken = (token: string | null) => {
+  globalAuthToken = token;
+};
+
+export const getApiAuthToken = () => globalAuthToken;
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (globalAuthToken && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${globalAuthToken}`;
+  }
+  return config;
 });

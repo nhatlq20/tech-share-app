@@ -88,7 +88,7 @@ export type DeviceCategory =
   | 'audio' 
   | 'accessory';
 
-export type DeviceStatus = 'available' | 'rented' | 'maintenance' | 'hidden';
+
 
 export interface DeviceAiAnalysis {
   summary: string;
@@ -125,7 +125,25 @@ export interface Device {
   createdAt?: string;
   updatedAt?: string;
 }
+export type DeviceStatus =
+  | "available"
+  | "rented"
+  | "maintenance"
+  | "hidden";
 
+export type ManagedDeviceStatus =
+  Exclude<DeviceStatus, "rented">;
+
+export interface OwnedDevice {
+  _id: string;
+  image: string;
+  title: string;
+  category: string;
+  dailyRate: number;
+  rentalCount: number;
+  ratingAvg: number;
+  status: ManagedDeviceStatus;
+}
 // ==========================================
 // 3. Phân hệ Đơn thuê (Bookings)
 // ==========================================
@@ -198,21 +216,27 @@ export interface Review {
 // 5. Phân hệ Thông báo (Notifications)
 // ==========================================
 export type NotificationType =
+  | 'order'
+  | 'message'
+  | 'promo'
+  | 'system'
+  | 'reminder'
   | 'booking_request'
   | 'booking_approved'
-  | 'booking_cancelled'
-  | 'reminder'
-  | 'system';
+  | 'booking_cancelled';
 
 export interface Notification {
   _id: string;
-  recipient: string;
+  userId?: string;
+  recipient?: string;
   title: string;
   body: string;
   type: NotificationType;
+  relatedId?: string | null;
   data?: {
     bookingId?: string;
     deviceId?: string;
+    [key: string]: any;
   };
   isRead: boolean;
   createdAt?: string;
@@ -430,5 +454,17 @@ export interface OwnerAnalyticsResponse {
   revenueChart: OwnerRevenueChartData;
   fleet: FleetDeviceItem[];
 }
+
+export type ScreenType =
+  | 'home'
+  | 'bookings'
+  | 'map'
+  | 'postDevice'
+  | 'owner'
+  | 'admin'
+  | 'login'
+  | 'register'
+  | 'profile'
+  | 'notification';
 
 

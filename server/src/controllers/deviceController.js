@@ -247,3 +247,48 @@ export const getMyDevices = async (req, res) => {
     });
   }
 };
+
+export const updateDeviceStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowedStatuses = ["available", "maintenance", "hidden"];
+    console.log("req.auth =", req.auth);
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid device status",
+      });
+    }
+
+    const device = await Device.findById(id);
+
+    if (!device) {
+      return res.status(404).json({
+        message: "Device not found",
+      });
+    }
+
+    if (device.owner.toString() !== req.auth.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to update this device",
+      });
+    }
+
+    device.status = status;
+    await device.save();
+
+    return res.status(200).json({
+      message: "Device status updated successfully",
+      data: device,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Không thể lấy danh sách thiết bị",
+      error: error.message,
+    });
+  }
+};
