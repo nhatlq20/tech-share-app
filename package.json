@@ -4,6 +4,7 @@
   "private": true,
   "description": "TechShare - Mobile Platform for Tech Device Sharing & AI Review",
   "scripts": {
+    "dev": "npm --prefix server run dev",
     "start": "npm --prefix client start",
     "client": "npm --prefix client start",
     "client:clear": "npm --prefix client start -c",

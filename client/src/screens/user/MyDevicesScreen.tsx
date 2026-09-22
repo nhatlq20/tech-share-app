@@ -26,7 +26,7 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
 
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState("");
-  const [devices, setDevices] = useState<OwnedDevice[]>([]);
+  const [devices, setDevices] = useState([] as OwnedDevice[]);
 
   useEffect(() => {
     if (!token) return;
@@ -58,8 +58,8 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
     try {
       await deviceService.updateDeviceStatus(token, deviceId, newStatus);
 
-      setDevices((previous) =>
-        previous.map((device) =>
+      setDevices((previous: OwnedDevice[]) =>
+        previous.map((device: OwnedDevice) =>
           device._id === deviceId ? { ...device, status: newStatus } : device,
         ),
       );
