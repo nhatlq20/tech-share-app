@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import Account from '../models/Account.js';
 import User from '../models/User.js';
 import Otp from '../models/Otp.js';
-import { sendOtpEmail } from '../services/emailService.js';
+import { sendOtpEmail, sendForgotPasswordOtpEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -383,6 +383,233 @@ router.post('/register', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Registration failed',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Mask email for privacy/security display, e.g. "phainon33m5@gmail.com" -> "ph******m5@gmail.com"
+ */
+const maskEmail = (email) => {
+  if (!email || typeof email !== 'string' || !email.includes('@')) return email;
+  const [local, domain] = email.split('@');
+  if (local.length <= 3) {
+    return `${local[0]}***@${domain}`;
+  }
+  const prefix = local.slice(0, 2);
+  const suffix = local.slice(-2);
+  const stars = '*'.repeat(Math.max(3, local.length - 4));
+  return `${prefix}${stars}${suffix}@${domain}`;
+};
+
+/**
+ * POST /api/auth/forgot-password
+ * Search account by username or email. If found, generate & send OTP to registered email.
+ */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { identifier, username, email } = req.body || {};
+    const searchKey = String(identifier || username || email || '').trim();
+
+    if (!searchKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập tên tài khoản (username) hoặc địa chỉ email',
+      });
+    }
+
+    // Find active account by username or email
+    const account = await Account.findOne({
+      $or: [
+        { username: searchKey },
+        { email: searchKey.toLowerCase() },
+      ],
+      isActive: { $ne: false },
+    });
+
+    if (!account || !account.email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản với tên đăng nhập hoặc email này',
+      });
+    }
+
+    // Cooldown check (60s)
+    const latestOtp = await Otp.findOne({
+      email: account.email,
+      purpose: 'reset_password',
+    }).sort({ createdAt: -1 });
+
+    if (latestOtp) {
+      const elapsedMs = Date.now() - new Date(latestOtp.createdAt).getTime();
+      const COOLDOWN_MS = 60 * 1000;
+      if (elapsedMs < COOLDOWN_MS) {
+        const remainingSec = Math.ceil((COOLDOWN_MS - elapsedMs) / 1000);
+        return res.status(429).json({
+          success: false,
+          message: `Vui lòng đợi ${remainingSec} giây trước khi yêu cầu gửi lại mã OTP mới`,
+          remainingSeconds: remainingSec,
+          email: account.email,
+          maskedEmail: maskEmail(account.email),
+        });
+      }
+    }
+
+    // Find profile info to personalize email
+    const user = await User.findOne({ accountId: account._id }).lean()
+      || await User.findOne({ email: account.email }).lean();
+
+    // Generate 6-digit numeric OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Remove old reset_password OTPs and store the new one
+    await Otp.deleteMany({ email: account.email, purpose: 'reset_password' });
+    await Otp.create({
+      email: account.email,
+      otp: otpCode,
+      purpose: 'reset_password',
+      expiresAt,
+    });
+
+    // Send reset OTP email
+    await sendForgotPasswordOtpEmail(
+      account.email,
+      otpCode,
+      user?.name || account.username || ''
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
+      email: account.email,
+      maskedEmail: maskEmail(account.email),
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể xử lý yêu cầu quên mật khẩu. Vui lòng thử lại sau.',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Verifies that the entered reset password OTP is correct and unexpired.
+ */
+router.post('/verify-reset-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedOtp = String(otp || '').trim();
+
+    if (!normalizedEmail || !normalizedOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email và mã xác thực OTP là bắt buộc',
+      });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      purpose: 'reset_password',
+      otp: normalizedOtp,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác hoặc đã hết hạn (hiệu lực trong 5 phút).',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mã xác thực OTP chính xác',
+    });
+  } catch (error) {
+    console.error('Verify reset OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Xác thực OTP thất bại',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Verifies OTP and updates account password with a new hashed password.
+ */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedOtp = String(otp || '').trim();
+    const password = String(newPassword || '');
+
+    if (!normalizedEmail || !normalizedOtp || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, mã OTP và mật khẩu mới là bắt buộc',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có độ dài tối thiểu 6 ký tự',
+      });
+    }
+
+    // Verify OTP first
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      purpose: 'reset_password',
+      otp: normalizedOtp,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác hoặc đã hết hạn. Vui lòng gửi lại mã mới.',
+      });
+    }
+
+    // Find account
+    const account = await Account.findOne({
+      email: normalizedEmail,
+      isActive: { $ne: false },
+    });
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản tương ứng với email này',
+      });
+    }
+
+    // Hash new password and update
+    const passwordHash = await bcrypt.hash(password, 10);
+    await Account.updateOne({ _id: account._id }, { passwordHash });
+
+    // Clean up OTP records
+    await Otp.deleteMany({ email: normalizedEmail, purpose: 'reset_password' });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.',
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Đặt lại mật khẩu thất bại. Vui lòng thử lại sau.',
       error: error.message,
     });
   }

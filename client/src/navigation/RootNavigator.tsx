@@ -10,6 +10,7 @@ import { AdminDrawerNavigator } from './AdminDrawerNavigator';
 import { MainBottomTabNavigator } from './MainBottomTabNavigator';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { DeviceDetailScreen } from '../screens/device/DeviceDetailScreen';
 import { BookingCreateScreen } from '../screens/booking/BookingCreateScreen';
 import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
@@ -20,6 +21,7 @@ import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
   AdminRoot: undefined;
   MainTabs: undefined;
   MyDevices: undefined;
@@ -76,6 +78,7 @@ export function RootNavigator() {
               {({ navigation }) => (
                 <LoginScreen
                   onNavigateToRegister={() => navigation.navigate('Register')}
+                  onNavigateToForgotPassword={() => navigation.navigate('ForgotPassword')}
                   onNavigateToHome={() => undefined}
                 />
               )}
@@ -85,6 +88,13 @@ export function RootNavigator() {
                 <RegisterScreen
                   onNavigateToLogin={() => navigation.navigate('Login')}
                   onRegisterSuccess={() => undefined}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="ForgotPassword">
+              {({ navigation }) => (
+                <ForgotPasswordScreen
+                  onNavigateToLogin={() => navigation.navigate('Login')}
                 />
               )}
             </Stack.Screen>
