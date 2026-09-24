@@ -63,10 +63,15 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                   <Text style={styles.ekycSubMeta}>
                     {req.userId?.email || 'email'} • SĐT: {req.userId?.phone || 'Chưa cập nhật'}
                   </Text>
+                  {req.idCardNumber ? (
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary[600], marginTop: 2 }}>
+                      Số CCCD: {req.idCardNumber}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
-              {/* 3 Thumbnails ảnh giấy tờ */}
+              {/* Thumbnails ảnh giấy tờ */}
               <View style={styles.ekycThumbnailsRow}>
                 <View style={styles.ekycThumbCol}>
                   <Text style={styles.thumbLabel}>CCCD Mặt trước</Text>
@@ -76,10 +81,12 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                   <Text style={styles.thumbLabel}>CCCD Mặt sau</Text>
                   <Image source={{ uri: req.idCardBackUrl }} style={styles.thumbImg} />
                 </View>
-                <View style={styles.ekycThumbCol}>
-                  <Text style={styles.thumbLabel}>Chân dung Selfie</Text>
-                  <Image source={{ uri: req.selfieUrl }} style={styles.thumbImg} />
-                </View>
+                {req.selfieUrl ? (
+                  <View style={styles.ekycThumbCol}>
+                    <Text style={styles.thumbLabel}>Chân dung Selfie</Text>
+                    <Image source={{ uri: req.selfieUrl }} style={styles.thumbImg} />
+                  </View>
+                ) : null}
               </View>
 
               {/* Điểm tin cậy AI */}

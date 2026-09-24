@@ -9,6 +9,11 @@ const ekycRequestSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    idCardNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     idCardFrontUrl: {
       type: String,
       required: [true, 'ID card front image URL is required'],
@@ -19,7 +24,7 @@ const ekycRequestSchema = new mongoose.Schema(
     },
     selfieUrl: {
       type: String,
-      required: [true, 'Selfie photo URL is required'],
+      default: '',
     },
     status: {
       type: String,

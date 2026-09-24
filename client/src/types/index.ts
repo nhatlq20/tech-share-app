@@ -383,6 +383,7 @@ export interface EkycItem {
     isVerified?: boolean;
     badges?: string[];
   };
+  idCardNumber?: string;
   idCardFrontUrl: string;
   idCardBackUrl: string;
   selfieUrl: string;
