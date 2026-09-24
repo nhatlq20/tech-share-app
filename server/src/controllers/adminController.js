@@ -358,28 +358,40 @@ export const approveEkyc = async (req, res) => {
     request.reviewedAt = new Date();
     await request.save();
 
-    // Cập nhật User
+    // Cập nhật User & nâng lên role owner
     const user = await User.findById(request.userId);
     if (user) {
       user.isVerified = true;
+      if (user.role !== 'admin') {
+        user.role = 'owner';
+      }
+      if (!user.badges) user.badges = [];
       if (!user.badges.includes('verified_identity')) {
         user.badges.push('verified_identity');
       }
       user.trustScore = Math.min(100, (user.trustScore || 100) + 10);
       await user.save();
 
+      // Cập nhật role trong Account tương ứng
+      if (user.accountId) {
+        const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
+        if (ownerRole) {
+          await Account.updateOne({ _id: user.accountId }, { roleId: ownerRole._id });
+        }
+      }
+
       // Bắn thông báo chúc mừng
       await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC đã được phê duyệt! 🎉',
-        body: 'Chúc mừng bạn! Hồ sơ căn cước công dân đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín trên TechShare.',
+        body: 'Chúc mừng bạn! Hồ sơ CCCD đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín và được nâng cấp thành Chủ máy (Owner) có quyền đăng thiết bị cho thuê trên TechShare.',
         type: 'system',
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Đã phê duyệt eKYC và cấp Tích xanh uy tín thành công!',
+      message: 'Đã phê duyệt eKYC, cấp Tích xanh và nâng cấp thành Chủ máy (Owner) thành công!',
       data: request,
     });
   } catch (error) {

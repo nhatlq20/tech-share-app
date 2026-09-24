@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import Account from '../models/Account.js';
 import User from '../models/User.js';
 import Otp from '../models/Otp.js';
+import EkycRequest from '../models/EkycRequest.js';
 import { sendOtpEmail, sendForgotPasswordOtpEmail } from '../services/emailService.js';
 
 const router = express.Router();
@@ -94,6 +95,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Chỉ xác thực isVerified = true khi đã có đơn eKYC được Admin duyệt (hoặc role admin)
+    const hasApprovedEkyc = await EkycRequest.exists({ userId: user._id, status: 'approved' });
+    const isEkycVerified = accountRole === 'admin' ? true : Boolean(hasApprovedEkyc);
+
+    if (user.isVerified !== isEkycVerified && accountRole !== 'admin') {
+      user.isVerified = isEkycVerified;
+      await User.updateOne({ _id: user._id }, { isVerified: isEkycVerified });
+    }
+
     const userWithAccountEmail = {
       ...user,
       email: account.email,
@@ -113,7 +123,7 @@ router.post('/login', async (req, res) => {
         address: user.address,
         avatar: user.avatar,
         role: accountRole,
-        isVerified: user.isVerified,
+        isVerified: isEkycVerified,
         trustScore: user.trustScore,
       },
     });
@@ -349,7 +359,7 @@ router.post('/register', async (req, res) => {
       email: account.email,
       phone: phone.trim(),
       role: 'renter',
-      isVerified: true, // Verified via email OTP!
+      isVerified: false, // Chưa qua duyệt eKYC thì chưa có Tích xanh
       trustScore: 100,
     });
 

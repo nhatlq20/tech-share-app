@@ -66,6 +66,21 @@ const startServer = async () => {
     console.log(`⚡ Port:     ${conn.connection.port}`);
     console.log('==================================================');
 
+    // Đồng bộ trường isVerified: false cho toàn bộ tài khoản chưa được admin duyệt eKYC
+    try {
+      const EkycRequestModel = mongoose.models.EkycRequest || (await import('./models/EkycRequest.js')).default;
+      const UserModel = mongoose.models.User || (await import('./models/User.js')).default;
+      const approvedEkycs = await EkycRequestModel.find({ status: 'approved' }).select('userId');
+      const approvedUserIds = approvedEkycs.map(e => e.userId);
+      await UserModel.updateMany(
+        { _id: { $nin: approvedUserIds }, role: { $ne: 'admin' } },
+        { $set: { isVerified: false } }
+      );
+      console.log('🛡️ [eKYC Sync] Đã đồng bộ isVerified = false cho tài khoản chưa duyệt eKYC.');
+    } catch (syncErr) {
+      console.warn('⚠️ [eKYC Sync] Lỗi đồng bộ isVerified:', syncErr.message);
+    }
+
     httpServer = http.createServer(app);
     initSocket(httpServer);
 

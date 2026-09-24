@@ -124,6 +124,11 @@ export function EkycReviewModal({
                 <Text style={styles.userSubText}>
                   {ekyc.userId?.email || ''} • {ekyc.userId?.phone || ''}
                 </Text>
+                {ekyc.idCardNumber ? (
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.light.textPrimary, marginTop: 2 }}>
+                    Số CCCD: <Text style={{ color: colors.light.primary }}>{ekyc.idCardNumber}</Text>
+                  </Text>
+                ) : null}
                 <View style={styles.trustScorePill}>
                   <Ionicons name="shield-checkmark" size={12} color={colors.light.primary} />
                   <Text style={styles.trustScoreText}>
