@@ -348,4 +348,59 @@ export const adminService = {
       };
     }
   },
+
+  /**
+   * Lấy danh sách voucher
+   */
+  getVouchers: async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get('/admin/vouchers');
+      if (response.data && response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.warn('⚠️ [adminService.getVouchers] Lỗi:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Tạo voucher mới
+   */
+  createVoucher: async (data: any): Promise<any> => {
+    try {
+      const response = await apiClient.post('/admin/vouchers', data);
+      return response.data;
+    } catch (error: any) {
+      console.warn('⚠️ [adminService.createVoucher] Lỗi:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật voucher
+   */
+  updateVoucher: async (id: string, data: any): Promise<any> => {
+    try {
+      const response = await apiClient.put(`/admin/vouchers/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      console.warn('⚠️ [adminService.updateVoucher] Lỗi:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Xóa voucher
+   */
+  deleteVoucher: async (id: string): Promise<any> => {
+    try {
+      const response = await apiClient.delete(`/admin/vouchers/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.warn('⚠️ [adminService.deleteVoucher] Lỗi:', error);
+      throw error;
+    }
+  },
 };

@@ -8,6 +8,10 @@ import {
   rejectEkyc,
   getAdminDevices,
   deleteDevice,
+  getAdminVouchers,
+  createVoucher,
+  updateVoucher,
+  deleteVoucher,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -27,5 +31,11 @@ router.patch('/ekyc/:id/reject', rejectEkyc);
 // 4. Kiểm duyệt thiết bị
 router.get('/devices', getAdminDevices);
 router.delete('/devices/:id', deleteDevice);
+
+// 5. Quản lý Voucher
+router.get('/vouchers', getAdminVouchers);
+router.post('/vouchers', createVoucher);
+router.put('/vouchers/:id', updateVoucher);
+router.delete('/vouchers/:id', deleteVoucher);
 
 export default router;
