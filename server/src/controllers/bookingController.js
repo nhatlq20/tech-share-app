@@ -124,3 +124,74 @@ export const createBooking = async (req, res) => {
     res.status(500).json({ message: 'Lỗi máy chủ khi tạo booking' });
   }
 };
+
+// @desc    Get my bookings
+// @route   GET /api/bookings/my-bookings
+// @access  Private
+export const getMyBookings = async (req, res) => {
+  try {
+    const renterId = req.auth.id || req.auth._id;
+    const { status } = req.query;
+
+    let query = { renterId };
+    if (status) {
+      query.status = status;
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('deviceId', 'name images brand model category')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: bookings });
+  } catch (error) {
+    console.error('Error getting my bookings:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách đơn' });
+  }
+};
+
+// @desc    Cancel a booking
+// @route   PUT /api/bookings/:id/cancel
+// @access  Private
+export const cancelBooking = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { reason } = req.body;
+    const userId = req.auth.id || req.auth._id;
+
+    const booking = await Booking.findOne({ _id: bookingId, renterId: userId });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê' });
+    }
+
+    if (booking.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Chỉ có thể hủy đơn đang chờ duyệt' });
+    }
+
+    booking.status = 'cancelled';
+    booking.timeline.push({
+      status: 'cancelled',
+      note: `Người thuê đã hủy đơn. Lý do: ${reason || 'Không có'}`,
+    });
+
+    await booking.save();
+
+    // Optionally notify the owner
+    if (booking.ownerId) {
+      createAndSendNotification({
+        userId: booking.ownerId,
+        title: 'Đơn thuê đã bị hủy ❌',
+        body: `Khách hàng vừa hủy đơn yêu cầu thuê thiết bị. Mã đơn: #${booking.bookingCode}.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo cho chủ máy:', err.message));
+    }
+
+    res.status(200).json({ success: true, data: booking });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi hủy đơn' });
+  }
+};

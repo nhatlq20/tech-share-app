@@ -25,7 +25,7 @@ export type RootStackParamList = {
   AdminRoot: undefined;
   MainTabs: undefined;
   MyDevices: undefined;
-  DeviceDetail: { deviceId: string };
+  DeviceDetail: { deviceId: string; hideBookNow?: boolean };
   BookingCreate: { deviceId: string };
   PostDevice: undefined;
   OwnerDashboard: undefined;
@@ -37,6 +37,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const DeviceDetailRoute = ({ route, navigation }: any) => (
   <DeviceDetailScreen
     deviceId={route.params.deviceId}
+    hideBookNow={route.params.hideBookNow}
     onBack={() => navigation.goBack()}
     onBookNow={(deviceId) => navigation.navigate('BookingCreate', { deviceId })}
   />

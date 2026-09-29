@@ -78,7 +78,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
         {() => (
           <MyBookingsScreen
             onNavigateToDeviceDetail={(deviceId) =>
-              navigation.navigate('DeviceDetail', { deviceId })
+              navigation.navigate('DeviceDetail', { deviceId, hideBookNow: true })
             }
             onNavigateToHome={() => navigation.navigate('Home')}
           />

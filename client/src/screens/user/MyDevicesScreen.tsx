@@ -43,9 +43,9 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
 
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState("");
-  const [devices, setDevices] = useState<OwnedDevice[]>([]);
+  const [devices, setDevices] = useState([] as OwnedDevice[]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState<OwnedDevice | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState(null as OwnedDevice | null);
 
   useEffect(() => {
     if (!token) return;
