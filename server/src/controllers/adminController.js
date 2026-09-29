@@ -8,6 +8,7 @@ import {
   EkycRequest,
   WalletTransaction,
   Notification,
+  Voucher,
 } from '../models/index.js';
 import { createAndSendNotification } from '../services/notificationService.js';
 
@@ -543,5 +544,59 @@ export const deleteDevice = async (req, res) => {
       message: 'Không thể xóa thiết bị.',
       error: error.message,
     });
+  }
+};
+
+/**
+ * 9. GET /api/admin/vouchers
+ * Lấy danh sách voucher
+ */
+export const getAdminVouchers = async (req, res) => {
+  try {
+    const vouchers = await Voucher.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, data: vouchers });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi lấy danh sách voucher', error: error.message });
+  }
+};
+
+/**
+ * 10. POST /api/admin/vouchers
+ * Tạo voucher mới
+ */
+export const createVoucher = async (req, res) => {
+  try {
+    const voucher = await Voucher.create(req.body);
+    return res.status(201).json({ success: true, message: 'Tạo voucher thành công', data: voucher });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tạo voucher', error: error.message });
+  }
+};
+
+/**
+ * 11. PUT /api/admin/vouchers/:id
+ * Cập nhật voucher
+ */
+export const updateVoucher = async (req, res) => {
+  try {
+    const voucher = await Voucher.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!voucher) return res.status(404).json({ success: false, message: 'Không tìm thấy voucher' });
+    return res.status(200).json({ success: true, message: 'Cập nhật voucher thành công', data: voucher });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật voucher', error: error.message });
+  }
+};
+
+/**
+ * 12. DELETE /api/admin/vouchers/:id
+ * Xóa voucher
+ */
+export const deleteVoucher = async (req, res) => {
+  try {
+    const voucher = await Voucher.findByIdAndDelete(req.params.id);
+    if (!voucher) return res.status(404).json({ success: false, message: 'Không tìm thấy voucher' });
+    return res.status(200).json({ success: true, message: 'Xóa voucher thành công' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi xóa voucher', error: error.message });
   }
 };
