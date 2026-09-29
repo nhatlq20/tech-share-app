@@ -4,6 +4,7 @@ import {
   getDeviceById,
   getDevices,
   getMyDevices,
+  getNearbyDevices,
   updateBlockedDates,
   updateDeviceStatus,
   uploadDeviceImageToCloudinary,

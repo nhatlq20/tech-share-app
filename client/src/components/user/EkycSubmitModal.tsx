@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { colors } from '../../theme/colors';
 import { pickIdCardImage, ekycService } from '../../services/ekycService';
 import { EkycItem } from '../../types';
@@ -21,6 +23,7 @@ interface EkycSubmitModalProps {
   onClose: () => void;
   onSuccess: (ekyc: EkycItem) => void;
   currentEkyc?: EkycItem | null;
+  user?: any;
 }
 
 export function EkycSubmitModal({
@@ -28,14 +31,41 @@ export function EkycSubmitModal({
   onClose,
   onSuccess,
   currentEkyc,
+  user: userProp,
 }: EkycSubmitModalProps) {
+  const authUser = useSelector((state: RootState) => state.auth.user);
+  const currentUser = userProp || authUser;
+
   const [idCardNumber, setIdCardNumber] = useState(currentEkyc?.idCardNumber || '');
+  const [address, setAddress] = useState(
+    currentEkyc?.address || currentUser?.address || ''
+  );
   const [frontUrl, setFrontUrl] = useState(currentEkyc?.idCardFrontUrl || '');
   const [backUrl, setBackUrl] = useState(currentEkyc?.idCardBackUrl || '');
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (visible) {
+      if (currentEkyc?.idCardNumber) {
+        setIdCardNumber(currentEkyc.idCardNumber);
+      }
+      if (currentEkyc?.address) {
+        setAddress(currentEkyc.address);
+      } else if (currentUser?.address) {
+        setAddress(currentUser.address);
+      }
+      if (currentEkyc?.idCardFrontUrl) {
+        setFrontUrl(currentEkyc.idCardFrontUrl);
+      }
+      if (currentEkyc?.idCardBackUrl) {
+        setBackUrl(currentEkyc.idCardBackUrl);
+      }
+      setErrorMsg('');
+    }
+  }, [visible, currentEkyc, currentUser]);
 
   const handlePickFront = async () => {
     try {
@@ -81,6 +111,17 @@ export function EkycSubmitModal({
       return;
     }
 
+    const trimmedAddress = address.trim();
+    if (!trimmedAddress) {
+      setErrorMsg('Vui lòng nhập địa chỉ nhà của bạn.');
+      return;
+    }
+
+    if (trimmedAddress.length < 5) {
+      setErrorMsg('Địa chỉ nhà quá ngắn. Vui lòng ghi chi tiết số nhà, tên đường, phường/xã, quận/huyện.');
+      return;
+    }
+
     if (!frontUrl) {
       setErrorMsg('Vui lòng tải lên ảnh mặt trước CCCD.');
       return;
@@ -97,6 +138,7 @@ export function EkycSubmitModal({
 
       const res = await ekycService.submitEkyc({
         idCardNumber: trimmedNumber,
+        address: trimmedAddress,
         idCardFrontUrl: frontUrl,
         idCardBackUrl: backUrl,
       });
@@ -104,7 +146,7 @@ export function EkycSubmitModal({
       if (res && res.success) {
         Alert.alert(
           'Gửi đơn eKYC thành công! 🎉',
-          'Đơn định danh của bạn đã được gửi tới quản trị viên. Khi được duyệt, tài khoản sẽ được cấp Tích Xanh Uy Tín và nâng cấp lên quyền Chủ máy (Owner).'
+          'Đơn định danh của bạn đã được gửi tới ban quản trị. Hồ sơ sẽ được kiểm duyệt thủ công. Sau khi được duyệt, tài khoản sẽ được cấp Tích Xanh Uy Tín và mở quyền Chủ máy (Owner).'
         );
         onSuccess(res.ekyc);
         onClose();
@@ -117,6 +159,15 @@ export function EkycSubmitModal({
       setSubmitting(false);
     }
   };
+
+  const isFormValid =
+    idCardNumber.trim().length >= 9 &&
+    address.trim().length >= 5 &&
+    Boolean(frontUrl) &&
+    Boolean(backUrl) &&
+    !submitting &&
+    !uploadingFront &&
+    !uploadingBack;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -160,147 +211,268 @@ export function EkycSubmitModal({
               </View>
             ) : null}
 
-            {/* Input Số CCCD */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Số Căn cước công dân (CCCD) *</Text>
-              <View style={styles.inputWrap}>
-                <View style={styles.inputIconBox}>
-                  <Ionicons name="card-outline" size={18} color={colors.light.textSecondary} />
+            {/* ======================================================== */}
+            {/* PHẦN 1: THÔNG TIN CÁ NHÂN TỰ ĐỘNG LẤY TỪ TÀI KHOẢN (READ-ONLY) */}
+            {/* ======================================================== */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="lock-closed" size={14} color={colors.light.primary} />
+                <Text style={styles.sectionHeadingTitle}>
+                  THÔNG TIN TÀI KHOẢN (TỰ ĐỘNG ĐỒNG BỘ)
+                </Text>
+              </View>
+              <Text style={styles.sectionSubDesc}>
+                Hệ thống tự động lấy thông tin từ tài khoản của bạn và không cho phép chỉnh sửa tại đây để đảm bảo tính xác thực.
+              </Text>
+
+              {/* Họ tên */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Họ và tên</Text>
+                  <View style={styles.readOnlyBadge}>
+                    <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
+                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                  </View>
                 </View>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Nhập 12 số CCCD (VD: 079204001234)"
-                  placeholderTextColor={colors.light.textSecondary}
-                  keyboardType="numeric"
-                  maxLength={12}
-                  value={idCardNumber}
-                  onChangeText={(val: string) => {
-                    setIdCardNumber(val.replace(/\D/g, ''));
-                    if (errorMsg) setErrorMsg('');
-                  }}
-                />
+                <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
+                  <View style={styles.inputIconBox}>
+                    <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputDisabled]}
+                    value={currentUser?.name || 'Chưa cập nhật họ tên'}
+                    editable={false}
+                  />
+                </View>
+              </View>
+
+              {/* Email */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Địa chỉ Email</Text>
+                  <View style={styles.readOnlyBadge}>
+                    <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
+                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                  </View>
+                </View>
+                <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
+                  <View style={styles.inputIconBox}>
+                    <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputDisabled]}
+                    value={currentUser?.email || 'Chưa cập nhật email'}
+                    editable={false}
+                  />
+                </View>
+              </View>
+
+              {/* Số điện thoại */}
+              <View style={[styles.inputGroup, { marginBottom: 4 }]}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Số điện thoại</Text>
+                  <View style={styles.readOnlyBadge}>
+                    <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
+                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                  </View>
+                </View>
+                <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
+                  <View style={styles.inputIconBox}>
+                    <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputDisabled]}
+                    value={currentUser?.phone || 'Chưa cập nhật số điện thoại'}
+                    editable={false}
+                  />
+                </View>
               </View>
             </View>
 
-            {/* Upload Ảnh Mặt Trước CCCD */}
-            <View style={styles.uploadSection}>
-              <View style={styles.uploadHeaderRow}>
-                <Text style={styles.uploadLabel}>1. Ảnh CCCD Mặt Trước *</Text>
-                {frontUrl ? (
-                  <View style={styles.verifiedChip}>
-                    <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                    <Text style={styles.verifiedChipText}>Đã tải lên</Text>
-                  </View>
-                ) : null}
+            {/* ======================================================== */}
+            {/* PHẦN 2: THÔNG TIN ĐỊNH DANH NGƯỜI DÙNG CẦN NHẬP THÊM */}
+            {/* ======================================================== */}
+            <View style={[styles.sectionCard, { marginTop: 14 }]}>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="create-outline" size={15} color={colors.light.primary} />
+                <Text style={styles.sectionHeadingTitle}>THÔNG TIN ĐỊNH DANH BỔ SUNG</Text>
               </View>
-              <Text style={styles.uploadHelper}>
-                Chụp rõ số CCCD, họ tên, ngày sinh, quốc huy và ảnh chân dung.
+              <Text style={styles.sectionSubDesc}>
+                Vui lòng điền chính xác số Căn cước công dân và địa chỉ nhà nơi bạn đang sinh sống.
               </Text>
 
-              {frontUrl ? (
-                <View style={styles.previewBox}>
-                  <Image source={{ uri: frontUrl }} style={styles.previewImage} />
+              {/* Input Số CCCD */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Số Căn cước công dân (CCCD) *</Text>
+                <View style={styles.inputWrap}>
+                  <View style={styles.inputIconBox}>
+                    <Ionicons name="card-outline" size={18} color={colors.light.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Nhập 12 số CCCD (VD: 079204001234)"
+                    placeholderTextColor={colors.light.textSecondary}
+                    keyboardType="numeric"
+                    maxLength={12}
+                    value={idCardNumber}
+                    onChangeText={(val: string) => {
+                      setIdCardNumber(val.replace(/\D/g, ''));
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Input Địa chỉ nhà */}
+              <View style={[styles.inputGroup, { marginBottom: 4 }]}>
+                <Text style={styles.inputLabel}>Địa chỉ nhà (Thường trú / Hiện tại) *</Text>
+                <View style={[styles.inputWrap, styles.inputWrapMultiline]}>
+                  <View style={[styles.inputIconBox, { marginTop: 4 }]}>
+                    <Ionicons name="home-outline" size={18} color={colors.light.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputMultiline]}
+                    placeholder="VD: Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                    placeholderTextColor={colors.light.textSecondary}
+                    value={address}
+                    multiline
+                    numberOfLines={2}
+                    onChangeText={(val: string) => {
+                      setAddress(val);
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* ======================================================== */}
+            {/* PHẦN 3: TẢI ẢNH CCCD 2 MẶT */}
+            {/* ======================================================== */}
+            <View style={{ marginTop: 14 }}>
+              {/* Upload Ảnh Mặt Trước CCCD */}
+              <View style={styles.uploadSection}>
+                <View style={styles.uploadHeaderRow}>
+                  <Text style={styles.uploadLabel}>1. Ảnh CCCD Mặt Trước *</Text>
+                  {frontUrl ? (
+                    <View style={styles.verifiedChip}>
+                      <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
+                      <Text style={styles.verifiedChipText}>Đã tải lên</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.uploadHelper}>
+                  Chụp rõ số CCCD, họ tên, ngày sinh, quốc huy và ảnh chân dung.
+                </Text>
+
+                {frontUrl ? (
+                  <View style={styles.previewBox}>
+                    <Image source={{ uri: frontUrl }} style={styles.previewImage} />
+                    <TouchableOpacity
+                      style={styles.btnChangeImage}
+                      onPress={handlePickFront}
+                      disabled={uploadingFront}
+                    >
+                      <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
+                      <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
                   <TouchableOpacity
-                    style={styles.btnChangeImage}
+                    style={[styles.uploadBox, uploadingFront && styles.uploadBoxLoading]}
                     onPress={handlePickFront}
                     disabled={uploadingFront}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                    <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.uploadBox, uploadingFront && styles.uploadBoxLoading]}
-                  onPress={handlePickFront}
-                  disabled={uploadingFront}
-                  activeOpacity={0.8}
-                >
-                  {uploadingFront ? (
-                    <View style={styles.uploadLoadingCol}>
-                      <ActivityIndicator size="small" color={colors.light.primary} />
-                      <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.uploadPlaceholderCol}>
-                      <View style={styles.uploadIconCircle}>
-                        <Ionicons name="camera" size={24} color={colors.light.primary} />
+                    {uploadingFront ? (
+                      <View style={styles.uploadLoadingCol}>
+                        <ActivityIndicator size="small" color={colors.light.primary} />
+                        <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
                       </View>
-                      <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Trước</Text>
-                      <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Upload Ảnh Mặt Sau CCCD */}
-            <View style={styles.uploadSection}>
-              <View style={styles.uploadHeaderRow}>
-                <Text style={styles.uploadLabel}>2. Ảnh CCCD Mặt Sau *</Text>
-                {backUrl ? (
-                  <View style={styles.verifiedChip}>
-                    <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                    <Text style={styles.verifiedChipText}>Đã tải lên</Text>
-                  </View>
-                ) : null}
+                    ) : (
+                      <View style={styles.uploadPlaceholderCol}>
+                        <View style={styles.uploadIconCircle}>
+                          <Ionicons name="camera" size={24} color={colors.light.primary} />
+                        </View>
+                        <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Trước</Text>
+                        <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={styles.uploadHelper}>
-                Chụp rõ vân tay, đặc điểm nhân dạng, ngày cấp và mã vạch MRZ.
-              </Text>
 
-              {backUrl ? (
-                <View style={styles.previewBox}>
-                  <Image source={{ uri: backUrl }} style={styles.previewImage} />
+              {/* Upload Ảnh Mặt Sau CCCD */}
+              <View style={styles.uploadSection}>
+                <View style={styles.uploadHeaderRow}>
+                  <Text style={styles.uploadLabel}>2. Ảnh CCCD Mặt Sau *</Text>
+                  {backUrl ? (
+                    <View style={styles.verifiedChip}>
+                      <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
+                      <Text style={styles.verifiedChipText}>Đã tải lên</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.uploadHelper}>
+                  Chụp rõ vân tay, đặc điểm nhân dạng, ngày cấp và mã vạch MRZ.
+                </Text>
+
+                {backUrl ? (
+                  <View style={styles.previewBox}>
+                    <Image source={{ uri: backUrl }} style={styles.previewImage} />
+                    <TouchableOpacity
+                      style={styles.btnChangeImage}
+                      onPress={handlePickBack}
+                      disabled={uploadingBack}
+                    >
+                      <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
+                      <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
                   <TouchableOpacity
-                    style={styles.btnChangeImage}
+                    style={[styles.uploadBox, uploadingBack && styles.uploadBoxLoading]}
                     onPress={handlePickBack}
                     disabled={uploadingBack}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                    <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.uploadBox, uploadingBack && styles.uploadBoxLoading]}
-                  onPress={handlePickBack}
-                  disabled={uploadingBack}
-                  activeOpacity={0.8}
-                >
-                  {uploadingBack ? (
-                    <View style={styles.uploadLoadingCol}>
-                      <ActivityIndicator size="small" color={colors.light.primary} />
-                      <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.uploadPlaceholderCol}>
-                      <View style={styles.uploadIconCircle}>
-                        <Ionicons name="camera" size={24} color={colors.light.primary} />
+                    {uploadingBack ? (
+                      <View style={styles.uploadLoadingCol}>
+                        <ActivityIndicator size="small" color={colors.light.primary} />
+                        <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
                       </View>
-                      <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Sau</Text>
-                      <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
+                    ) : (
+                      <View style={styles.uploadPlaceholderCol}>
+                        <View style={styles.uploadIconCircle}>
+                          <Ionicons name="camera" size={24} color={colors.light.primary} />
+                        </View>
+                        <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Sau</Text>
+                        <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             {/* Notice card */}
             <View style={styles.policyNoticeBox}>
               <View style={styles.policyHeaderRow}>
                 <Ionicons name="shield-checkmark" size={16} color={colors.light.primary} />
-                <Text style={styles.policyTitle}>Quyền lợi & Cam kết Bảo mật:</Text>
+                <Text style={styles.policyTitle}>Quy trình Kiểm duyệt & Bảo mật:</Text>
               </View>
               <Text style={styles.policyText}>
-                • Sau khi Admin phê duyệt, tài khoản của bạn sẽ nhận được{' '}
+                • Đơn eKYC sẽ được Ban quản trị TechShare kiểm tra và đối chiếu thủ công với giấy tờ tùy thân của bạn.
+              </Text>
+              <Text style={[styles.policyText, { marginTop: 4 }]}>
+                • Sau khi phê duyệt thành công, tài khoản sẽ được cấp{' '}
                 <Text style={{ fontWeight: '700', color: colors.light.primary }}>Tích Xanh Uy Tín</Text>{' '}
-                và tự động được nâng cấp lên vai trò{' '}
+                và tự động mở quyền{' '}
                 <Text style={{ fontWeight: '700', color: colors.light.primary }}>Chủ máy (Owner)</Text>{' '}
                 để đăng thiết bị cho thuê.
               </Text>
               <Text style={[styles.policyText, { marginTop: 4 }]}>
-                • TechShare cam kết dữ liệu CCCD chỉ được dùng nội bộ cho quy trình xác thực sinh trắc học và bảo vệ tiền cọc.
+                • Thông tin số CCCD và ảnh chụp được bảo mật nghiêm ngặt và chỉ sử dụng cho mục đích xác minh danh tính.
               </Text>
             </View>
           </ScrollView>
@@ -308,20 +480,9 @@ export function EkycSubmitModal({
           {/* Footer Submit Button */}
           <View style={styles.modalFooter}>
             <TouchableOpacity
-              style={[
-                styles.btnSubmit,
-                (!idCardNumber.trim() || !frontUrl || !backUrl || submitting || uploadingFront || uploadingBack) &&
-                  styles.btnSubmitDisabled,
-              ]}
+              style={[styles.btnSubmit, !isFormValid && styles.btnSubmitDisabled]}
               onPress={handleSubmit}
-              disabled={
-                !idCardNumber.trim() ||
-                !frontUrl ||
-                !backUrl ||
-                submitting ||
-                uploadingFront ||
-                uploadingBack
-              }
+              disabled={!isFormValid}
               activeOpacity={0.85}
             >
               {submitting ? (
@@ -432,35 +593,95 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  sectionCard: {
+    backgroundColor: colors.light.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    padding: 14,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionHeadingTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.light.primary,
+    letterSpacing: 0.5,
+  },
+  sectionSubDesc: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 12,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.light.textPrimary,
-    marginBottom: 6,
+  },
+  readOnlyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  readOnlyBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.light.textSecondary,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.surface,
+    backgroundColor: colors.light.background,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.light.border,
     paddingHorizontal: 12,
-    height: 48,
+    height: 46,
+  },
+  inputWrapDisabled: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
+  inputWrapMultiline: {
+    height: 72,
+    alignItems: 'flex-start',
+    paddingVertical: 8,
   },
   inputIconBox: {
     marginRight: 8,
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.light.textPrimary,
   },
+  textInputDisabled: {
+    color: '#64748B',
+  },
+  textInputMultiline: {
+    textAlignVertical: 'top',
+    height: '100%',
+  },
   uploadSection: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   uploadHeaderRow: {
     flexDirection: 'row',
@@ -490,7 +711,7 @@ const styles = StyleSheet.create({
   uploadHelper: {
     fontSize: 11,
     color: colors.light.textSecondary,
-    marginBottom: 10,
+    marginBottom: 8,
     lineHeight: 15,
   },
   uploadBox: {
@@ -499,7 +720,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.primary,
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    paddingVertical: 22,
+    paddingVertical: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -511,13 +732,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   uploadIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   uploadBtnText: {
     fontSize: 13,

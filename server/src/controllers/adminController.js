@@ -317,7 +317,7 @@ export const getEkycRequests = async (req, res) => {
     }
 
     const requests = await EkycRequest.find(filter)
-      .populate('userId', 'name avatar phone email trustScore isVerified badges')
+      .populate('userId', 'name avatar phone email address trustScore isVerified badges')
       .populate('reviewedBy', 'name')
       .sort({ createdAt: -1 });
 
@@ -362,6 +362,9 @@ export const approveEkyc = async (req, res) => {
     const user = await User.findById(request.userId);
     if (user) {
       user.isVerified = true;
+      if (request.address) {
+        user.address = request.address;
+      }
       if (user.role !== 'admin') {
         user.role = 'owner';
       }

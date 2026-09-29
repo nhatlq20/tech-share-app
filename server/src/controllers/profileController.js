@@ -207,7 +207,7 @@ export const uploadEkycImage = async (req, res) => {
  */
 export const submitEkyc = async (req, res) => {
   try {
-    let { idCardNumber, idCardFrontUrl, idCardBackUrl, selfieUrl } = req.body || {};
+    let { idCardNumber, address, idCardFrontUrl, idCardBackUrl, selfieUrl } = req.body || {};
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
@@ -245,11 +245,21 @@ export const submitEkyc = async (req, res) => {
       }
     }
 
+    // 1. Kiểm tra tài khoản người dùng
+    const user = await User.findById(req.auth.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin tài khoản người dùng.',
+      });
+    }
+
+    // 2. Validate số CCCD
     const trimmedCardNumber = String(idCardNumber || '').trim();
     if (!trimmedCardNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng nhập số Căn cước công dân (CCCD)',
+        message: 'Vui lòng nhập số Căn cước công dân (CCCD).',
       });
     }
 
@@ -262,11 +272,34 @@ export const submitEkyc = async (req, res) => {
       });
     }
 
+    // 3. Validate Địa chỉ nhà
+    const trimmedAddress = String(address || '').trim();
+    if (!trimmedAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập địa chỉ nhà chi tiết.',
+      });
+    }
+
+    if (trimmedAddress.length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Địa chỉ nhà quá ngắn. Vui lòng nhập đầy đủ số nhà, tên đường, phường/xã, quận/huyện.',
+      });
+    }
+
+    // 4. Validate ảnh CCCD 2 mặt
     if (!idCardFrontUrl || !idCardBackUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp đầy đủ cả 2 mặt ảnh Căn cước công dân (mặt trước và mặt sau)',
+        message: 'Vui lòng cung cấp đầy đủ cả 2 mặt ảnh Căn cước công dân (mặt trước và mặt sau).',
       });
+    }
+
+    // Đồng bộ cập nhật địa chỉ vào User nếu chưa có
+    if (!user.address || user.address !== trimmedAddress) {
+      user.address = trimmedAddress;
+      await user.save();
     }
 
     // Kiểm tra xem đã có hồ sơ nào chưa
@@ -288,7 +321,11 @@ export const submitEkyc = async (req, res) => {
       }
 
       // Cập nhật lại hồ sơ nếu trước đó bị từ chối
+      ekyc.fullName = user.name || '';
+      ekyc.email = user.email || '';
+      ekyc.phone = user.phone || '';
       ekyc.idCardNumber = trimmedCardNumber;
+      ekyc.address = trimmedAddress;
       ekyc.idCardFrontUrl = idCardFrontUrl;
       ekyc.idCardBackUrl = idCardBackUrl;
       ekyc.selfieUrl = selfieUrl || '';
@@ -300,7 +337,11 @@ export const submitEkyc = async (req, res) => {
     } else {
       ekyc = await EkycRequest.create({
         userId: req.auth.id,
+        fullName: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
         idCardNumber: trimmedCardNumber,
+        address: trimmedAddress,
         idCardFrontUrl,
         idCardBackUrl,
         selfieUrl: selfieUrl || '',
@@ -310,7 +351,7 @@ export const submitEkyc = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Gửi hồ sơ định danh eKYC thành công! Quản trị viên sẽ sớm kiểm duyệt hồ sơ của bạn.',
+      message: 'Gửi hồ sơ định danh eKYC thành công! Quản trị viên sẽ kiểm tra và đối chiếu thủ công hồ sơ của bạn.',
       ekyc,
     });
   } catch (error) {
