@@ -43,7 +43,7 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                 />
                 <View style={styles.ekycMetaCol}>
                   <View style={styles.ekycNameRow}>
-                    <Text style={styles.ekycName}>{req.userId?.name || 'Người dùng'}</Text>
+                    <Text style={styles.ekycName}>{req.fullName || req.userId?.name || 'Người dùng'}</Text>
                     {isApproved && (
                       <View style={styles.trustBadge}>
                         <Ionicons
@@ -61,11 +61,16 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                     )}
                   </View>
                   <Text style={styles.ekycSubMeta}>
-                    {req.userId?.email || 'email'} • SĐT: {req.userId?.phone || 'Chưa cập nhật'}
+                    {req.email || req.userId?.email || 'Chưa có email'} • SĐT: {req.phone || req.userId?.phone || 'Chưa cập nhật'}
                   </Text>
                   {req.idCardNumber ? (
                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary[600], marginTop: 2 }}>
                       Số CCCD: {req.idCardNumber}
+                    </Text>
+                  ) : null}
+                  {(req.address || req.userId?.address) ? (
+                    <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 1 }} numberOfLines={1}>
+                      Địa chỉ: {req.address || req.userId?.address}
                     </Text>
                   ) : null}
                 </View>
@@ -89,12 +94,11 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                 ) : null}
               </View>
 
-              {/* Điểm tin cậy AI */}
-              <View style={styles.ekycAiRow}>
-                <Ionicons name="sparkles" size={14} color={theme.colors.primary[600]} />
-                <Text style={styles.ekycAiText}>
-                  AI Face Match:{' '}
-                  <Text style={styles.ekycAiBold}>98.6% trùng khớp</Text> • Đầy đủ 2 mặt CCCD
+              {/* Nhãn duyệt hồ sơ thủ công */}
+              <View style={styles.ekycManualRow}>
+                <Ionicons name="shield-checkmark" size={13} color={theme.colors.primary[600]} />
+                <Text style={styles.ekycManualText}>
+                  Duyệt thủ công • Kiểm tra đối chiếu thông tin cá nhân & CCCD 2 mặt
                 </Text>
               </View>
 
@@ -261,22 +265,21 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.md,
     backgroundColor: theme.colors.slate[100],
   },
-  ekycAiRow: {
+  ekycManualRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: theme.colors.primary[50],
-    padding: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
     borderRadius: theme.radii.md,
     marginBottom: 10,
   },
-  ekycAiText: {
+  ekycManualText: {
     fontSize: 11,
     color: theme.colors.primary[700],
-  },
-  ekycAiBold: {
-    fontWeight: '700',
-    color: theme.colors.primary[600],
+    fontWeight: '500',
+    flex: 1,
   },
   btnOpenEkycModal: {
     flexDirection: 'row',

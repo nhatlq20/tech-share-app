@@ -64,6 +64,7 @@ export const ekycService = {
 
   submitEkyc: async (data: {
     idCardNumber: string;
+    address: string;
     idCardFrontUrl: string;
     idCardBackUrl: string;
     selfieUrl?: string;

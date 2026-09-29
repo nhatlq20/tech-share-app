@@ -109,7 +109,7 @@ export function EkycReviewModal({
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {/* Thông tin User */}
+            {/* Thông tin User tóm tắt */}
             <View style={styles.userInfoCard}>
               <Image
                 source={{
@@ -120,15 +120,10 @@ export function EkycReviewModal({
                 style={styles.avatarImg}
               />
               <View style={styles.userMetaCol}>
-                <Text style={styles.userName}>{ekyc.userId?.name || 'Tên người dùng'}</Text>
+                <Text style={styles.userName}>{ekyc.fullName || ekyc.userId?.name || 'Tên người dùng'}</Text>
                 <Text style={styles.userSubText}>
-                  {ekyc.userId?.email || ''} • {ekyc.userId?.phone || ''}
+                  {ekyc.email || ekyc.userId?.email || ''} • {ekyc.phone || ekyc.userId?.phone || ''}
                 </Text>
-                {ekyc.idCardNumber ? (
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.light.textPrimary, marginTop: 2 }}>
-                    Số CCCD: <Text style={{ color: colors.light.primary }}>{ekyc.idCardNumber}</Text>
-                  </Text>
-                ) : null}
                 <View style={styles.trustScorePill}>
                   <Ionicons name="shield-checkmark" size={12} color={colors.light.primary} />
                   <Text style={styles.trustScoreText}>
@@ -138,20 +133,53 @@ export function EkycReviewModal({
               </View>
             </View>
 
-            {/* Độ khớp AI */}
-            <View style={styles.aiBadgeBox}>
-              <View style={styles.aiHeader}>
-                <Ionicons name="sparkles" size={16} color="#0284C7" />
-                <Text style={styles.aiTitle}>Kết quả Đối chiếu Khuôn mặt AI:</Text>
+            {/* Bảng chi tiết thông tin cá nhân nộp duyệt */}
+            <View style={styles.detailInfoCard}>
+              <View style={styles.detailHeaderRow}>
+                <Ionicons name="person-circle-outline" size={16} color={colors.light.primary} />
+                <Text style={styles.detailCardTitle}>THÔNG TIN CÁ NHÂN ĐỐI CHIẾU</Text>
               </View>
-              <Text style={styles.aiContent}>
-                Độ trùng khớp sinh trắc: <Text style={styles.aiScoreText}>98.6%</Text> • Đạt chuẩn
-                nhận diện danh tính cấp sàn.
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Họ và tên:</Text>
+                <Text style={styles.infoValue}>{ekyc.fullName || ekyc.userId?.name || 'Chưa cung cấp'}</Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Số CCCD:</Text>
+                <Text style={[styles.infoValue, styles.infoValueHighlight]}>
+                  {ekyc.idCardNumber || 'Chưa cung cấp'}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Số điện thoại:</Text>
+                <Text style={styles.infoValue}>{ekyc.phone || ekyc.userId?.phone || 'Chưa cung cấp'}</Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email:</Text>
+                <Text style={styles.infoValue}>{ekyc.email || ekyc.userId?.email || 'Chưa cung cấp'}</Text>
+              </View>
+
+              <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                <Text style={styles.infoLabel}>Địa chỉ nhà:</Text>
+                <Text style={[styles.infoValue, { flex: 1, textAlign: 'right' }]}>
+                  {ekyc.address || ekyc.userId?.address || 'Chưa cung cấp'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Thông báo duyệt thủ công */}
+            <View style={styles.manualNoticeBox}>
+              <Ionicons name="information-circle" size={16} color="#0284C7" />
+              <Text style={styles.manualNoticeText}>
+                Hồ sơ xét duyệt thủ công: Quản trị viên vui lòng đối chiếu Số CCCD, Họ tên, và Địa chỉ nhà với ảnh 2 mặt Căn cước công dân trước khi phê duyệt.
               </Text>
             </View>
 
-            {/* Danh sách ảnh giấy tờ 3 khung */}
-            <Text style={styles.sectionHeading}>🪪 ẢNH GIẤY TỜ TÙY THÂN & CHÂN DUNG</Text>
+            {/* Danh sách ảnh giấy tờ */}
+            <Text style={styles.sectionHeading}>🪪 ẢNH GIẤY TỜ TÙY THÂN</Text>
 
             <View style={styles.docsList}>
               {/* Ảnh 1: CCCD Mặt trước */}
@@ -166,11 +194,13 @@ export function EkycReviewModal({
                 <Image source={{ uri: ekyc.idCardBackUrl }} style={styles.docImage} />
               </View>
 
-              {/* Ảnh 3: Chân dung Selfie */}
-              <View style={styles.docItem}>
-                <Text style={styles.docLabel}>3. Ảnh chụp chân dung trực tiếp (Selfie)</Text>
-                <Image source={{ uri: ekyc.selfieUrl }} style={styles.docImage} />
-              </View>
+              {/* Ảnh 3: Chân dung Selfie (chỉ hiển thị nếu có) */}
+              {ekyc.selfieUrl ? (
+                <View style={styles.docItem}>
+                  <Text style={styles.docLabel}>3. Ảnh chụp chân dung trực tiếp (Selfie)</Text>
+                  <Image source={{ uri: ekyc.selfieUrl }} style={styles.docImage} />
+                </View>
+              ) : null}
             </View>
 
             {/* Khối nhập lý do từ chối nếu bấm Từ chối */}
@@ -344,7 +374,57 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.light.primary,
   },
-  aiBadgeBox: {
+  detailInfoCard: {
+    backgroundColor: colors.light.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    padding: 12,
+    marginBottom: 14,
+  },
+  detailHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.light.border,
+    paddingBottom: 8,
+    marginBottom: 8,
+  },
+  detailCardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.light.primary,
+    letterSpacing: 0.5,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: colors.light.textSecondary,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  infoValue: {
+    fontSize: 12,
+    color: colors.light.textPrimary,
+    fontWeight: '600',
+  },
+  infoValueHighlight: {
+    color: colors.light.primary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  manualNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#F0F9FF',
     borderRadius: 10,
     padding: 12,
@@ -352,25 +432,12 @@ const styles = StyleSheet.create({
     borderColor: '#BAE6FD',
     marginBottom: 16,
   },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  aiTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+  manualNoticeText: {
+    flex: 1,
+    fontSize: 11,
     color: '#0369A1',
-  },
-  aiContent: {
-    fontSize: 12,
-    color: '#0C4A6E',
-    lineHeight: 18,
-  },
-  aiScoreText: {
-    fontWeight: '700',
-    color: colors.light.primary,
+    lineHeight: 16,
+    fontWeight: '500',
   },
   sectionHeading: {
     fontSize: 11,

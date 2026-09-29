@@ -369,14 +369,19 @@ export interface EkycItem {
     avatar?: string;
     phone?: string;
     email?: string;
+    address?: string;
     trustScore?: number;
     isVerified?: boolean;
     badges?: string[];
   };
+  fullName?: string;
+  email?: string;
+  phone?: string;
   idCardNumber?: string;
+  address?: string;
   idCardFrontUrl: string;
   idCardBackUrl: string;
-  selfieUrl: string;
+  selfieUrl?: string;
   status: "pending" | "approved" | "rejected";
   rejectReason?: string;
   reviewedBy?: {

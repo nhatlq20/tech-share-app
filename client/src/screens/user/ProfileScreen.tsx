@@ -662,9 +662,10 @@ export function ProfileScreen({
         visible={showEkycModal}
         onClose={() => setShowEkycModal(false)}
         currentEkyc={ekyc}
+        user={user}
         onSuccess={(updatedEkyc) => {
           setEkyc(updatedEkyc);
-          showToast('Đã gửi đơn eKYC thành công! Quản trị viên sẽ sớm duyệt hồ sơ.');
+          showToast('Đã gửi đơn eKYC thành công! Quản trị viên sẽ sớm kiểm duyệt hồ sơ.');
         }}
       />
     </View>

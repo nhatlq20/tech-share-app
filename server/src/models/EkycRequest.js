@@ -9,7 +9,27 @@ const ekycRequestSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    fullName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    email: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     idCardNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    address: {
       type: String,
       trim: true,
       default: '',
