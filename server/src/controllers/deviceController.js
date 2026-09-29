@@ -78,7 +78,9 @@ export const getDevices = asyncHandler(async (req, res) => {
   }
   const limit = Math.min(positiveInteger(req.query.limit, 10), 100);
   const requestedPage = positiveInteger(req.query.page, 1);
-  const page = Number.isSafeInteger((requestedPage - 1) * limit) ? requestedPage : 1;
+  const page = Number.isSafeInteger((requestedPage - 1) * limit)
+    ? requestedPage
+    : 1;
   const sort = DEVICE_SORTS.get(req.query.sort) || DEVICE_SORTS.get("newest");
 
   const filter = {
@@ -111,7 +113,12 @@ export const getDevices = asyncHandler(async (req, res) => {
     success: true,
     count: devices.length,
     data: devices,
-    pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) },
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+    },
   });
 });
 
@@ -289,6 +296,43 @@ export const updateDeviceStatus = async (req, res) => {
       success: false,
       message: "Không thể lấy danh sách thiết bị",
       error: error.message,
+    });
+  }
+};
+
+export const updateBlockedDates = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { blockedDates } = req.body;
+
+    const devices = await Device.findById(id);
+
+    if (!devices) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found",
+      });
+    }
+
+    if (devices.ownerId.toString() !== req.auth.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not the owner of this device",
+      });
+    }
+
+    devices.blockedDates = blockedDates;
+    await devices.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Blocked dates updated successfully",
+      data: devices.blockedDates,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

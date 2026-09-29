@@ -1,5 +1,13 @@
 import express from "express";
-import { createDevice, getDeviceById, getDevices, getNearbyDevices, getMyDevices, updateDeviceStatus, uploadDeviceImageToCloudinary } from "../controllers/deviceController.js";
+import {
+  createDevice,
+  getDeviceById,
+  getDevices,
+  getMyDevices,
+  updateBlockedDates,
+  updateDeviceStatus,
+  uploadDeviceImageToCloudinary,
+} from "../controllers/deviceController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 import { uploadDeviceImage } from "../middlewares/uploadMiddleware.js";
 
@@ -13,5 +21,5 @@ router.get("/myDevices",requireAuth,getMyDevices);
 router.get("/nearby", getNearbyDevices);
 router.get("/:id", getDeviceById);
 router.patch("/:id/status", requireAuth, updateDeviceStatus);
-
+router.patch("/:id/blocked-dates",requireAuth,updateBlockedDates)
 export default router;

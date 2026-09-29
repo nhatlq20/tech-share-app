@@ -109,7 +109,7 @@ export function PostDeviceScreen({
 
   const handleBack = () => {
     if (!isDirty || submitted) {
-        onBack();
+      onBack();
       return;
     }
 
@@ -137,9 +137,7 @@ export function PostDeviceScreen({
       description.trim(),
     );
 
-    if (
-      !isBasicInfoValid ||
-      !specificationsValid ||
+    if (!isBasicInfoValid ||!specificationsValid ||
       !Number.isFinite(Number(price)) ||
       !Number.isFinite(Number(depositAmount))
     ) {
@@ -163,20 +161,14 @@ export function PostDeviceScreen({
         throw new Error("Please add at least one device image.");
       }
 
-      const selectedImages = photoUris.filter(
-        (uri: string): uri is string => Boolean(uri),
-      );
+      const selectedImages = photoUris.filter((uri: string): uri is string =>Boolean(uri),);
       if (selectedImages.length === 0) {
         throw new Error("Please add at least one valid device image.");
       }
 
       let uploadedImages: string[];
       try {
-        uploadedImages = await Promise.all(
-          selectedImages.map((uri: string, index: number) =>
-            deviceService.uploadDeviceImage(token, uri, index),
-          ),
-        );
+        uploadedImages = await Promise.all(selectedImages.map((uri: string, index: number) => deviceService.uploadDeviceImage(token, uri, index),), );
       } catch (error: any) {
         throw new Error(
           error?.response?.data?.message ?? "Could not upload device image.",
@@ -201,7 +193,8 @@ export function PostDeviceScreen({
         });
       } catch (error: any) {
         throw new Error(
-          error?.response?.data?.message ?? "Images uploaded, but device creation failed.",
+          error?.response?.data?.message ??
+            "Images uploaded, but device creation failed.",
         );
       }
 
@@ -212,10 +205,7 @@ export function PostDeviceScreen({
         [{ text: "Done", onPress: () => onPublished?.() }],
       );
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ??
-        error?.message ??
-        "Could not publish this device. Please try again.";
+      const message =error?.response?.data?.message ??error?.message ?? "Could not publish this device. Please try again.";
       setPublishError(message);
     } finally {
       setIsPublishing(false);
@@ -231,8 +221,7 @@ export function PostDeviceScreen({
     if (photoUris[index]) {
       setPhotoUris(
         photoUris.filter(
-          (_photoUri: string, photoIndex: number) => photoIndex !== index,
-        ),
+          (_photoUri: string, photoIndex: number) => photoIndex !== index,),
       );
       return;
     }

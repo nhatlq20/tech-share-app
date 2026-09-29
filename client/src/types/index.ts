@@ -6,7 +6,7 @@
 // ==========================================
 // 1. Phân hệ Người dùng (Users & Auth)
 // ==========================================
-export type UserRole = 'renter' | 'owner' | 'admin';
+export type UserRole = "renter" | "owner" | "admin";
 
 export interface Role {
   _id: string;
@@ -31,7 +31,7 @@ export interface Account {
 }
 
 export interface GeoPoint {
-  type: 'Point';
+  type: "Point";
   coordinates: [number, number]; // [kinh độ (lng), vĩ độ (lat)]
 }
 
@@ -80,15 +80,13 @@ export interface AuthState {
 // ==========================================
 // 2. Phân hệ Thiết bị Công nghệ (Devices)
 // ==========================================
-export type DeviceCategory = 
-  | 'smartphone' 
-  | 'laptop' 
-  | 'camera' 
-  | 'drone' 
-  | 'audio' 
-  | 'accessory';
-
-
+export type DeviceCategory =
+  | "smartphone"
+  | "laptop"
+  | "camera"
+  | "drone"
+  | "audio"
+  | "accessory";
 
 export interface DeviceAiAnalysis {
   summary: string;
@@ -99,7 +97,7 @@ export interface DeviceAiAnalysis {
 }
 
 export interface DeviceLocation {
-  type: 'Point';
+  type: "Point";
   coordinates: [number, number]; // [lng, lat]
   address: string;
 }
@@ -125,18 +123,13 @@ export interface Device {
   createdAt?: string;
   updatedAt?: string;
 }
-export type DeviceStatus =
-  | "available"
-  | "rented"
-  | "maintenance"
-  | "hidden";
+export type DeviceStatus = "available" | "rented" | "maintenance" | "hidden";
 
-export type ManagedDeviceStatus =
-  Exclude<DeviceStatus, "rented">;
+export type ManagedDeviceStatus = Exclude<DeviceStatus, "rented">;
 
 export interface OwnedDevice {
   _id: string;
-  image: string;
+  images: string[];
   title: string;
   category: string;
   dailyRate: number;
@@ -148,16 +141,16 @@ export interface OwnedDevice {
 // 3. Phân hệ Đơn thuê (Bookings)
 // ==========================================
 export type BookingStatus =
-  | 'pending'
-  | 'approved'
-  | 'handover_in_progress'
-  | 'active'
-  | 'returned'
-  | 'completed'
-  | 'cancelled'
-  | 'rejected';
+  | "pending"
+  | "approved"
+  | "handover_in_progress"
+  | "active"
+  | "returned"
+  | "completed"
+  | "cancelled"
+  | "rejected";
 
-export type PaymentStatus = 'unpaid' | 'deposit_held' | 'paid' | 'refunded';
+export type PaymentStatus = "unpaid" | "deposit_held" | "paid" | "refunded";
 
 export interface BookingDeliveryAddress {
   recipientName: string;
@@ -216,14 +209,11 @@ export interface Review {
 // 5. Phân hệ Thông báo (Notifications)
 // ==========================================
 export type NotificationType =
-  | 'order'
-  | 'message'
-  | 'promo'
-  | 'system'
-  | 'reminder'
-  | 'booking_request'
-  | 'booking_approved'
-  | 'booking_cancelled';
+  | "booking_request"
+  | "booking_approved"
+  | "booking_cancelled"
+  | "reminder"
+  | "system";
 
 export interface Notification {
   _id: string;
@@ -300,8 +290,8 @@ export interface AdminAnalytics {
   };
 }
 
-export type DisputeStatus = 'pending' | 'resolved';
-export type DisputeDecision = 'full_refund' | 'partial_deduct' | 'full_deduct';
+export type DisputeStatus = "pending" | "resolved";
+export type DisputeDecision = "full_refund" | "partial_deduct" | "full_deduct";
 
 export interface DisputeItem {
   _id: string;
@@ -387,7 +377,7 @@ export interface EkycItem {
   idCardFrontUrl: string;
   idCardBackUrl: string;
   selfieUrl: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   rejectReason?: string;
   reviewedBy?: {
     _id: string;
@@ -428,7 +418,7 @@ export interface OwnerOverviewStats {
 }
 
 export interface OwnerRevenueChartData {
-  period: 'week' | 'month';
+  period: "week" | "month";
   labels: string[];
   datasets: Array<{
     data: number[];
@@ -469,3 +459,8 @@ export type ScreenType =
   | 'notification';
 
 
+
+export type BlockedDate = {
+  startDate: string;
+  endDate: string;
+};
