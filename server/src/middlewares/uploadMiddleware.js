@@ -15,3 +15,8 @@ const imageUpload = multer({
 
 export const uploadAvatar = imageUpload.single('avatar');
 export const uploadDeviceImage = imageUpload.single('image');
+export const uploadEkycDoc = imageUpload.single('file');
+export const uploadEkycBothCards = imageUpload.fields([
+  { name: 'idCardFront', maxCount: 1 },
+  { name: 'idCardBack', maxCount: 1 },
+]);

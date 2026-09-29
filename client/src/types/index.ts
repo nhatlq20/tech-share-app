@@ -217,13 +217,16 @@ export type NotificationType =
 
 export interface Notification {
   _id: string;
-  recipient: string;
+  userId?: string;
+  recipient?: string;
   title: string;
   body: string;
   type: NotificationType;
+  relatedId?: string | null;
   data?: {
     bookingId?: string;
     deviceId?: string;
+    [key: string]: any;
   };
   isRead: boolean;
   createdAt?: string;
@@ -370,6 +373,7 @@ export interface EkycItem {
     isVerified?: boolean;
     badges?: string[];
   };
+  idCardNumber?: string;
   idCardFrontUrl: string;
   idCardBackUrl: string;
   selfieUrl: string;
@@ -441,6 +445,18 @@ export interface OwnerAnalyticsResponse {
   revenueChart: OwnerRevenueChartData;
   fleet: FleetDeviceItem[];
 }
+
+export type ScreenType =
+  | 'home'
+  | 'bookings'
+  | 'map'
+  | 'postDevice'
+  | 'owner'
+  | 'admin'
+  | 'login'
+  | 'register'
+  | 'profile'
+  | 'notification';
 
 
 

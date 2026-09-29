@@ -15,14 +15,10 @@ const router = express.Router();
 
 // GET /api/devices
 router.get("/", getDevices);
-router.post(
-  "/upload-image",
-  requireAuth,
-  uploadDeviceImage,
-  uploadDeviceImageToCloudinary,
-);
-router.post("/", requireAuth, createDevice);
-router.get("/myDevices", requireAuth, getMyDevices);
+router.post("/upload-image", requireAuth, uploadDeviceImage, uploadDeviceImageToCloudinary);
+router.post("/",requireAuth,createDevice);
+router.get("/myDevices",requireAuth,getMyDevices);
+router.get("/nearby", getNearbyDevices);
 router.get("/:id", getDeviceById);
 router.patch("/:id/status", requireAuth, updateDeviceStatus);
 router.patch("/:id/blocked-dates",requireAuth,updateBlockedDates)

@@ -1,6 +1,7 @@
 import { Expo } from 'expo-server-sdk';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import { getIO } from '../socket.js';
 
 // Initialize Expo push notification instance
 const expo = new Expo();
@@ -70,8 +71,9 @@ export const createAndSendNotification = async ({
     });
 
     // 2. Emit real-time Socket event if user is active online
-    if (io) {
-      io.to(`user_${userId}`).emit('new_notification', notification);
+    const socketIO = io || getIO();
+    if (socketIO) {
+      socketIO.to(`user_${userId}`).emit('new_notification', notification);
     }
 
     // 3. Query recipient User to dispatch remote push notification

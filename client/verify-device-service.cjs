@@ -67,4 +67,26 @@ vm.runInNewContext(compiled.outputText, {
   offline = true;
   await assert.rejects(deviceService.getDeviceById('abc', { throwOnError: true }));
   console.log('PASS detail service: exact IDs, backend response, 400/404/500/network errors, no fallback, existing caller compatibility.');
+
+  // Nearby devices service verification
+  offline = false;
+  failureStatus = undefined;
+  apiClient.get = async (url, config) => {
+    received = { url, ...config };
+    if (failureStatus) throw { response: { status: failureStatus } };
+    if (offline) throw new Error('Offline test');
+    if (url === '/devices/nearby') {
+      return { status: 200, data: { success: true, count: 2, data: [{ _id: 'dev-1', title: 'Device 1' }, { _id: 'dev-2', title: 'Device 2' }] } };
+    }
+    return { status: 200, data: { success: true, data: [] } };
+  };
+  const nearbyResult = await deviceService.getNearbyDevices({ latitude: 21.0285, longitude: 105.7826, maxDistance: 5000 });
+  assert.equal(received.url, '/devices/nearby');
+  assert.deepEqual(JSON.parse(JSON.stringify(received.params)), { lat: 21.0285, lng: 105.7826, maxDistance: 5000 });
+  assert.equal(nearbyResult.length, 2);
+  assert.equal(nearbyResult[0]._id, 'dev-1');
+  failureStatus = 500;
+  await assert.rejects(deviceService.getNearbyDevices({ latitude: 21.0285, longitude: 105.7826 }));
+  console.log('PASS nearby service: /devices/nearby endpoint, lat/lng/maxDistance params, data unwrapping, error propagation without fake fallback.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

@@ -5,9 +5,10 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useAppSelector } from '../../store';
 
 interface HeaderActionsProps {
   /** Số tin nhắn chưa đọc — hiện chấm đỏ nếu > 0 */
@@ -20,10 +21,12 @@ interface HeaderActionsProps {
 
 export function HeaderActions({
   unreadMessages = 0,
-  unreadNotifications = 0,
+  unreadNotifications,
   onPressChat,
   onPressNotifications,
 }: HeaderActionsProps) {
+  const reduxUnread = useAppSelector((state) => state.notifications?.unreadCount ?? 0);
+  const effectiveUnread = unreadNotifications !== undefined ? unreadNotifications : reduxUnread;
   return (
     <View style={styles.container}>
       {/* Nút Tin nhắn */}
@@ -53,7 +56,7 @@ export function HeaderActions({
           size={22}
           color={theme.textPrimary}
         />
-        {unreadNotifications > 0 && <View style={styles.badge} />}
+        {effectiveUnread > 0 && <View style={styles.badge} />}
       </TouchableOpacity>
     </View>
   );

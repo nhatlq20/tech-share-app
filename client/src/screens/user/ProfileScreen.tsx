@@ -19,6 +19,9 @@ import { updateUser, UserRole } from '../../store/slices/authSlice';
 import { apiClient } from '../../config/api';
 import { colors } from '../../theme/colors';
 import { pickAvatar } from '../../services/cloudinaryService';
+import { EkycItem } from '../../types';
+import { ekycService } from '../../services/ekycService';
+import { EkycSubmitModal } from '../../components/user/EkycSubmitModal';
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -44,10 +47,14 @@ export function ProfileScreen({
   const [activeTab, setActiveTab] = useState('info' as 'info' | 'address' | 'activity');
   const [toastMsg, setToastMsg] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [ekyc, setEkyc] = useState(null as EkycItem | null);
+  const [showEkycModal, setShowEkycModal] = useState(false);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width < 360;
   const isWide = width >= 768;
+
+  const isEkycApproved = Boolean((user?.isVerified && ekyc?.status === 'approved') || (user?.role === 'admin' && user?.isVerified));
 
   // User info
   const [name, setName] = useState(user?.name || 'John Nguyen');
@@ -93,6 +100,16 @@ export function ProfileScreen({
 
         if (isMounted && response.data?.user) {
           dispatch(updateUser(response.data.user));
+        }
+
+        // Tải thông tin đơn eKYC
+        try {
+          const ekycData = await ekycService.getMyEkyc();
+          if (isMounted) {
+            setEkyc(ekycData);
+          }
+        } catch (ekycErr) {
+          console.warn('Error fetching ekyc status:', ekycErr);
         }
       } catch (error: any) {
         if (isMounted && error?.response?.status === 401) {
@@ -221,15 +238,20 @@ export function ProfileScreen({
             <View style={styles.userInfoCol}>
               <View style={styles.nameBadgeRow}>
                 <Text style={styles.userNameText}>{name}</Text>
-                <Ionicons name="checkmark-circle" size={18} color={colors.light.primary} />
+                {isEkycApproved ? (
+                  <Ionicons name="checkmark-circle" size={18} color={colors.light.primary} />
+                ) : null}
               </View>
               <Text style={styles.userEmailText}>{email}</Text>
               <Text style={styles.userPhoneText}>{phone}</Text>
 
-              <View style={styles.rolePill}>
-                <Text style={styles.rolePillText}>
+              <View style={[styles.rolePill, isEkycApproved && styles.rolePillVerified]}>
+                <Text style={[styles.rolePillText, isEkycApproved && styles.rolePillTextVerified]}>
                   {role === 'admin' ? 'Quản trị viên' : role === 'owner' ? 'Chủ máy đã xác thực' : 'Người thuê'}
                 </Text>
+                {isEkycApproved ? (
+                  <Ionicons name="shield-checkmark" size={12} color={colors.light.primary} style={{ marginLeft: 4 }} />
+                ) : null}
               </View>
             </View>
           </View>
@@ -276,6 +298,95 @@ export function ProfileScreen({
             <Text style={styles.listDeviceButtonText}>List Your Device</Text>
             <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
           </TouchableOpacity>
+        </View>
+
+        {/* ĐỊNH DANH ĐIỆN TỬ (eKYC) */}
+        <View style={styles.dashboardSection}>
+          <Text style={styles.dashboardSectionTitle}>Định Danh Điện Tử & Uy Tín</Text>
+
+          {isEkycApproved ? (
+            <View style={styles.ekycSuccessCard}>
+              <View style={styles.ekycSuccessIconWrap}>
+                <Ionicons name="shield-checkmark" size={24} color={colors.light.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.ekycSuccessTitleRow}>
+                  <Text style={styles.ekycSuccessTitle}>Đã Xác Thực eKYC Chính Chủ</Text>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.light.primary} />
+                </View>
+                <Text style={styles.ekycSuccessDesc}>
+                  Tài khoản đã được định danh CCCD và nâng cấp quyền Chủ máy (Owner). Bạn có thể đăng cho thuê thiết bị và có Tích Xanh Uy Tín.
+                </Text>
+                {ekyc?.idCardNumber ? (
+                  <Text style={styles.ekycCardNumberText}>
+                    Số CCCD: <Text style={{ fontWeight: '700' }}>{ekyc.idCardNumber.slice(0, 4)}****{ekyc.idCardNumber.slice(-4)}</Text>
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ) : ekyc?.status === 'pending' ? (
+            <View style={styles.ekycPendingCard}>
+              <View style={styles.ekycPendingIconWrap}>
+                <Ionicons name="time" size={24} color={colors.light.warning} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ekycPendingTitle}>Đang Xét Duyệt Hồ Sơ eKYC</Text>
+                <Text style={styles.ekycPendingDesc}>
+                  Hồ sơ CCCD của bạn đã được gửi tới Quản trị viên và đang trong quá trình đối chiếu thông tin.
+                </Text>
+                {ekyc?.idCardNumber ? (
+                  <Text style={styles.ekycPendingCardNumber}>
+                    Số CCCD: {ekyc.idCardNumber}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ) : ekyc?.status === 'rejected' ? (
+            <View style={styles.ekycRejectedCard}>
+              <View style={styles.ekycRejectedIconWrap}>
+                <Ionicons name="alert-circle" size={24} color={colors.light.error} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ekycRejectedTitle}>Hồ Sơ eKYC Bị Từ Chối</Text>
+                <Text style={styles.ekycRejectedDesc}>
+                  Lý do: {ekyc.rejectReason || 'Ảnh CCCD bị mờ hoặc không trùng khớp'}. Vui lòng chụp lại ảnh rõ nét và gửi lại đơn.
+                </Text>
+                <TouchableOpacity
+                  style={styles.btnResubmitEkyc}
+                  onPress={() => setShowEkycModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="refresh-outline" size={15} color="#FFFFFF" />
+                  <Text style={styles.btnResubmitEkycText}>Gửi lại hồ sơ eKYC</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.ekycActionCard}
+              onPress={() => setShowEkycModal(true)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.ekycActionIconWrap}>
+                <Ionicons name="id-card-outline" size={24} color={colors.light.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.ekycActionHeaderRow}>
+                  <Text style={styles.ekycActionTitle}>Xác Thực Định Danh eKYC</Text>
+                  <View style={styles.ekycBadgeNotVerified}>
+                    <Text style={styles.ekycBadgeNotVerifiedText}>Chưa định danh</Text>
+                  </View>
+                </View>
+                <Text style={styles.ekycActionDesc}>
+                  Nhập số CCCD & 2 mặt ảnh để nhận Tích Xanh Uy Tín và mở khóa quyền Chủ máy (Owner) cho thuê thiết bị.
+                </Text>
+                <View style={styles.ekycCtaRow}>
+                  <Text style={styles.ekycCtaText}>Bấm để định danh ngay</Text>
+                  <Ionicons name="arrow-forward" size={14} color={colors.light.primary} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.dashboardSection}>
@@ -545,6 +656,17 @@ export function ProfileScreen({
           </View>
         )}
       </ScrollView>
+
+      {/* MODAL GỬI HỒ SƠ eKYC */}
+      <EkycSubmitModal
+        visible={showEkycModal}
+        onClose={() => setShowEkycModal(false)}
+        currentEkyc={ekyc}
+        onSuccess={(updatedEkyc) => {
+          setEkyc(updatedEkyc);
+          showToast('Đã gửi đơn eKYC thành công! Quản trị viên sẽ sớm duyệt hồ sơ.');
+        }}
+      />
     </View>
   );
 }
@@ -1009,5 +1131,183 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.light.textSecondary,
     marginTop: 2,
+  },
+  rolePillVerified: {
+    borderColor: '#93C5FD',
+    backgroundColor: colors.light.primaryLight,
+  },
+  rolePillTextVerified: {
+    color: colors.light.primary,
+  },
+  ekycSuccessCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    padding: 14,
+  },
+  ekycSuccessIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ekycSuccessTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  ekycSuccessTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  ekycSuccessDesc: {
+    fontSize: 12,
+    color: '#166534',
+    lineHeight: 17,
+  },
+  ekycCardNumberText: {
+    fontSize: 11,
+    color: '#166534',
+    marginTop: 6,
+  },
+  ekycPendingCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    padding: 14,
+  },
+  ekycPendingIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ekycPendingTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#B45309',
+    marginBottom: 4,
+  },
+  ekycPendingDesc: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 17,
+  },
+  ekycPendingCardNumber: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B45309',
+    marginTop: 6,
+  },
+  ekycRejectedCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    padding: 14,
+  },
+  ekycRejectedIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ekycRejectedTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.light.error,
+    marginBottom: 4,
+  },
+  ekycRejectedDesc: {
+    fontSize: 12,
+    color: '#991B1B',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  btnResubmitEkyc: {
+    backgroundColor: colors.light.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  btnResubmitEkycText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ekycActionCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 14,
+    padding: 14,
+  },
+  ekycActionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ekycActionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  ekycActionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+  ekycBadgeNotVerified: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  ekycBadgeNotVerifiedText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B45309',
+  },
+  ekycActionDesc: {
+    fontSize: 12,
+    color: '#0369A1',
+    lineHeight: 17,
+    marginBottom: 8,
+  },
+  ekycCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ekycCtaText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.light.primary,
   },
 });

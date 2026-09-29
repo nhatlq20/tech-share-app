@@ -7,6 +7,33 @@ import {
 } from "../types";
 
 // Mock seed devices matching server/src/seeds/seedData.js
+export const FALLBACK_DEVICES: Device[] = [
+  {
+    _id: "64e0a12f9b1c2b001a000003",
+    owner: "64e0a12f9b1c2b001a222222",
+    title: "Sony Alpha A7 IV Mirrorless + Lens 24-70mm GM II",
+    brand: "Sony",
+    category: "camera",
+    dailyRate: 450000,
+    depositValue: 25000000,
+    images: ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800"],
+    specs: {
+      Sensor: "33MP Full-Frame Exmor R BSI CMOS",
+      Video: "4K60p 10-bit 4:2:2",
+    },
+    description: "Commercial camera kit for events and professional photography.",
+    location: {
+      type: "Point",
+      coordinates: [105.7826, 21.0285],
+      address: "Duy Tan, Cau Giay, Hanoi",
+    },
+    status: "available",
+    rating: 5,
+    reviewCount: 32,
+    viewsCount: 45,
+    createdAt: "2024-01-01T00:00:00.000Z",
+  },
+];
 
 export type DeviceSort = "price_asc" | "price_desc" | "rating_desc" | "newest";
 
@@ -17,6 +44,13 @@ export interface GetDevicesParams {
   page?: number;
   limit?: number;
   sort?: DeviceSort;
+}
+
+export interface GetNearbyDevicesParams {
+  latitude: number;
+  longitude: number;
+  /** Radius in meters; the backend defaults to 5000. */
+  maxDistance?: number;
 }
 
 export interface CreateDevicePayload {
@@ -36,6 +70,18 @@ export interface CreateDevicePayload {
 }
 
 export const deviceService = {
+  /** Nearby devices from MongoDB, nearest first. API errors propagate to the caller. */
+  async getNearbyDevices(params: GetNearbyDevicesParams): Promise<Device[]> {
+    const response = await apiClient.get<{ success: boolean; count: number; data: Device[] }>("/devices/nearby", {
+      params: {
+        lat: params.latitude,
+        lng: params.longitude,
+        maxDistance: params.maxDistance,
+      },
+    });
+    return response.data.data;
+  },
+
   /**
    * Gọi API GET /api/devices, tự động chuyển đổi sang danh sách chuẩn Device[]
    * Nếu backend chưa có endpoint hoặc server chưa chạy, trả về danh sách fallback chuẩn

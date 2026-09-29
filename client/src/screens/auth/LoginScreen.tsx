@@ -21,11 +21,12 @@ import { colors } from '../../theme/colors';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
+  onNavigateToForgotPassword?: () => void;
   /** Gọi sau khi login thành công, truyền role của user để App routing */
   onNavigateToHome: (role?: string) => void;
 }
 
-export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, onNavigateToHome }: LoginScreenProps) {
   const dispatch = useDispatch();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -173,7 +174,10 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToHome }: LoginScr
               <Text style={styles.rememberText}>Remember me</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onNavigateToForgotPassword}
+            >
               <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
           </View>

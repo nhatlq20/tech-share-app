@@ -9,6 +9,7 @@ import {
   WalletTransaction,
   Notification,
 } from '../models/index.js';
+import { createAndSendNotification } from '../services/notificationService.js';
 
 /**
  * 1. GET /api/admin/analytics
@@ -259,28 +260,26 @@ export const resolveDispute = async (req, res) => {
     });
     await booking.save();
 
-    // 4. Bắn thông báo cho 2 bên
-    const notifications = [];
+    // 4. Bắn thông báo real-time và push cho 2 bên
     if (renter) {
-      notifications.push({
+      await createAndSendNotification({
         userId: renter._id,
         title: 'Phán quyết tranh chấp tiền cọc ⚖️',
         body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn được hoàn ${refundAmount.toLocaleString()} đ tiền cọc.`,
         type: 'system',
         relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
       });
     }
     if (owner) {
-      notifications.push({
+      await createAndSendNotification({
         userId: owner._id,
         title: 'Phán quyết tranh chấp tiền cọc ⚖️',
         body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn nhận được ${deductAmount.toLocaleString()} đ tiền bồi thường thiệt hại.`,
         type: 'system',
         relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
       });
-    }
-    if (notifications.length > 0) {
-      await Notification.insertMany(notifications);
     }
 
     return res.status(200).json({
@@ -359,28 +358,40 @@ export const approveEkyc = async (req, res) => {
     request.reviewedAt = new Date();
     await request.save();
 
-    // Cập nhật User
+    // Cập nhật User & nâng lên role owner
     const user = await User.findById(request.userId);
     if (user) {
       user.isVerified = true;
+      if (user.role !== 'admin') {
+        user.role = 'owner';
+      }
+      if (!user.badges) user.badges = [];
       if (!user.badges.includes('verified_identity')) {
         user.badges.push('verified_identity');
       }
       user.trustScore = Math.min(100, (user.trustScore || 100) + 10);
       await user.save();
 
+      // Cập nhật role trong Account tương ứng
+      if (user.accountId) {
+        const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
+        if (ownerRole) {
+          await Account.updateOne({ _id: user.accountId }, { roleId: ownerRole._id });
+        }
+      }
+
       // Bắn thông báo chúc mừng
-      await Notification.create({
+      await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC đã được phê duyệt! 🎉',
-        body: 'Chúc mừng bạn! Hồ sơ căn cước công dân đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín trên TechShare.',
+        body: 'Chúc mừng bạn! Hồ sơ CCCD đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín và được nâng cấp thành Chủ máy (Owner) có quyền đăng thiết bị cho thuê trên TechShare.',
         type: 'system',
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Đã phê duyệt eKYC và cấp Tích xanh uy tín thành công!',
+      message: 'Đã phê duyệt eKYC, cấp Tích xanh và nâng cấp thành Chủ máy (Owner) thành công!',
       data: request,
     });
   } catch (error) {
@@ -421,7 +432,7 @@ export const rejectEkyc = async (req, res) => {
       user.isVerified = false;
       await user.save();
 
-      await Notification.create({
+      await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC chưa được phê duyệt ⚠️',
         body: `Hồ sơ xác minh căn cước của bạn đã bị từ chối. Lý do: ${request.rejectReason}. Vui lòng chụp lại ảnh rõ nét và gửi lại.`,
