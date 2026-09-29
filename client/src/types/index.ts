@@ -213,7 +213,10 @@ export type NotificationType =
   | "booking_approved"
   | "booking_cancelled"
   | "reminder"
-  | "system";
+  | "system"
+  | "order"
+  | "promo"
+  | "message";
 
 export interface Notification {
   _id: string;

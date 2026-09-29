@@ -18,13 +18,14 @@ interface DeviceDetailScreenProps {
   deviceId: string;
   onBack: () => void;
   onBookNow?: (deviceId: string) => void;
+  hideBookNow?: boolean;
 }
 
 const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ';
 };
 
-export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetailScreenProps) {
+export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }: DeviceDetailScreenProps) {
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -193,30 +194,32 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow }: DeviceDetail
       </ScrollView>
 
       {/* Bottom Sticky Action Bar (CTA bo góc 12px theo theme-skill.md) */}
-      <View style={styles.bottomBar}>
-        <View>
-          <Text style={styles.bottomPriceSub}>Total rental fee</Text>
-          <Text style={styles.bottomPriceMain}>
-            {formatPrice(device.dailyRate)}
-            <Text style={styles.dayUnit}>/day</Text>
-          </Text>
-        </View>
+      {!hideBookNow && (
+        <View style={styles.bottomBar}>
+          <View>
+            <Text style={styles.bottomPriceSub}>Total rental fee</Text>
+            <Text style={styles.bottomPriceMain}>
+              {formatPrice(device.dailyRate)}
+              <Text style={styles.dayUnit}>/day</Text>
+            </Text>
+          </View>
 
-        <TouchableOpacity
-          style={styles.bookBtn}
-          onPress={() => {
-            if (onBookNow) {
-              onBookNow(deviceId);
-            } else {
-              alert(`Đặt thuê thiết bị: ${device.title}`);
-            }
-          }}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-          <Text style={styles.bookBtnText}>Book now</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.bookBtn}
+            onPress={() => {
+              if (onBookNow) {
+                onBookNow(deviceId);
+              } else {
+                alert(`Đặt thuê thiết bị: ${device.title}`);
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.bookBtnText}>Book now</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
