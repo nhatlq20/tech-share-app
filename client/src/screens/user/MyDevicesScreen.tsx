@@ -10,12 +10,29 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DeviceStatusToggle } from "../../components/device/DeviceStatusToggle";
+import { OwnerAvailabilityModal } from "../../components/OwnerAvailabilityModal";
 import { colors } from "../../theme/colors";
-import type { ManagedDeviceStatus, OwnedDevice } from "../../types";
+import type { BlockedDate, ManagedDeviceStatus, OwnedDevice } from "../../types";
 import { deviceService } from "../../services/deviceService";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { useEffect } from "react";
+import { API_BASE_URL } from "../../config/api";
+
+const FALLBACK_DEVICE_IMAGE =
+  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600";
+
+const resolveImageUri = (image?: string) => {
+  if (!image?.trim()) return FALLBACK_DEVICE_IMAGE;
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+  if (image.startsWith("/")) {
+    const origin = API_BASE_URL.replace(/\/api\/?$/, "");
+    return `${origin}${image}`;
+  }
+  return image;
+};
 
 interface MyDevicesScreenProps {
   onBack: () => void;
@@ -27,6 +44,8 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState("");
   const [devices, setDevices] = useState<OwnedDevice[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<OwnedDevice | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -58,8 +77,8 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
     try {
       await deviceService.updateDeviceStatus(token, deviceId, newStatus);
 
-      setDevices((previous) =>
-        previous.map((device) =>
+      setDevices((previous: OwnedDevice[]) =>
+        previous.map((device: OwnedDevice) =>
           device._id === deviceId ? { ...device, status: newStatus } : device,
         ),
       );
@@ -69,6 +88,27 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
       console.error("Update status failed:", error);
     }
   };
+
+  const openAvailabilityModal = (device: OwnedDevice) => {
+    setSelectedDevice(device);
+    setModalVisible(true);
+  };
+
+  const blockedDates = async(
+     deviceId: string,
+     bockedDates : BlockedDate[],
+  )=> {
+     if (!token) return;
+
+       try {
+          await deviceService.updateBlockDate(token,deviceId,bockedDates) 
+
+       } catch (error) {
+         console.error("Update blockedDates failed:", error);
+       }
+
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -119,10 +159,20 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
           renderItem={({ item: device }: { item: OwnedDevice }) => (
             <View style={styles.card}>
               <Image
-                source={{ uri: device.image }}
+                source={{ uri: resolveImageUri(device.images?.[0]) }}
                 style={styles.deviceImage}
                 resizeMode="cover"
                 accessibilityLabel={device.title}
+                onError={(event: any) => {
+                  console.warn(
+                    "[MyDevicesScreen] Device image failed to load",
+                    {
+                      deviceId: device._id,
+                      image: device.images?.[0],
+                      error: event.nativeEvent.error,
+                    },
+                  );
+                }}
               />
               <View style={styles.cardContent}>
                 <Text style={styles.deviceTitle}>{device.title}</Text>
@@ -158,6 +208,20 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
                     handleStatusChange(device._id, newStatus)
                   }
                 />
+                <TouchableOpacity
+                  onPress={() => openAvailabilityModal(device)}
+                  style={styles.availabilityButton}
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="calendar-outline"
+                    size={18}
+                    color={colors.light.primary}
+                  />
+                  <Text style={styles.availabilityButtonText}>
+                    Manage Availability
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -176,6 +240,13 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
           }
         />
       )}
+      <OwnerAvailabilityModal
+        visible={modalVisible}
+        deviceName={selectedDevice?.title ?? ""}
+        onClose={() => setModalVisible(false)}
+        deviceId={selectedDevice?._id ?? ""}
+        onUpdateBlockedDates={blockedDates}
+      />
     </View>
   );
 }
@@ -222,6 +293,7 @@ const styles = StyleSheet.create({
   },
   deviceImage: {
     width: "100%",
+
     aspectRatio: 1.8,
     maxHeight: 300,
     backgroundColor: colors.light.border,
@@ -273,6 +345,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.light.textPrimary,
     marginBottom: 8,
+  },
+  availabilityButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.light.primary,
+  },
+  availabilityButtonText: {
+    color: colors.light.primary,
+    fontSize: 14,
+    fontWeight: "700",
   },
   emptyList: { flexGrow: 1 },
   feedbackState: {

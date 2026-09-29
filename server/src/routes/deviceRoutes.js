@@ -4,6 +4,7 @@ import {
   getDeviceById,
   getDevices,
   getMyDevices,
+  updateBlockedDates,
   updateDeviceStatus,
   uploadDeviceImageToCloudinary,
 } from "../controllers/deviceController.js";
@@ -24,5 +25,5 @@ router.post("/", requireAuth, createDevice);
 router.get("/myDevices", requireAuth, getMyDevices);
 router.get("/:id", getDeviceById);
 router.patch("/:id/status", requireAuth, updateDeviceStatus);
-
+router.patch("/:id/blocked-dates",requireAuth,updateBlockedDates)
 export default router;

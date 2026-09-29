@@ -1,5 +1,10 @@
 import { apiClient } from "../config/api";
-import { Device, DeviceCategory, ManagedDeviceStatus } from "../types";
+import {
+  BlockedDate,
+  Device,
+  DeviceCategory,
+  ManagedDeviceStatus,
+} from "../types";
 
 // Mock seed devices matching server/src/seeds/seedData.js
 
@@ -37,7 +42,10 @@ export const deviceService = {
    */
   async getDevices(params?: GetDevicesParams): Promise<Device[]> {
     const keyword = (params?.q || params?.search || "").trim();
-    const cat = params?.category && params.category !== "all" ? params.category : undefined;
+    const cat =
+      params?.category && params.category !== "all"
+        ? params.category
+        : undefined;
     const queryParams = {
       category: cat,
       q: keyword || undefined,
@@ -45,7 +53,10 @@ export const deviceService = {
       limit: params?.limit,
       sort: params?.sort,
     };
-    const fullRequestUrl = apiClient.getUri({ url: "/devices", params: queryParams });
+    const fullRequestUrl = apiClient.getUri({
+      url: "/devices",
+      params: queryParams,
+    });
 
     if (keyword) {
       console.log("[SEARCH DEBUG]");
@@ -136,30 +147,50 @@ export const deviceService = {
     result.sort((a, b) => {
       let difference = 0;
       switch (params?.sort) {
-        case "price_asc": difference = a.dailyRate - b.dailyRate; break;
-        case "price_desc": difference = b.dailyRate - a.dailyRate; break;
-        case "rating_desc": difference = b.rating - a.rating; break;
+        case "price_asc":
+          difference = a.dailyRate - b.dailyRate;
+          break;
+        case "price_desc":
+          difference = b.dailyRate - a.dailyRate;
+          break;
+        case "rating_desc":
+          difference = b.rating - a.rating;
+          break;
         default:
           // Seed fallback records have no creation timestamps; use a stable ID order.
-          difference = Date.parse(b.createdAt || "1970-01-01") - Date.parse(a.createdAt || "1970-01-01");
+          difference =
+            Date.parse(b.createdAt || "1970-01-01") -
+            Date.parse(a.createdAt || "1970-01-01");
       }
       return difference || a._id.localeCompare(b._id);
     });
-    const limit = Number.isSafeInteger(params?.limit) && params!.limit! > 0
-      ? Math.min(params!.limit!, 100) : 10;
-    const requestedPage = Number.isSafeInteger(params?.page) && params!.page! > 0 ? params!.page! : 1;
-    const page = Number.isSafeInteger((requestedPage - 1) * limit) ? requestedPage : 1;
+    const limit =
+      Number.isSafeInteger(params?.limit) && params!.limit! > 0
+        ? Math.min(params!.limit!, 100)
+        : 10;
+    const requestedPage =
+      Number.isSafeInteger(params?.page) && params!.page! > 0
+        ? params!.page!
+        : 1;
+    const page = Number.isSafeInteger((requestedPage - 1) * limit)
+      ? requestedPage
+      : 1;
     return result.slice((page - 1) * limit, page * limit);
   },
 
   /**
    * Lấy chi tiết thiết bị theo ID
    */
-  async getDeviceById(id: string, options?: { throwOnError?: boolean }): Promise<Device | null> {
+  async getDeviceById(
+    id: string,
+    options?: { throwOnError?: boolean },
+  ): Promise<Device | null> {
     try {
       const response = await apiClient.get(`/devices/${id}`);
       if (response.data && response.data.data) {
-        console.log(`[deviceDetail] GET /devices/${id} -> ${response.status}; Source: BACKEND; id: ${response.data.data._id}`);
+        console.log(
+          `[deviceDetail] GET /devices/${id} -> ${response.status}; Source: BACKEND; id: ${response.data.data._id}`,
+        );
         return response.data.data;
       }
       if (response.data) {
@@ -234,6 +265,25 @@ export const deviceService = {
       },
     );
 
-      return response.data.data;
+    return response.data.data;
+  },
+
+  async updateBlockDate(
+    token: string,
+    deviceId: string,
+    blockedDates: BlockedDate[],
+  ) {
+    const response = await apiClient.patch(
+      `/devices/${deviceId}/blocked-dates`,
+      {
+        blockedDates: blockedDates,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    response.data.data;
   },
 };
