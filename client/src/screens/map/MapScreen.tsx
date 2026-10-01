@@ -57,6 +57,11 @@ interface DeviceMarkerData {
 }
 
 export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const [position, setPosition] = useState(null as LatLng | null);
   const [locationState, setLocationState] = useState('loading' as 'loading' | 'ready' | 'denied' | 'error');
   const [error, setError] = useState(null as string | null);
@@ -508,7 +513,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="map" size={24} color={colors.light.primary} />
           <Text style={styles.headerTitle}>Gần bạn</Text>

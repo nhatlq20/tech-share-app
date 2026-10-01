@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,7 +10,10 @@ import {
   Switch,
   RefreshControl,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
@@ -20,22 +23,37 @@ import {
 } from '../../services/ownerAnalyticsService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';
 import { RevenueChart } from '../../components/owner/RevenueChart';
+import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
 
 interface OwnerDashboardScreenProps {
+  route?: any;
+  navigation?: any;
   onBackToHome?: () => void;
   onNavigateToDeviceDetail?: (deviceId: string) => void;
   onNavigateToPostDevice?: () => void;
+  onLogout?: () => void;
+  onOpenDrawer?: () => void;
 }
 
 type PeriodType = 'week' | 'month';
 type DeviceFilterType = 'all' | 'rented' | 'available';
 
 export function OwnerDashboardScreen({
+  route,
+  navigation,
   onBackToHome,
   onNavigateToDeviceDetail,
   onNavigateToPostDevice,
+  onLogout,
+  onOpenDrawer,
 }: OwnerDashboardScreenProps) {
+  const insets = useSafeAreaInsets();
   const currentUser = useAppSelector((state) => state.auth.user);
+
+  const scrollViewRef: any = useRef(null);
+  const sectionLayouts: any = useRef({});
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // State quản lý số liệu phân tích
   const [period, setPeriod] = useState('week' as PeriodType);
@@ -76,6 +94,17 @@ export function OwnerDashboardScreen({
     setLoading(true);
     fetchAnalytics(period).finally(() => setLoading(false));
   }, [fetchAnalytics, period]);
+
+  // Cuộn tới vị trí section được chọn từ Sidebar
+  useEffect(() => {
+    const target = route?.params?.initialSection;
+    if (target && typeof sectionLayouts.current[target] === 'number') {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, sectionLayouts.current[target] - 12),
+        animated: true,
+      });
+    }
+  }, [route?.params?.initialSection, route?.params?._t]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -155,21 +184,80 @@ export function OwnerDashboardScreen({
   });
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[theme.colors.primary[500]]}
-          tintColor={theme.colors.primary[500]}
-        />
-      }
-    >
-      {/* ── 1. KHỐI HEADER: ĐỊNH DANH & CẤP BẬC UY TÍN ── */}
-      <View style={styles.headerCard}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.card} />
+
+      {/* ── 0. THANH TIÊU ĐỀ CỐ ĐỊNH PHÍA TRÊN (STICKY TOP BAR CÓ SAFE AREA) ── */}
+      <View
+        style={[
+          styles.topBar,
+          {
+            paddingTop:
+              Math.max(
+                insets.top,
+                Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+              ) + 8,
+          },
+        ]}
+      >
+        <View style={styles.topBarLeft}>
+          <TouchableOpacity
+            style={styles.hamburgerButton}
+            onPress={() => {
+              if (onOpenDrawer) {
+                onOpenDrawer();
+              } else if (navigation?.openDrawer) {
+                navigation.openDrawer();
+              }
+            }}
+            activeOpacity={0.7}
+            accessibilityLabel="Mở menu quản lý chủ máy"
+          >
+            <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.topBarTitle}>Owner Hub</Text>
+            <Text style={styles.topBarSubtitle}>Quản lý kinh doanh & kho máy</Text>
+          </View>
+        </View>
+
+        {onBackToHome && (
+          <TouchableOpacity
+            style={styles.switchModeButton}
+            onPress={onBackToHome}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="swap-horizontal"
+              size={14}
+              color={theme.colors.primary[600]}
+            />
+            <Text style={styles.switchModeText}>Đi thuê</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary[500]]}
+            tintColor={theme.colors.primary[500]}
+          />
+        }
+      >
+        {/* ── 1. KHỐI HEADER: ĐỊNH DANH & CẤP BẬC UY TÍN ── */}
+        <View
+          style={styles.headerCard}
+          onLayout={(e: any) => {
+            sectionLayouts.current.overview = e.nativeEvent.layout.y;
+          }}
+        >
         <View style={styles.headerTop}>
           <View style={styles.ownerProfileRow}>
             <Image
@@ -216,23 +304,8 @@ export function OwnerDashboardScreen({
             </View>
           </View>
 
-          {/* Cụm nút chuyển vai trò & đăng máy */}
+          {/* Cụm nút đăng máy & đăng xuất */}
           <View style={styles.headerActionsCol}>
-            {onBackToHome && (
-              <TouchableOpacity
-                style={styles.switchModeButton}
-                onPress={onBackToHome}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="swap-horizontal"
-                  size={14}
-                  color={theme.colors.primary[600]}
-                />
-                <Text style={styles.switchModeText}>Đi thuê</Text>
-              </TouchableOpacity>
-            )}
-
             {onNavigateToPostDevice && (
               <TouchableOpacity
                 style={styles.postDeviceQuickBtn}
@@ -243,12 +316,139 @@ export function OwnerDashboardScreen({
                 <Text style={styles.postDeviceQuickText}>Đăng máy</Text>
               </TouchableOpacity>
             )}
+
+            {onLogout && (
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={() => setShowLogoutModal(true)}
+                activeOpacity={0.8}
+                accessibilityLabel="Đăng xuất"
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={15}
+                  color={theme.colors.danger[600]}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
 
-      {/* ── 2. KHỐI TÀI CHÍNH: VÍ DOANH THU & KÝ QUỸ (FINANCIAL HUB) ── */}
-      <View style={styles.walletCard}>
+      {/* ── 2. KHỐI BÁO CÁO HIỆU SUẤT & BIỂU ĐỒ DOANH THU (ANALYTICS & KPIS) ── */}
+      <View
+        style={styles.sectionContainer}
+        onLayout={(e: any) => {
+          sectionLayouts.current.analytics = e.nativeEvent.layout.y;
+        }}
+      >
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderTitle}>📊 HIỆU SUẤT & DOANH THU</Text>
+
+          {/* Bộ chọn chu kỳ: Tuần này / Tháng này */}
+          <View style={styles.periodSelector}>
+            <TouchableOpacity
+              style={[
+                styles.periodBtn,
+                period === 'week' && styles.periodBtnActive,
+              ]}
+              onPress={() => setPeriod('week')}
+            >
+              <Text
+                style={[
+                  styles.periodBtnText,
+                  period === 'week' && styles.periodBtnTextActive,
+                ]}
+              >
+                Tuần
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.periodBtn,
+                period === 'month' && styles.periodBtnActive,
+              ]}
+              onPress={() => setPeriod('month')}
+            >
+              <Text
+                style={[
+                  styles.periodBtnText,
+                  period === 'month' && styles.periodBtnTextActive,
+                ]}
+              >
+                Tháng
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 4 Chỉ số KPI nổi bật */}
+        <View style={styles.kpiGrid}>
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.primary[50] }]}>
+              <Ionicons
+                name="cash-outline"
+                size={18}
+                color={theme.colors.primary[600]}
+              />
+            </View>
+            <Text style={styles.kpiLabel}>Doanh thu thuần</Text>
+            <Text style={styles.kpiValue}>
+              {((overview.totalRevenue || 42500000) / 1000000).toFixed(1)}M
+            </Text>
+          </View>
+
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.success[50] }]}>
+              <Ionicons
+                name="checkmark-done-outline"
+                size={18}
+                color={theme.colors.success[600]}
+              />
+            </View>
+            <Text style={styles.kpiLabel}>Lượt cho thuê</Text>
+            <Text style={styles.kpiValue}>18 đơn</Text>
+          </View>
+
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.warning[50] }]}>
+              <Ionicons
+                name="flash-outline"
+                size={18}
+                color={theme.colors.warning[600]}
+              />
+            </View>
+            <Text style={styles.kpiLabel}>Đang cho thuê</Text>
+            <Text style={styles.kpiValue}>{overview.activeRentals || 2} máy</Text>
+          </View>
+
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.indigo[50] }]}>
+              <Ionicons
+                name="pie-chart-outline"
+                size={18}
+                color={theme.colors.indigo[600]}
+              />
+            </View>
+            <Text style={styles.kpiLabel}>Tỷ lệ lấp đầy</Text>
+            <Text style={styles.kpiValue}>{overview.utilizationRate || 74.2}%</Text>
+          </View>
+        </View>
+
+        {/* Biểu đồ doanh thu trực quan */}
+        <View style={styles.chartWrapper}>
+          <RevenueChart chartData={chartData} />
+        </View>
+      </View>
+
+      {/* ── 3. KHỐI TÀI CHÍNH: VÍ DOANH THU & KÝ QUỸ (FINANCIAL HUB) ── */}
+      <View
+        style={styles.walletCard}
+        onLayout={(e: any) => {
+          sectionLayouts.current.wallet = e.nativeEvent.layout.y;
+        }}
+      >
         <View style={styles.walletHeaderRow}>
           <View>
             <Text style={styles.walletLabel}>Số dư ví khả dụng</Text>
@@ -299,8 +499,13 @@ export function OwnerDashboardScreen({
         </View>
       </View>
 
-      {/* ── 3. KHỐI ĐƠN THUÊ CẦN XỬ LÝ KHẨN CẤP (ACTION REQUIRED) ── */}
-      <View style={styles.sectionContainer}>
+      {/* ── 4. KHỐI ĐƠN THUÊ CẦN XỬ LÝ KHẨN CẤP (ACTION REQUIRED) ── */}
+      <View
+        style={styles.sectionContainer}
+        onLayout={(e: any) => {
+          sectionLayouts.current.orders = e.nativeEvent.layout.y;
+        }}
+      >
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionTitleWithBadge}>
             <Text style={styles.sectionHeaderTitle}>📦 ĐƠN CẦN XỬ LÝ GẤP</Text>
@@ -431,110 +636,15 @@ export function OwnerDashboardScreen({
         )}
       </View>
 
-      {/* ── 4. KHỐI BÁO CÁO HIỆU SUẤT & BIỂU ĐỒ DOANH THU (ANALYTICS & KPIS) ── */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderTitle}>📊 HIỆU SUẤT & DOANH THU</Text>
 
-          {/* Bộ chọn chu kỳ: Tuần này / Tháng này */}
-          <View style={styles.periodSelector}>
-            <TouchableOpacity
-              style={[
-                styles.periodBtn,
-                period === 'week' && styles.periodBtnActive,
-              ]}
-              onPress={() => setPeriod('week')}
-            >
-              <Text
-                style={[
-                  styles.periodBtnText,
-                  period === 'week' && styles.periodBtnTextActive,
-                ]}
-              >
-                Tuần
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.periodBtn,
-                period === 'month' && styles.periodBtnActive,
-              ]}
-              onPress={() => setPeriod('month')}
-            >
-              <Text
-                style={[
-                  styles.periodBtnText,
-                  period === 'month' && styles.periodBtnTextActive,
-                ]}
-              >
-                Tháng
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 4 Chỉ số KPI nổi bật */}
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.primary[50] }]}>
-              <Ionicons
-                name="cash-outline"
-                size={18}
-                color={theme.colors.primary[600]}
-              />
-            </View>
-            <Text style={styles.kpiLabel}>Doanh thu thuần</Text>
-            <Text style={styles.kpiValue}>
-              {((overview.totalRevenue || 42500000) / 1000000).toFixed(1)}M
-            </Text>
-          </View>
-
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.success[50] }]}>
-              <Ionicons
-                name="checkmark-done-outline"
-                size={18}
-                color={theme.colors.success[600]}
-              />
-            </View>
-            <Text style={styles.kpiLabel}>Lượt cho thuê</Text>
-            <Text style={styles.kpiValue}>18 đơn</Text>
-          </View>
-
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.warning[50] }]}>
-              <Ionicons
-                name="flash-outline"
-                size={18}
-                color={theme.colors.warning[600]}
-              />
-            </View>
-            <Text style={styles.kpiLabel}>Đang cho thuê</Text>
-            <Text style={styles.kpiValue}>{overview.activeRentals || 2} máy</Text>
-          </View>
-
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiIconBox, { backgroundColor: theme.colors.indigo[50] }]}>
-              <Ionicons
-                name="pie-chart-outline"
-                size={18}
-                color={theme.colors.indigo[600]}
-              />
-            </View>
-            <Text style={styles.kpiLabel}>Tỷ lệ lấp đầy</Text>
-            <Text style={styles.kpiValue}>{overview.utilizationRate || 74.2}%</Text>
-          </View>
-        </View>
-
-        {/* Biểu đồ doanh thu trực quan */}
-        <View style={styles.chartWrapper}>
-          <RevenueChart chartData={chartData} />
-        </View>
-      </View>
 
       {/* ── 5. KHỐI QUẢN LÝ KHO MÁY (FLEET INVENTORY MANAGEMENT) ── */}
-      <View style={styles.sectionContainer}>
+      <View
+        style={styles.sectionContainer}
+        onLayout={(e: any) => {
+          sectionLayouts.current.fleet = e.nativeEvent.layout.y;
+        }}
+      >
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeaderTitle}>🛠️ KHO THIẾT BỊ ({fleetList.length})</Text>
 
@@ -670,7 +780,12 @@ export function OwnerDashboardScreen({
       </View>
 
       {/* ── 6. KHỐI TRỢ LÝ THÔNG MINH & CÔNG CỤ AI (AI TOOLS) ── */}
-      <View style={[styles.sectionContainer, { marginBottom: theme.spacing.xl }]}>
+      <View
+        style={[styles.sectionContainer, { marginBottom: theme.spacing.xl }]}
+        onLayout={(e: any) => {
+          sectionLayouts.current.ai_tools = e.nativeEvent.layout.y;
+        }}
+      >
         <Text style={styles.sectionHeaderTitle}>💡 CÔNG CỤ TRỢ LÝ AI CHO CHỦ MÁY</Text>
 
         <View style={styles.aiToolsGrid}>
@@ -727,7 +842,21 @@ export function OwnerDashboardScreen({
         </View>
       </View>
     </ScrollView>
-  );
+
+    {onLogout && (
+      <LogoutConfirmModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          setShowLogoutModal(false);
+          onLogout();
+        }}
+        title="Xác nhận đăng xuất"
+        subtitle="Bạn có chắc chắn muốn đăng xuất khỏi tài khoản Chủ máy?"
+      />
+    )}
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -738,6 +867,49 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.md,
     gap: theme.spacing.md,
+  },
+
+  // 0. Top Bar
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: 10,
+    backgroundColor: theme.card,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+    ...theme.shadows.subtle,
+  },
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hamburgerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.slate[50],
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.subtle,
+  },
+  topBarTitle: {
+    ...theme.typography.subheading,
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  topBarSubtitle: {
+    ...theme.typography.caption,
+    fontSize: 11,
+    color: theme.textSecondary,
+  },
+  scrollView: {
+    flex: 1,
   },
 
   // 1. Header Styles
@@ -829,6 +1001,19 @@ const styles = StyleSheet.create({
   headerActionsCol: {
     alignItems: 'flex-end',
     gap: 6,
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  logoutButton: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.danger[50],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   switchModeButton: {
     flexDirection: 'row',

@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
@@ -26,6 +28,11 @@ const formatPrice = (price: number): string => {
 };
 
 export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }: DeviceDetailScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,7 +95,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
       <StatusBar barStyle="dark-content" backgroundColor={colors.light.background} />
 
       {/* Top Header with Back button */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={onBack} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color={colors.light.textPrimary} />
         </TouchableOpacity>

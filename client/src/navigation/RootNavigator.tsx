@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../store';
+import { clearAuth } from '../store/slices/authSlice';
+import { socketService } from '../services/socketService';
 import { theme } from '../constants/theme';
 import { colors } from '../theme/colors';
 import { AdminDrawerNavigator } from './AdminDrawerNavigator';
+import { OwnerDrawerNavigator } from './OwnerDrawerNavigator';
 import { MainBottomTabNavigator } from './MainBottomTabNavigator';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
@@ -17,12 +22,14 @@ import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
 import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
   AdminRoot: undefined;
+  OwnerRoot: undefined;
   MainTabs: undefined;
   MyDevices: undefined;
   DeviceDetail: { deviceId: string; hideBookNow?: boolean };
@@ -33,6 +40,7 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const ONBOARDING_STORAGE_KEY = 'techshare.onboarding.completed';
 
 const DeviceDetailRoute = ({ route, navigation }: any) => (
   <DeviceDetailScreen
@@ -61,8 +69,39 @@ const NotificationRoute = ({ navigation }: any) => (
 );
 
 export function RootNavigator() {
+  const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isAdmin = isAuthenticated && user?.role === 'admin';
+  const isOwner = isAuthenticated && user?.role === 'owner';
+
+  const handleLogout = () => {
+    socketService.disconnect();
+    dispatch(clearAuth());
+  };
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null as boolean | null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)
+      .then((value) => setHasSeenOnboarding(value === 'true'))
+      .catch(() => setHasSeenOnboarding(false));
+  }, []);
+
+  const completeOnboarding = () =>
+    AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true')
+      .catch(() => undefined)
+      .finally(() => setHasSeenOnboarding(true));
+
+  if (hasSeenOnboarding === null) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}>
+        <ActivityIndicator color={colors.light.primary} />
+      </View>
+    );
+  }
+
+  if (!hasSeenOnboarding) {
+    return <OnboardingScreen onComplete={completeOnboarding} />;
+  }
 
   return (
     <NavigationContainer>
@@ -108,6 +147,29 @@ export function RootNavigator() {
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
           </Stack.Group>
+        ) : isOwner ? (
+          <Stack.Group>
+            <Stack.Screen name="OwnerRoot" component={OwnerDrawerNavigator} />
+            <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
+            <Stack.Screen name="MyDevices">
+              {({ navigation }) => (
+                <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
+                  <MyDevicesScreen onBack={() => navigation.goBack()} />
+                </SafeAreaView>
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
+            <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
+            <Stack.Screen name="PostDevice">
+              {({ navigation }) => (
+                <PostDeviceScreen
+                  onBack={() => navigation.goBack()}
+                  onPublished={() => navigation.navigate('OwnerRoot')}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+          </Stack.Group>
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
@@ -130,13 +192,19 @@ export function RootNavigator() {
             </Stack.Screen>
             <Stack.Screen name="OwnerDashboard">
               {({ navigation }) => (
-                <OwnerDashboardScreen
-                  onBackToHome={() => navigation.navigate('MainTabs')}
-                  onNavigateToDeviceDetail={(deviceId) =>
-                    navigation.navigate('DeviceDetail', { deviceId })
-                  }
-                  onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
-                />
+                <SafeAreaView
+                  style={{ flex: 1, backgroundColor: theme.background }}
+                  edges={['top', 'left', 'right']}
+                >
+                  <OwnerDashboardScreen
+                    onBackToHome={() => navigation.navigate('MainTabs')}
+                    onNavigateToDeviceDetail={(deviceId) =>
+                      navigation.navigate('DeviceDetail', { deviceId })
+                    }
+                    onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
+                    onLogout={handleLogout}
+                  />
+                </SafeAreaView>
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>

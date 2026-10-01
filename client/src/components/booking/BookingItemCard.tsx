@@ -2,11 +2,14 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { RentalCountdownTimer } from './RentalCountdownTimer';
+import { Booking } from '../../services/bookingService';
 
 interface BookingItemCardProps {
-  booking: any;
+  booking: Booking;
   onPress: () => void;
   onCancel?: () => void;
+  onExtend?: () => void;
 }
 
 const STATUS_CONFIG = {
@@ -15,15 +18,20 @@ const STATUS_CONFIG = {
   active: { label: 'Đang thuê', color: colors.light.primary, icon: 'play-circle-outline' },
   completed: { label: 'Hoàn tất', color: colors.light.success, icon: 'star-outline' },
   cancelled: { label: 'Đã hủy', color: colors.light.error, icon: 'close-circle-outline' },
+  rejected: { label: 'Từ chối', color: colors.light.error, icon: 'close-circle-outline' },
 };
 
-export function BookingItemCard({ booking, onPress, onCancel }: BookingItemCardProps) {
+export function BookingItemCard({ booking, onPress, onCancel, onExtend }: BookingItemCardProps) {
   const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
   const deviceName = booking.deviceId?.name || 'Thiết bị';
   const deviceImage = booking.deviceId?.images?.[0] || 'https://via.placeholder.com/150';
+  const isActive = booking.status === 'active';
+  const isPendingExtension = booking.extensionRequest?.status === 'pending';
+  const isApprovedExtension = booking.extensionRequest?.status === 'approved';
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="receipt-outline" size={16} color={colors.light.textSecondary} />
@@ -35,6 +43,7 @@ export function BookingItemCard({ booking, onPress, onCancel }: BookingItemCardP
         </View>
       </View>
 
+      {/* Body: Image & Info */}
       <View style={styles.body}>
         <Image source={{ uri: deviceImage }} style={styles.image} />
         <View style={styles.info}>
@@ -50,21 +59,75 @@ export function BookingItemCard({ booking, onPress, onCancel }: BookingItemCardP
         </View>
       </View>
 
+      {/* Countdown Timer for active rentals */}
+      {isActive && (
+        <View style={styles.timerWrapper}>
+          <RentalCountdownTimer endDate={booking.endDate} />
+        </View>
+      )}
+
+      {/* Extension status indicator */}
+      {isPendingExtension && (
+        <View style={styles.extensionPendingTag}>
+          <Ionicons name="hourglass" size={14} color="#D97706" />
+          <Text style={styles.extensionPendingText}>
+            Đang chờ duyệt gia hạn +{booking.extensionRequest?.requestedDays} ngày (+
+            {booking.extensionRequest?.additionalFee?.toLocaleString('vi-VN')} đ)
+          </Text>
+        </View>
+      )}
+
+      {isApprovedExtension && (
+        <View style={styles.extensionApprovedTag}>
+          <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+          <Text style={styles.extensionApprovedText}>
+            Đã gia hạn thành công (+{booking.extensionRequest?.requestedDays} ngày)
+          </Text>
+        </View>
+      )}
+
+      {/* Footer Total */}
       <View style={styles.footer}>
         <Text style={styles.totalLabel}>Tổng tiền:</Text>
         <Text style={styles.totalAmount}>
           {booking.totalAmount?.toLocaleString('vi-VN')} đ
         </Text>
       </View>
-      
-      {booking.status === 'pending' && onCancel && (
+
+      {/* Action Row */}
+      {(booking.status === 'pending' || isActive) && (
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onCancel}
-          >
-            <Text style={styles.cancelButtonText}>Hủy đơn</Text>
-          </TouchableOpacity>
+          {booking.status === 'pending' && onCancel && (
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Ionicons name="close-circle-outline" size={15} color={colors.light.error} />
+              <Text style={styles.cancelButtonText}>Hủy đơn</Text>
+            </TouchableOpacity>
+          )}
+
+          {isActive && onExtend && (
+            <TouchableOpacity
+              style={[
+                styles.extendButton,
+                isPendingExtension && styles.extendButtonDisabled,
+              ]}
+              onPress={onExtend}
+              disabled={isPendingExtension}
+            >
+              <Ionicons
+                name={isPendingExtension ? 'time-outline' : 'calendar-outline'}
+                size={15}
+                color={isPendingExtension ? colors.light.textSecondary : colors.light.primary}
+              />
+              <Text
+                style={[
+                  styles.extendButtonText,
+                  isPendingExtension && styles.extendButtonTextDisabled,
+                ]}
+              >
+                {isPendingExtension ? 'Chờ duyệt gia hạn' : 'Gia hạn thuê'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </TouchableOpacity>
@@ -74,13 +137,15 @@ export function BookingItemCard({ booking, onPress, onCancel }: BookingItemCardP
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.light.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   },
   header: {
@@ -99,7 +164,7 @@ const styles = StyleSheet.create({
   },
   bookingCode: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.light.textPrimary,
   },
   statusBadge: {
@@ -117,12 +182,12 @@ const styles = StyleSheet.create({
   body: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   image: {
-    width: 72,
-    height: 72,
-    borderRadius: 8,
+    width: 76,
+    height: 76,
+    borderRadius: 10,
     backgroundColor: colors.light.background,
   },
   info: {
@@ -131,14 +196,52 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.light.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   dateText: {
     fontSize: 12,
     color: colors.light.textSecondary,
     marginBottom: 2,
+  },
+  timerWrapper: {
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  extensionPendingTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  extensionPendingText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+    flex: 1,
+  },
+  extensionApprovedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  extensionApprovedText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '600',
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',
@@ -146,7 +249,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.light.border,
-    paddingTop: 12,
+    paddingTop: 10,
+    marginTop: 6,
   },
   totalLabel: {
     fontSize: 13,
@@ -154,27 +258,56 @@ const styles = StyleSheet.create({
   },
   totalAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.light.primary,
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
     borderTopWidth: 1,
     borderTopColor: colors.light.border,
-    paddingTop: 12,
-    marginTop: 12,
+    paddingTop: 10,
+    marginTop: 10,
   },
   cancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.light.error,
   },
   cancelButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.light.error,
+  },
+  extendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.light.primary,
+    backgroundColor: colors.light.primaryLight + '30',
+  },
+  extendButtonDisabled: {
+    borderColor: colors.light.border,
+    backgroundColor: colors.light.surface,
+  },
+  extendButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+  extendButtonTextDisabled: {
+    color: colors.light.textSecondary,
+    fontWeight: '600',
   },
 });

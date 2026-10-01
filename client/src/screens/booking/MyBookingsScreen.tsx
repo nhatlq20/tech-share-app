@@ -10,10 +10,14 @@ import {
   Modal,
   TextInput,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { BookingItemCard } from '../../components/booking/BookingItemCard';
+import { ExtensionModal } from '../../components/booking/ExtensionModal';
 import { bookingService, Booking } from '../../services/bookingService';
 
 interface MyBookingsScreenProps {
@@ -38,6 +42,11 @@ const CANCEL_REASONS = [
 ];
 
 export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }: MyBookingsScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const [activeTab, setActiveTab] = useState('all');
   const [bookings, setBookings] = useState([] as Booking[]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +56,14 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
   const [selectedBookingToCancel, setSelectedBookingToCancel] = useState(null as Booking | null);
   const [cancelReason, setCancelReason] = useState('');
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+
+  const [extensionModalVisible, setExtensionModalVisible] = useState(false);
+  const [selectedBookingToExtend, setSelectedBookingToExtend] = useState(null as Booking | null);
+
+  const openExtendModal = (booking: Booking) => {
+    setSelectedBookingToExtend(booking);
+    setExtensionModalVisible(true);
+  };
 
   const fetchBookings = useCallback(async (tabId: string) => {
     try {
@@ -133,7 +150,7 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="receipt" size={24} color={colors.light.primary} />
           <Text style={styles.headerTitle}>Đơn thuê của tôi</Text>
@@ -180,6 +197,7 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
               booking={item} 
               onPress={() => handlePressBooking(item)}
               onCancel={() => openCancelModal(item)}
+              onExtend={() => openExtendModal(item)}
             />
           )}
           ListEmptyComponent={renderEmpty}
@@ -193,6 +211,14 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
           }
         />
       )}
+
+      {/* EXTENSION MODAL */}
+      <ExtensionModal
+        visible={extensionModalVisible}
+        booking={selectedBookingToExtend}
+        onClose={() => setExtensionModalVisible(false)}
+        onSuccess={() => fetchBookings(activeTab)}
+      />
 
       {/* CANCEL MODAL */}
       <Modal
