@@ -19,7 +19,7 @@ import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
 import {
   ownerAnalyticsService,
-  FALLBACK_OWNER_ANALYTICS_WEEK,
+  EMPTY_OWNER_ANALYTICS,
 } from '../../services/ownerAnalyticsService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';
 import { RevenueChart } from '../../components/owner/RevenueChart';
@@ -58,7 +58,7 @@ export function OwnerDashboardScreen({
   // State quản lý số liệu phân tích
   const [period, setPeriod] = useState('week' as PeriodType);
   const [analyticsData, setAnalyticsData] = useState(
-    FALLBACK_OWNER_ANALYTICS_WEEK as OwnerAnalyticsResponse
+    EMPTY_OWNER_ANALYTICS as OwnerAnalyticsResponse
   );
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,9 +71,7 @@ export function OwnerDashboardScreen({
 
   // State quản lý danh sách thiết bị kho máy
   const [deviceFilter, setDeviceFilter] = useState('all' as DeviceFilterType);
-  const [fleetList, setFleetList] = useState(
-    (FALLBACK_OWNER_ANALYTICS_WEEK.fleet || []) as FleetDeviceItem[]
-  );
+  const [fleetList, setFleetList] = useState([] as FleetDeviceItem[]);
 
   // Gọi API lấy dữ liệu thống kê
   const fetchAnalytics = useCallback(async (selectedPeriod: PeriodType) => {
@@ -81,9 +79,7 @@ export function OwnerDashboardScreen({
       const res = await ownerAnalyticsService.getOwnerAnalytics(selectedPeriod);
       if (res) {
         setAnalyticsData(res);
-        if (res.fleet && res.fleet.length > 0) {
-          setFleetList(res.fleet);
-        }
+        setFleetList(res.fleet || []);
       }
     } catch (error) {
       console.warn('⚠️ [OwnerDashboardScreen] Lỗi khi tải thống kê:', error);
@@ -112,8 +108,9 @@ export function OwnerDashboardScreen({
     setRefreshing(false);
   };
 
-  const overview = analyticsData.overview || FALLBACK_OWNER_ANALYTICS_WEEK.overview;
-  const chartData = analyticsData.revenueChart || FALLBACK_OWNER_ANALYTICS_WEEK.revenueChart;
+  const overview = analyticsData.overview || EMPTY_OWNER_ANALYTICS.overview;
+  const chartData = analyticsData.revenueChart || EMPTY_OWNER_ANALYTICS.revenueChart;
+
 
   // Xử lý bật / tắt cho thuê nhanh thiết bị
   const toggleDeviceAvailability = (id: string) => {
