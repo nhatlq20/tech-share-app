@@ -7,7 +7,10 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { DeviceStatusToggle } from "../../components/device/DeviceStatusToggle";
 import { OwnerAvailabilityModal } from "../../components/OwnerAvailabilityModal";
@@ -39,6 +42,11 @@ interface MyDevicesScreenProps {
 }
 
 export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const token = useSelector((state: RootState) => state.auth.token);
 
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
@@ -111,7 +119,7 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity
           onPress={onBack}
           style={styles.backButton}

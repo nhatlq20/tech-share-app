@@ -9,7 +9,9 @@ import {
   RefreshControl,
   StatusBar,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { HeaderActions } from '../../components/navigation/HeaderActions';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -36,6 +38,7 @@ interface HomeScreenProps {
   onNavigateToSearch?: () => void;
   onNavigateToNotifications?: () => void;
   onNavigateToChat?: () => void;
+  onNavigateToOwnerDashboard?: () => void;
   /** Số tin nhắn chưa đọc — hiện badge nếu > 0 */
   unreadMessages?: number;
   /** Số thông báo chưa đọc — hiện badge nếu > 0 */
@@ -46,10 +49,18 @@ export function HomeScreen({
   onNavigateToDeviceDetail,
   onNavigateToNotifications,
   onNavigateToChat,
+  onNavigateToOwnerDashboard,
   unreadMessages = 2,
   unreadNotifications = 5,
 }: HomeScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector(state => state.auth.user);
+  const isOwner = currentUser?.role === 'owner';
   const {
     filteredDevices,
     selectedCategory,
@@ -154,7 +165,7 @@ export function HomeScreen({
     return (
       <View style={styles.headerArea}>
         {/* TOP BAR: Logo & notifications */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
           <View style={styles.brandContainer}>
             <View style={styles.logoBadge}>
               <Ionicons name="hardware-chip" size={18} color="#FFFFFF" />
@@ -176,6 +187,27 @@ export function HomeScreen({
             onPressNotifications={onNavigateToNotifications}
           />
         </View>
+
+        {/* BANNER CHUYỂN NHANH VỀ BẢNG ĐIỀU KHIỂN CHỦ MÁY */}
+        {isOwner && onNavigateToOwnerDashboard && (
+          <TouchableOpacity
+            style={styles.ownerSwitchBanner}
+            onPress={onNavigateToOwnerDashboard}
+            activeOpacity={0.85}
+          >
+            <View style={styles.ownerSwitchLeft}>
+              <View style={styles.ownerSwitchIconBox}>
+                <Ionicons name="briefcase" size={14} color={colors.light.primary} />
+              </View>
+              <Text style={styles.ownerSwitchText}>
+                Đang ở chế độ Đi thuê • <Text style={styles.ownerSwitchTextBold}>Về Bảng Chủ máy</Text>
+              </Text>
+            </View>
+            <View style={styles.ownerSwitchCta}>
+              <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* SEARCH BAR */}
         <View style={styles.searchContainer}>
@@ -244,7 +276,19 @@ export function HomeScreen({
         />
       </View>
     );
-  }, [selectedCategory, filteredDevices.length, localSearch, dispatch, onNavigateToNotifications]);
+  }, [
+    selectedCategory,
+    filteredDevices.length,
+    localSearch,
+    dispatch,
+    onNavigateToNotifications,
+    topInset,
+    isOwner,
+    onNavigateToOwnerDashboard,
+    unreadMessages,
+    unreadNotifications,
+    onNavigateToChat,
+  ]);
 
   // Loading Skeleton State
   const renderLoadingSkeleton = () => (
@@ -378,6 +422,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
+  },
+  ownerSwitchBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  ownerSwitchLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  ownerSwitchIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerSwitchText: {
+    fontSize: 12,
+    color: '#1E40AF',
+  },
+  ownerSwitchTextBold: {
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  ownerSwitchCta: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandContainer: {
     flexDirection: 'row',

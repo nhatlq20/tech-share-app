@@ -1,0 +1,506 @@
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Platform,
+  StatusBar,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DrawerContentComponentProps } from '@react-navigation/drawer';
+import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { theme } from '../constants/theme';
+import { RootState } from '../store';
+import { clearAuth } from '../store/slices/authSlice';
+import { socketService } from '../services/socketService';
+import { LogoutConfirmModal } from '../components/common/LogoutConfirmModal';
+
+export interface OwnerMenuItem {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  targetScreen: string;
+  sectionParam?: 'overview' | 'orders' | 'fleet' | 'wallet' | 'ai_tools';
+  badgeCount?: number;
+  isActionHighlight?: boolean;
+}
+
+const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
+  {
+    id: 'overview',
+    label: 'Bảng điều khiển & KPI',
+    icon: 'stats-chart-outline',
+    targetScreen: 'OwnerDashboard',
+    sectionParam: 'overview',
+  },
+  {
+    id: 'orders',
+    label: 'Đơn thuê cần xử lý',
+    icon: 'receipt-outline',
+    targetScreen: 'OwnerDashboard',
+    sectionParam: 'orders',
+    badgeCount: 2,
+    isActionHighlight: true,
+  },
+  {
+    id: 'fleet',
+    label: 'Kho thiết bị của tôi',
+    icon: 'cube-outline',
+    targetScreen: 'OwnerDashboard',
+    sectionParam: 'fleet',
+  },
+  {
+    id: 'post_device',
+    label: 'Đăng thiết bị mới',
+    icon: 'add-circle-outline',
+    targetScreen: 'PostDevice',
+  },
+  {
+    id: 'wallet',
+    label: 'Ví Doanh thu & Ký quỹ',
+    icon: 'wallet-outline',
+    targetScreen: 'OwnerDashboard',
+    sectionParam: 'wallet',
+  },
+  {
+    id: 'ai_tools',
+    label: 'Trợ lý Thông minh AI',
+    icon: 'sparkles-outline',
+    targetScreen: 'OwnerDashboard',
+    sectionParam: 'ai_tools',
+  },
+  {
+    id: 'renter_mode',
+    label: 'Chuyển sang "Đi thuê"',
+    icon: 'swap-horizontal-outline',
+    targetScreen: 'MainTabs',
+  },
+  {
+    id: 'notifications',
+    label: 'Thông báo hệ thống',
+    icon: 'notifications-outline',
+    targetScreen: 'Notification',
+  },
+];
+
+export function OwnerSidebarContent(props: DrawerContentComponentProps) {
+  const insets = useSafeAreaInsets();
+  const { navigation, state } = props;
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const activeRouteName = state.routes[state.index]?.name || 'OwnerDashboard';
+  const currentParams = (state.routes[state.index]?.params as any) || {};
+  const currentSection = currentParams.initialSection || 'overview';
+
+  const handleMenuItemPress = (item: OwnerMenuItem) => {
+    navigation.closeDrawer();
+    if (item.targetScreen === 'OwnerDashboard') {
+      navigation.navigate('OwnerDashboard', {
+        initialSection: item.sectionParam,
+        _t: Date.now(),
+      });
+    } else {
+      (navigation as any).navigate(item.targetScreen);
+    }
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    navigation.closeDrawer();
+    socketService.disconnect();
+    dispatch(clearAuth());
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* ── 1. SIDEBAR HEADER ── */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop:
+              Math.max(
+                insets.top,
+                Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+              ) + theme.spacing.sm,
+          },
+        ]}
+      >
+        {/* Brand Row */}
+        <View style={styles.brandRow}>
+          <View style={styles.logoBadge}>
+            <Ionicons name="briefcase" size={20} color={theme.colors.primary[600]} />
+          </View>
+          <View>
+            <Text style={styles.brandTitle}>TechShare Owner</Text>
+            <Text style={styles.brandSubtitle}>Cổng Chủ máy & Vận hành</Text>
+          </View>
+        </View>
+
+        {/* Owner Profile Box */}
+        <View style={styles.profileBox}>
+          <Image
+            source={{
+              uri:
+                user?.avatar ||
+                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
+            }}
+            style={styles.ownerAvatar}
+          />
+          <View style={styles.profileInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.ownerName} numberOfLines={1}>
+                {user?.name || 'Chủ máy'}
+              </Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={15}
+                color={theme.colors.primary[500]}
+              />
+            </View>
+            <Text style={styles.ownerEmail} numberOfLines={1}>
+              {user?.email || 'owner@techshare.vn'}
+            </Text>
+
+            {/* Badges Row */}
+            <View style={styles.badgeRow}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>Top Owner</Text>
+              </View>
+              <View style={styles.trustBadge}>
+                <Ionicons
+                  name="shield-checkmark"
+                  size={10}
+                  color={theme.colors.success[600]}
+                />
+                <Text style={styles.trustBadgeText}>
+                  Uy tín: {user?.trustScore || 100}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ── 2. DANH MỤC MENU QUẢN LÝ ── */}
+      <ScrollView
+        style={styles.menuScrollView}
+        contentContainerStyle={styles.menuScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.menuSectionHeader}>MENU QUẢN LÝ CHỦ MÁY</Text>
+
+        {OWNER_MENU_ITEMS.map((item) => {
+          let isActive = false;
+          if (activeRouteName === 'OwnerDashboard' && item.targetScreen === 'OwnerDashboard') {
+            isActive = currentSection === item.sectionParam;
+          }
+
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.menuItem, isActive && styles.menuItemActive]}
+              onPress={() => handleMenuItemPress(item)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.menuItemLeft}>
+                <View
+                  style={[
+                    styles.menuIconContainer,
+                    isActive && styles.menuIconContainerActive,
+                  ]}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={18}
+                    color={isActive ? theme.colors.primary[600] : theme.colors.slate[600]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.menuItemLabel,
+                    isActive && styles.menuItemLabelActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </View>
+
+              {/* Badge số lượng việc cần làm nếu có */}
+              {item.badgeCount && item.badgeCount > 0 ? (
+                <View
+                  style={[
+                    styles.menuBadge,
+                    item.isActionHighlight ? styles.menuBadgeRed : styles.menuBadgeBlue,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.menuBadgeText,
+                      item.isActionHighlight
+                        ? styles.menuBadgeTextRed
+                        : styles.menuBadgeTextBlue,
+                    ]}
+                  >
+                    {item.badgeCount} việc
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── 3. SIDEBAR FOOTER ── */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => setShowLogoutModal(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
+          <Text style={styles.logoutButtonText}>Đăng xuất phiên Chủ máy</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── 4. MODAL XÁC NHẬN ĐĂNG XUẤT ── */}
+      <LogoutConfirmModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+        title="Xác nhận đăng xuất"
+        subtitle="Bạn có chắc chắn muốn kết thúc phiên làm việc và đăng xuất khỏi TechShare Owner?"
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.card,
+  },
+  header: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.colors.slate[50],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: theme.spacing.md,
+  },
+  logoBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.primary[500],
+  },
+  brandTitle: {
+    ...theme.typography.subheading,
+    fontSize: 16,
+    color: theme.textPrimary,
+  },
+  brandSubtitle: {
+    ...theme.typography.caption,
+    color: theme.textSecondary,
+  },
+  profileBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.card,
+    borderRadius: theme.radii.md,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginBottom: theme.spacing.sm,
+    gap: 10,
+    ...theme.shadows.subtle,
+  },
+  ownerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radii.full,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary[500],
+    backgroundColor: theme.colors.slate[200],
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  ownerName: {
+    ...theme.typography.body,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  ownerEmail: {
+    ...theme.typography.caption,
+    color: theme.textSecondary,
+    marginBottom: 4,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  roleBadge: {
+    backgroundColor: theme.colors.primary[50],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.radii.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[500],
+  },
+  roleBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.primary[700],
+    letterSpacing: 0.2,
+  },
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.colors.success[50],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.radii.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.success[500],
+  },
+  trustBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.success[600],
+  },
+
+  menuScrollView: {
+    flex: 1,
+  },
+  menuScrollContent: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    gap: 6,
+  },
+  menuSectionHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    paddingHorizontal: 4,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  menuItemActive: {
+    backgroundColor: theme.colors.primary[50],
+    borderColor: theme.colors.primary[500],
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.slate[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIconContainerActive: {
+    backgroundColor: theme.colors.white,
+  },
+  menuItemLabel: {
+    ...theme.typography.body,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.textPrimary,
+  },
+  menuItemLabelActive: {
+    fontWeight: '700',
+    color: theme.colors.primary[600],
+  },
+
+  menuBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
+  },
+  menuBadgeRed: {
+    backgroundColor: theme.colors.danger[50],
+    borderWidth: 1,
+    borderColor: theme.colors.danger[500],
+  },
+  menuBadgeBlue: {
+    backgroundColor: theme.colors.primary[50],
+    borderWidth: 1,
+    borderColor: theme.colors.primary[500],
+  },
+  menuBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  menuBadgeTextRed: {
+    color: theme.colors.danger[600],
+  },
+  menuBadgeTextBlue: {
+    color: theme.colors.primary[600],
+  },
+
+  footer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    backgroundColor: theme.colors.slate[50],
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.danger[50],
+    borderWidth: 1,
+    borderColor: theme.colors.danger[500],
+  },
+  logoutButtonText: {
+    ...theme.typography.body,
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.danger[600],
+  },
+});

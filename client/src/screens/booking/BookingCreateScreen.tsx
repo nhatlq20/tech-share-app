@@ -11,7 +11,9 @@ import {
   Modal,
   TextInput,
   FlatList,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { deviceService } from '../../services/deviceService';
@@ -30,6 +32,11 @@ const formatPrice = (price: number): string => {
 };
 
 export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   
@@ -176,7 +183,7 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
       <StatusBar barStyle="light-content" backgroundColor="#070B13" />
 
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
           <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>

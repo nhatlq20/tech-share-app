@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, Linking, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Dimensions, Linking, StyleSheet, View, Text, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { LatLng, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,6 +86,11 @@ function fittedRegion(coordinates: LatLng[]): MapRegion {
 }
 
 export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const [position, setPosition] = useState(null as LatLng | null);
   const [locationState, setLocationState] = useState('loading' as 'loading' | 'ready' | 'denied' | 'error');
   const [error, setError] = useState(null as string | null);
@@ -611,7 +617,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="map" size={24} color={colors.light.primary} />
           <Text style={styles.headerTitle}>Gần bạn</Text>
