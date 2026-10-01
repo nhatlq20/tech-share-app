@@ -50,7 +50,6 @@ export function MyBookingsScreen({
   onNavigateToDeviceDetail,
   onNavigateToBookingCreate,
 }: MyBookingsScreenProps) {
-export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }: MyBookingsScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
     insets.top,
