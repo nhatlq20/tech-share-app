@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '../../../theme/colors';
 
 interface PriceBreakdownCardProps {
   rentalDays: number;
@@ -95,15 +96,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 16,
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     marginBottom: 16,
   },
   row: {
@@ -112,33 +118,33 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    color: '#94A3B8',
+    color: colors.light.textSecondary,
     fontSize: 14,
   },
   value: {
-    color: '#F1F5F9',
+    color: colors.light.textPrimary,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   discountLabel: {
-    color: '#10B981',
+    color: colors.light.success,
   },
   discountValue: {
-    color: '#10B981',
+    color: colors.light.success,
     fontWeight: '600',
   },
   divider: {
     height: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.light.border,
     marginVertical: 12,
   },
   totalLabel: {
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
   totalValue: {
-    color: '#38BDF8',
+    color: colors.light.primary,
     fontSize: 18,
     fontWeight: '800',
   },

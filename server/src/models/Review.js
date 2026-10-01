@@ -36,6 +36,17 @@ const reviewSchema = new mongoose.Schema(
       required: [true, 'Review comment is required'],
       trim: true,
     },
+    ownerRating: {
+      type: Number,
+      min: [1, 'Owner rating must be at least 1 star'],
+      max: [5, 'Owner rating cannot exceed 5 stars'],
+      default: 5,
+    },
+    ownerFeedback: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     images: [{ type: String }],
   },
   {

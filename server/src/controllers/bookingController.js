@@ -150,6 +150,43 @@ export const getMyBookings = async (req, res) => {
   }
 };
 
+// @desc    Get booking details by ID
+// @route   GET /api/bookings/:id
+// @access  Private
+export const getBookingById = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const userId = req.auth.id || req.auth._id;
+
+    const booking = await Booking.findById(bookingId)
+      .populate(
+        'deviceId',
+        'name images brand model category pricePerDay dailyRate depositValue description condition addressText'
+      )
+      .populate('ownerId', 'name avatar phone email rating totalReviews')
+      .populate('renterId', 'name avatar phone email');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê' });
+    }
+
+    const renterIdStr = booking.renterId?._id ? booking.renterId._id.toString() : booking.renterId?.toString();
+    const ownerIdStr = booking.ownerId?._id ? booking.ownerId._id.toString() : booking.ownerId?.toString();
+    const isRenter = renterIdStr === userId;
+    const isOwner = ownerIdStr === userId;
+    const isAdmin = req.auth.role === 'admin' || req.auth.roles?.includes('admin');
+
+    if (!isRenter && !isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xem đơn thuê này' });
+    }
+
+    res.status(200).json({ success: true, data: booking });
+  } catch (error) {
+    console.error('Error getting booking by ID:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy chi tiết đơn thuê' });
+  }
+};
+
 // @desc    Cancel a booking
 // @route   PUT /api/bookings/:id/cancel
 // @access  Private

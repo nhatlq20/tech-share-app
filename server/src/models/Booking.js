@@ -152,6 +152,15 @@ const bookingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isReviewed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    reviewId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Review',
+    },
   },
   {
     timestamps: true,

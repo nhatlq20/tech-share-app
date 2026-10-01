@@ -77,8 +77,14 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
       <Tab.Screen name="Bookings">
         {() => (
           <MyBookingsScreen
+            onNavigateToBookingDetail={(bookingId) =>
+              navigation.navigate('BookingDetail', { bookingId })
+            }
             onNavigateToDeviceDetail={(deviceId) =>
-              navigation.navigate('DeviceDetail', { deviceId, hideBookNow: true })
+              navigation.navigate('DeviceDetail', { deviceId })
+            }
+            onNavigateToBookingCreate={(deviceId) =>
+              navigation.navigate('BookingCreate', { deviceId })
             }
             onNavigateToHome={() => navigation.navigate('Home')}
           />

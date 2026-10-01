@@ -15,6 +15,7 @@ import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { DeviceDetailScreen } from '../screens/device/DeviceDetailScreen';
 import { BookingCreateScreen } from '../screens/booking/BookingCreateScreen';
+import { BookingDetailScreen } from '../screens/booking/BookingDetailScreen';
 import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   MyDevices: undefined;
   DeviceDetail: { deviceId: string; hideBookNow?: boolean };
+  BookingDetail: { bookingId: string };
   BookingCreate: { deviceId: string };
   PostDevice: undefined;
   OwnerDashboard: undefined;
@@ -51,6 +53,15 @@ const BookingCreateRoute = ({ route, navigation }: any) => (
   <BookingCreateScreen
     deviceId={route.params.deviceId}
     onBack={() => navigation.goBack()}
+  />
+);
+
+const BookingDetailRoute = ({ route, navigation }: any) => (
+  <BookingDetailScreen
+    bookingId={route.params.bookingId}
+    onBack={() => navigation.goBack()}
+    onNavigateToDeviceDetail={(deviceId) => navigation.navigate('DeviceDetail', { deviceId })}
+    onNavigateToBookingCreate={(deviceId) => navigation.navigate('BookingCreate', { deviceId })}
   />
 );
 
@@ -133,6 +144,7 @@ export function RootNavigator() {
             <Stack.Screen name="AdminRoot" component={AdminDrawerNavigator} />
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
+            <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
           </Stack.Group>
@@ -147,6 +159,7 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
+            <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
