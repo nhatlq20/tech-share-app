@@ -19,11 +19,10 @@ import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
 import {
   ownerAnalyticsService,
-  EMPTY_OWNER_ANALYTICS,
+  OwnerAnalyticsData,
 } from '../../services/ownerAnalyticsService';
-import { ownerAnalyticsService } from '../../services/ownerAnalyticsService';
-import type { OwnerAnalyticsData } from '../../services/ownerAnalyticsService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';
+
 import { RevenueChart } from '../../components/owner/RevenueChart';
 import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
 
