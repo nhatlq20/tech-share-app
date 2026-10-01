@@ -139,7 +139,8 @@ export const getMyBookings = async (req, res) => {
     }
 
     const bookings = await Booking.find(query)
-      .populate('deviceId', 'name images brand model category')
+      .populate('deviceId', 'name images brand model category pricePerDay dailyRate depositValue')
+      .populate('ownerId', 'name avatar phone email')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, data: bookings });
@@ -193,5 +194,182 @@ export const cancelBooking = async (req, res) => {
   } catch (error) {
     console.error('Error cancelling booking:', error);
     res.status(500).json({ success: false, message: 'Lỗi máy chủ khi hủy đơn' });
+  }
+};
+
+// @desc    Request rental extension for active booking
+// @route   POST /api/bookings/:id/extend
+// @access  Private
+export const requestExtension = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { additionalDays, requestedDays } = req.body;
+    const userId = req.auth.id || req.auth._id;
+
+    const days = parseInt(additionalDays || requestedDays, 10);
+    if (!days || isNaN(days) || days <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số ngày gia hạn không hợp lệ (tối thiểu 1 ngày)',
+      });
+    }
+
+    const booking = await Booking.findOne({ _id: bookingId, renterId: userId }).populate('deviceId');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê của bạn' });
+    }
+
+    if (booking.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể gửi yêu cầu gia hạn cho đơn thuê đang trong thời gian sử dụng (active)',
+      });
+    }
+
+    if (booking.extensionRequest && booking.extensionRequest.status === 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn thuê này đang có một yêu cầu gia hạn chờ chủ máy phê duyệt',
+      });
+    }
+
+    const currentEndDate = new Date(booking.endDate);
+    const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
+    const dailyRate =
+      booking.pricePerDayAtBooking ||
+      booking.deviceId?.dailyRate ||
+      booking.deviceId?.pricePerDay ||
+      (booking.totalDays > 0 ? Math.round(booking.rentalFee / booking.totalDays) : 0);
+
+    const additionalFee = Math.round(days * dailyRate);
+
+    booking.extensionRequest = {
+      requestedEndDate: newEndDate,
+      requestedDays: days,
+      additionalFee,
+      status: 'pending',
+    };
+
+    booking.timeline.push({
+      status: 'extension_requested',
+      timestamp: new Date(),
+      note: `Yêu cầu gia hạn thêm ${days} ngày (đến ${newEndDate.toLocaleDateString('vi-VN')}), phụ phí: ${additionalFee.toLocaleString('vi-VN')} đ`,
+    });
+
+    await booking.save();
+
+    // Gửi thông báo đến chủ máy
+    if (booking.ownerId) {
+      createAndSendNotification({
+        userId: booking.ownerId,
+        title: 'Yêu cầu gia hạn đơn thuê! ⏳',
+        body: `Khách hàng đề xuất gia hạn thêm ${days} ngày cho đơn #${booking.bookingCode}. Phụ phí: ${additionalFee.toLocaleString('vi-VN')} đ.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          type: 'extension_request',
+        },
+      }).catch((err) => console.error('❌ Lỗi gửi thông báo gia hạn cho chủ máy:', err.message));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã gửi yêu cầu gia hạn tới chủ máy thành công',
+      data: booking,
+    });
+  } catch (error) {
+    console.error('Error requesting extension:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi gửi yêu cầu gia hạn' });
+  }
+};
+
+// @desc    Owner approves or rejects rental extension
+// @route   PUT /api/bookings/:id/respond-extension
+// @access  Private
+export const respondExtension = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { action, rejectReason } = req.body;
+    const ownerId = req.auth.id || req.auth._id;
+
+    const booking = await Booking.findOne({ _id: bookingId, ownerId });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê của bạn' });
+    }
+
+    if (!booking.extensionRequest || booking.extensionRequest.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có yêu cầu gia hạn nào đang chờ xử lý',
+      });
+    }
+
+    if (action === 'approve') {
+      const extraDays = booking.extensionRequest.requestedDays;
+      const extraFee = booking.extensionRequest.additionalFee;
+
+      booking.endDate = booking.extensionRequest.requestedEndDate;
+      booking.totalDays = (booking.totalDays || 0) + extraDays;
+      booking.rentalFee = (booking.rentalFee || 0) + extraFee;
+      booking.totalAmount = (booking.totalAmount || 0) + extraFee;
+      booking.extensionRequest.status = 'approved';
+
+      // Reset reminders để hệ thống quét nhắc trước hạn trả mới
+      booking.reminder6hSent = false;
+      booking.reminder2hSent = false;
+
+      booking.timeline.push({
+        status: 'extension_approved',
+        timestamp: new Date(),
+        note: `Chủ máy đã chấp thuận gia hạn thêm ${extraDays} ngày. Hạn trả mới: ${new Date(booking.endDate).toLocaleDateString('vi-VN')}`,
+      });
+
+      await booking.save();
+
+      createAndSendNotification({
+        userId: booking.renterId,
+        title: 'Yêu cầu gia hạn đã được duyệt! 🎉',
+        body: `Chủ máy đã đồng ý gia hạn thêm ${extraDays} ngày cho đơn #${booking.bookingCode}. Hạn trả mới: ${new Date(booking.endDate).toLocaleDateString('vi-VN')}.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
+      }).catch((err) => console.error('❌ Lỗi gửi thông báo cho người thuê:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã phê duyệt yêu cầu gia hạn thành công',
+        data: booking,
+      });
+    } else if (action === 'reject') {
+      booking.extensionRequest.status = 'rejected';
+      booking.timeline.push({
+        status: 'extension_rejected',
+        timestamp: new Date(),
+        note: `Chủ máy đã từ chối yêu cầu gia hạn. Lý do: ${rejectReason || 'Không có'}`,
+      });
+
+      await booking.save();
+
+      createAndSendNotification({
+        userId: booking.renterId,
+        title: 'Yêu cầu gia hạn không được chấp thuận ❌',
+        body: `Chủ máy không thể gia hạn thêm cho đơn #${booking.bookingCode}. Vui lòng sắp xếp hoàn trả máy đúng hạn.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: { bookingId: booking._id.toString() },
+      }).catch((err) => console.error('❌ Lỗi gửi thông báo từ chối gia hạn:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã từ chối yêu cầu gia hạn',
+        data: booking,
+      });
+    } else {
+      return res.status(400).json({ success: false, message: 'Hành động không hợp lệ' });
+    }
+  } catch (error) {
+    console.error('Error responding to extension:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi phản hồi gia hạn' });
   }
 };
