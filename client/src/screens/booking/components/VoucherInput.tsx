@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '../../../config/api';
+import { colors } from '../../../theme/colors';
 
 interface Voucher {
   code: string;
@@ -60,21 +61,21 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
       {appliedVoucher ? (
         <View style={styles.appliedCard}>
           <View style={styles.appliedLeft}>
-            <Ionicons name="ticket" size={20} color="#10B981" />
+            <Ionicons name="ticket" size={20} color="#16A34A" />
             <Text style={styles.appliedText}>Đã áp dụng mã: <Text style={styles.appliedCode}>{appliedVoucher.code}</Text></Text>
           </View>
           <TouchableOpacity onPress={handleRemove} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-            <Ionicons name="close-circle" size={24} color="#EF4444" />
+            <Ionicons name="close-circle" size={22} color="#DC2626" />
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
-            <Ionicons name="pricetag-outline" size={20} color="#94A3B8" style={styles.icon} />
+            <Ionicons name="pricetag-outline" size={18} color={colors.light.textSecondary} style={styles.icon} />
             <TextInput
               style={styles.input}
               placeholder="Nhập mã voucher (vd: SALE20)"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={colors.light.textSecondary}
               value={code}
               onChangeText={(text: string) => {
                 setCode(text);
@@ -89,7 +90,13 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
             onPress={handleApply}
             disabled={!code.trim() || loading}
           >
-            {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.applyBtnText}>Áp dụng</Text>}
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={[styles.applyBtnText, (!code.trim() || loading) && styles.applyBtnTextDisabled]}>
+                Áp dụng
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -104,15 +111,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 16,
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.textPrimary,
     marginBottom: 12,
   },
   inputContainer: {
@@ -123,10 +135,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
+    backgroundColor: colors.light.surface,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.light.border,
     paddingHorizontal: 12,
   },
   icon: {
@@ -135,50 +147,54 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: colors.light.textPrimary,
+    fontSize: 14,
   },
   applyBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.light.primary,
     justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   applyBtnDisabled: {
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
   },
   applyBtnText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
+  },
+  applyBtnTextDisabled: {
+    color: '#94A3B8',
   },
   appliedCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#DCFCE7',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    borderRadius: 8,
+    borderColor: '#86EFAC',
+    borderRadius: 10,
     padding: 12,
   },
   appliedLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
   appliedText: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: '#166534',
+    fontSize: 13,
   },
   appliedCode: {
-    color: '#10B981',
+    color: '#15803D',
     fontWeight: '700',
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.light.error,
     fontSize: 13,
     marginTop: 8,
     marginLeft: 4,
-  }
+  },
 });

@@ -13,6 +13,7 @@ import ownerAnalyticsRoutes from './routes/ownerAnalyticsRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import voucherRoutes from './routes/voucherRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 import { initSocket } from './socket.js';
 import { startReminderScheduler, stopReminderScheduler } from './services/reminderScheduler.js';
 
@@ -48,6 +49,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // 404 & Error Handler Middlewares
 app.use(notFound);

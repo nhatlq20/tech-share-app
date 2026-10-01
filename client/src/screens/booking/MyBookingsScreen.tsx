@@ -18,10 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { BookingItemCard } from '../../components/booking/BookingItemCard';
 import { ExtensionModal } from '../../components/booking/ExtensionModal';
+import { ReviewModal } from '../../components/booking/ReviewModal';
 import { bookingService, Booking } from '../../services/bookingService';
 
 interface MyBookingsScreenProps {
+  onNavigateToBookingDetail?: (bookingId: string) => void;
   onNavigateToDeviceDetail?: (deviceId: string) => void;
+  onNavigateToBookingCreate?: (deviceId: string) => void;
   onNavigateToHome?: () => void;
 }
 
@@ -41,6 +44,12 @@ const CANCEL_REASONS = [
   'Lý do khác',
 ];
 
+export function MyBookingsScreen({
+  onNavigateToHome,
+  onNavigateToBookingDetail,
+  onNavigateToDeviceDetail,
+  onNavigateToBookingCreate,
+}: MyBookingsScreenProps) {
 export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }: MyBookingsScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -60,9 +69,17 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
   const [selectedBookingToExtend, setSelectedBookingToExtend] = useState(null as Booking | null);
 
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [selectedBookingToReview, setSelectedBookingToReview] = useState(null as Booking | null);
+
   const openExtendModal = (booking: Booking) => {
     setSelectedBookingToExtend(booking);
     setExtensionModalVisible(true);
+  };
+
+  const openReviewModal = (booking: Booking) => {
+    setSelectedBookingToReview(booking);
+    setReviewModalVisible(true);
   };
 
   const fetchBookings = useCallback(async (tabId: string) => {
@@ -90,9 +107,22 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
   };
 
   const handlePressBooking = (booking: Booking) => {
-    // Navigate to booking details or device details
-    if (onNavigateToDeviceDetail && booking.deviceId?._id) {
+    if (onNavigateToBookingDetail) {
+      onNavigateToBookingDetail(booking._id);
+    } else if (onNavigateToDeviceDetail && booking.deviceId?._id) {
       onNavigateToDeviceDetail(booking.deviceId._id);
+    }
+  };
+
+  const handleReRent = (booking: Booking) => {
+    const deviceId =
+      booking.deviceId?._id ||
+      (typeof booking.deviceId === 'string' ? booking.deviceId : null);
+    if (!deviceId) return;
+    if (onNavigateToBookingCreate) {
+      onNavigateToBookingCreate(deviceId);
+    } else if (onNavigateToDeviceDetail) {
+      onNavigateToDeviceDetail(deviceId);
     }
   };
 
@@ -198,6 +228,8 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
               onPress={() => handlePressBooking(item)}
               onCancel={() => openCancelModal(item)}
               onExtend={() => openExtendModal(item)}
+              onReview={() => openReviewModal(item)}
+              onReRent={() => handleReRent(item)}
             />
           )}
           ListEmptyComponent={renderEmpty}
@@ -217,6 +249,14 @@ export function MyBookingsScreen({ onNavigateToHome, onNavigateToDeviceDetail }:
         visible={extensionModalVisible}
         booking={selectedBookingToExtend}
         onClose={() => setExtensionModalVisible(false)}
+        onSuccess={() => fetchBookings(activeTab)}
+      />
+
+      {/* REVIEW MODAL */}
+      <ReviewModal
+        visible={reviewModalVisible}
+        booking={selectedBookingToReview}
+        onClose={() => setReviewModalVisible(false)}
         onSuccess={() => fetchBookings(activeTab)}
       />
 
