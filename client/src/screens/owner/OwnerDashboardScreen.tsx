@@ -17,6 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
+import {
+  ownerAnalyticsService,
+  EMPTY_OWNER_ANALYTICS,
+} from '../../services/ownerAnalyticsService';
 import { ownerAnalyticsService } from '../../services/ownerAnalyticsService';
 import type { OwnerAnalyticsData } from '../../services/ownerAnalyticsService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';

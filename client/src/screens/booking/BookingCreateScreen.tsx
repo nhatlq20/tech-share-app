@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { deviceService } from '../../services/deviceService';
+import { bookingService } from '../../services/bookingService';
 import { apiClient } from '../../config/api';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
@@ -45,6 +46,9 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
 
   const [startDate, setStartDate] = useState(null as Date | null);
   const [endDate, setEndDate] = useState(null as Date | null);
+  const [busyRanges, setBusyRanges] = useState(
+    [] as { _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]
+  );
 
   const [deliveryMethod, setDeliveryMethod] = useState('pickup' as 'pickup' | 'delivery');
   const [deliveryAddress, setDeliveryAddress] = useState(currentUser?.address || '');
@@ -63,16 +67,66 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
     let isMounted = true;
     (async () => {
       setLoading(true);
-      const data = await deviceService.getDeviceById(deviceId);
-      if (isMounted) {
-        setDevice(data);
-        setLoading(false);
+      try {
+        const [deviceData, ranges] = await Promise.all([
+          deviceService.getDeviceById(deviceId),
+          bookingService.getDeviceBusyDates(deviceId).catch(() => []),
+        ]);
+        if (isMounted) {
+          setDevice(deviceData);
+          setBusyRanges(ranges);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) setLoading(false);
       }
     })();
     return () => {
       isMounted = false;
     };
   }, [deviceId]);
+
+  const checkOverlapWithBusy = (start: Date, end: Date) => {
+    for (const b of busyRanges) {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      // Hai khoảng thời gian [start, end] và [bStart, bEnd] trùng nhau khi start < bEnd và end > bStart
+      if (start < bEnd && end > bStart) {
+        return b;
+      }
+    }
+    return null;
+  };
+
+  const isDateInBusyRange = (d: Date) => {
+    const dTime = d.getTime();
+    const dYMD = getLocalYMD(d);
+
+    for (const b of busyRanges) {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      const startYMD = getLocalYMD(bStart);
+      const endYMD = getLocalYMD(bEnd);
+
+      if (dTime >= bStart.getTime() && dTime <= bEnd.getTime()) {
+        return b;
+      }
+      if (dYMD >= startYMD && dYMD <= endYMD) {
+        return b;
+      }
+    }
+    return null;
+  };
+
+
+  const currentActiveBooking = useMemo(() => {
+    const now = new Date();
+    return busyRanges.find((b: { startDate: string; endDate: string; status: string }) => {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      return b.status === 'active' && now >= bStart && now <= bEnd;
+    });
+  }, [busyRanges]);
 
   const openPicker = (type: 'start' | 'end') => {
     setPickerConfig({ visible: true, type });
@@ -87,6 +141,33 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         Alert.alert('Lỗi thời gian', 'Thời gian nhận máy không hợp lệ.');
         return;
       }
+
+      // 1. Kiểm tra thời điểm nhận máy có nằm trong khoảng đang có người thuê không
+      const conflict = isDateInBusyRange(date);
+      if (conflict) {
+        const fromStr = new Date(conflict.startDate).toLocaleDateString('vi-VN');
+        const toStr = new Date(conflict.endDate).toLocaleDateString('vi-VN');
+        Alert.alert(
+          'Đã có người thuê',
+          `Thiết bị đang có người thuê (${fromStr} - ${toStr}). Vui lòng chọn thời gian nhận sau ngày ${toStr} hoặc thời gian khác!`
+        );
+        return;
+      }
+
+      // 2. Nếu đã có endDate, kiểm tra khoảng [date, endDate] có bị bao trùm hoặc trùng đơn bận nào không
+      if (endDate) {
+        const rangeConflict = checkOverlapWithBusy(date, endDate);
+        if (rangeConflict) {
+          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('vi-VN');
+          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('vi-VN');
+          Alert.alert(
+            'Trùng lịch thuê',
+            `Khoảng thời gian bạn chọn trùng với đơn thuê của người khác (${fromStr} - ${toStr}). Hệ thống sẽ đặt lại ngày trả.`
+          );
+          setEndDate(null);
+        }
+      }
+
       setStartDate(date);
       if (endDate && endDate < date) {
         setEndDate(null);
@@ -96,6 +177,21 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         Alert.alert('Lỗi thời gian', 'Thời gian trả không hợp lệ.');
         return;
       }
+
+      // Kiểm tra khoảng [startDate, date] có bị trùng với đơn đang active không
+      if (startDate) {
+        const rangeConflict = checkOverlapWithBusy(startDate, date);
+        if (rangeConflict) {
+          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('vi-VN');
+          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('vi-VN');
+          Alert.alert(
+            'Trùng lịch thuê',
+            `Thiết bị đang có người thuê trong khoảng (${fromStr} - ${toStr}). Vui lòng chọn thời gian trả trước ngày ${fromStr} hoặc chọn khoảng thời gian khác!`
+          );
+          return;
+        }
+      }
+
       setEndDate(date);
     }
     setPickerConfig({ ...pickerConfig, visible: false });
@@ -172,9 +268,22 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
       return;
     }
 
+    // Kiểm tra chặn đặt trùng với đơn đang active trên hệ thống
+    const conflict = checkOverlapWithBusy(startDate, endDate);
+    if (conflict) {
+      const fromStr = new Date(conflict.startDate).toLocaleDateString('vi-VN');
+      const toStr = new Date(conflict.endDate).toLocaleDateString('vi-VN');
+      Alert.alert(
+        'Đã có người thuê',
+        `Thiết bị đang có người thuê trong khoảng thời gian (${fromStr} - ${toStr}). Vui lòng chọn khoảng thời gian khác!`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await apiClient.post('/bookings', {
+
         deviceId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -223,6 +332,19 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         {/* Date Picker Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Chọn thời gian thuê</Text>
+
+          {currentActiveBooking && (
+            <View style={styles.activeBusyAlertBox}>
+              <Ionicons name="time" size={16} color="#DC2626" />
+              <Text style={styles.activeBusyAlertText}>
+                Thiết bị đang có người thuê đến ngày{' '}
+                <Text style={{ fontWeight: '700' }}>
+                  {new Date(currentActiveBooking.endDate).toLocaleDateString('vi-VN')}
+                </Text>
+                . Bạn vui lòng chọn ngày nhận sau thời gian này!
+              </Text>
+            </View>
+          )}
 
           <View style={styles.dateSummary}>
             <TouchableOpacity style={styles.dateBox} onPress={() => openPicker('start')} activeOpacity={0.7}>
@@ -374,6 +496,7 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
           type={pickerConfig.type}
           initialDate={pickerConfig.type === 'start' ? startDate : endDate}
           minDate={pickerConfig.type === 'end' ? startDate : new Date()}
+          busyRanges={busyRanges}
           onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
           onConfirm={handleConfirmPicker}
         />
@@ -423,10 +546,12 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
 }
 
 const getLocalYMD = (d: Date) => {
-  const offset = d.getTimezoneOffset();
-  const adjusted = new Date(d.getTime() - (offset * 60 * 1000));
-  return adjusted.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
+
 
 const hoursList = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const minutesList = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
@@ -517,7 +642,15 @@ const TimeScrollPicker = React.memo(({ items, selectedValue, onValueChange, visi
   );
 });
 
-const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, onConfirm }: any) => {
+const CustomDateTimePicker = ({
+  visible,
+  type,
+  initialDate,
+  minDate,
+  busyRanges,
+  onClose,
+  onConfirm,
+}: any) => {
   const [date, setDate] = useState(initialDate || new Date());
   const [hours, setHours] = useState((initialDate || new Date()).getHours().toString().padStart(2, '0'));
   const [minutes, setMinutes] = useState((initialDate || new Date()).getMinutes().toString().padStart(2, '0'));
@@ -534,11 +667,61 @@ const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, on
   const handleConfirm = () => {
     const finalDate = new Date(date);
     finalDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+
+    const ymd = getLocalYMD(finalDate);
+    if (markedDates[ymd]?.disabled) {
+      Alert.alert(
+        'Không thể chọn ngày này',
+        'Thiết bị đã có người thuê trong ngày bạn chọn. Vui lòng chọn ngày khác trên lịch!'
+      );
+      return;
+    }
+
     onConfirm(finalDate);
   };
 
   const currentDateStr = getLocalYMD(date);
   const minDateStr = minDate ? getLocalYMD(minDate) : undefined;
+
+  const markedDates = useMemo(() => {
+    const marks: Record<string, any> = {};
+
+    // 1. Đánh dấu các ngày bận (đã có người thuê)
+    if (busyRanges && Array.isArray(busyRanges)) {
+      busyRanges.forEach((range: any) => {
+        const s = new Date(range.startDate);
+        const e = new Date(range.endDate);
+
+        const curr = new Date(s);
+        curr.setHours(0, 0, 0, 0);
+
+        const endLimit = new Date(e);
+        endLimit.setHours(23, 59, 59, 999);
+
+        while (curr <= endLimit) {
+          const ymd = getLocalYMD(curr);
+          marks[ymd] = {
+            disabled: true,
+            disableTouchEvent: true,
+            marked: true,
+            dotColor: colors.light.error,
+            textColor: '#CBD5E1',
+          };
+          curr.setDate(curr.getDate() + 1);
+        }
+      });
+    }
+
+    // 2. Đánh dấu ngày đang chọn
+    marks[currentDateStr] = {
+      ...(marks[currentDateStr] || {}),
+      selected: true,
+      selectedColor: colors.light.primary,
+      textColor: '#FFFFFF',
+    };
+
+    return marks;
+  }, [busyRanges, currentDateStr]);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -551,10 +734,19 @@ const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, on
           <Calendar
             current={currentDateStr}
             minDate={minDateStr}
-            onDayPress={(day: any) => setDate(new Date(day.timestamp))}
-            markedDates={{
-              [currentDateStr]: { selected: true, selectedColor: colors.light.primary },
+            onDayPress={(day: any) => {
+              if (markedDates[day.dateString]?.disabled) {
+                Alert.alert(
+                  'Không thể chọn ngày này',
+                  'Thiết bị đã có người thuê trong ngày này. Vui lòng chọn ngày khác!'
+                );
+                return;
+              }
+              const [y, m, d] = day.dateString.split('-').map(Number);
+              setDate(new Date(y, m - 1, d));
             }}
+
+            markedDates={markedDates}
             theme={{
               backgroundColor: '#FFFFFF',
               calendarBackground: '#FFFFFF',
@@ -568,6 +760,18 @@ const CustomDateTimePicker = ({ visible, type, initialDate, minDate, onClose, on
               arrowColor: colors.light.primary,
             }}
           />
+
+          {/* Chú thích màu sắc */}
+          <View style={styles.calendarLegendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.light.primary }]} />
+              <Text style={styles.legendText}>Ngày bạn chọn</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.light.error }]} />
+              <Text style={styles.legendText}>Đã có người thuê</Text>
+            </View>
+          </View>
 
           <View style={styles.timeContainer}>
             <Text style={styles.timeLabel}>Giờ nhận:</Text>
@@ -706,6 +910,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.light.textPrimary,
     marginBottom: 14,
+  },
+  activeBusyAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  activeBusyAlertText: {
+    fontSize: 12,
+    color: '#991B1B',
+    flex: 1,
+    lineHeight: 16,
+  },
+  calendarLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.light.border,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    color: colors.light.textSecondary,
+    fontWeight: '500',
   },
   dateSummary: {
     flexDirection: 'row',
