@@ -17,11 +17,33 @@ export const getOwnerAnalytics = async (req, res) => {
       .populate("renterId", "name")
       .lean();
 
-    const rentedDeviceIds = await Booking.distinct("deviceId", {
+    const activeBookings = await Booking.find({
       ownerId: ownerId,
       status: "active",
+    })
+      .populate("deviceId", "name brand category images")
+      .populate("renterId", "name")
+      .lean();
+
+    const currentlyRentedDevices = activeBookings.flatMap((booking) => {
+      const device = booking.deviceId;
+      if (!device || typeof device !== "object" || !device._id) return [];
+
+      return [{
+        id: device._id.toString(),
+        name: device.name,
+        brand: device.brand,
+        category: device.category,
+        imageUrl: device.images?.[0] || "",
+        renterName:
+          booking.renterId && typeof booking.renterId === "object"
+            ? booking.renterId.name || "Renter"
+            : "Renter",
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+      }];
     });
-     const rentedDevices = rentedDeviceIds.length;
+    const rentedDevices = new Set(currentlyRentedDevices.map((device) => device.id)).size;
 
     let totalRevenue = 0;
 
@@ -80,6 +102,8 @@ export const getOwnerAnalytics = async (req, res) => {
         bookings: bookings,
 
         rentedDevices: rentedDevices,
+
+      
       },
     });
   } catch (error) {
