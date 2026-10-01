@@ -24,6 +24,7 @@ const Tab = createBottomTabNavigator<MainBottomTabParamList>();
 export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
   const unreadNotificationsCount = useSelector(
     (state: RootState) => state.notifications?.unreadCount ?? 0
   );
@@ -68,6 +69,9 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToSearch={() => console.log('[Nav] Search')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
             onNavigateToChat={() => console.log('[Nav] Chat')}
+            onNavigateToOwnerDashboard={() =>
+              navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')
+            }
             unreadMessages={2}
             unreadNotifications={unreadNotificationsCount}
           />
@@ -109,7 +113,9 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToLogin={() => navigation.navigate('Login')}
             onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
             onNavigateToMyDevices={() => navigation.navigate('MyDevices')}
-            onNavigateToOwnerDashboard={() => navigation.navigate('OwnerDashboard')}
+            onNavigateToOwnerDashboard={() =>
+              navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')
+            }
             onNavigateToAdminDashboard={() => navigation.navigate('AdminRoot')}
           />
         )}

@@ -10,6 +10,7 @@ import {
   StatusBar,
   useWindowDimensions,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,6 +52,10 @@ export function ProfileScreen({
   const [showEkycModal, setShowEkycModal] = useState(false);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const compact = width < 360;
   const isWide = width >= 768;
 
@@ -202,7 +207,10 @@ export function ProfileScreen({
       ) : null}
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { maxWidth: isWide ? 720 : 560 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { maxWidth: isWide ? 720 : 560, paddingTop: topInset + 12 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* PROFILE HEADER */}

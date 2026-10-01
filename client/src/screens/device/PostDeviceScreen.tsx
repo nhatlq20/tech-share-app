@@ -8,7 +8,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { SpecsInputForm } from "./SpecsInputForm";
@@ -61,6 +64,11 @@ export function PostDeviceScreen({
   onBack,
   onPublished,
 }: PostDeviceScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const token = useSelector((state: RootState) => state.auth.token);
   const [deviceName, setDeviceName] = useState("");
   const [category, setCategory] = useState("Smartphone");
@@ -248,7 +256,7 @@ export function PostDeviceScreen({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={handleBack}
@@ -648,11 +656,12 @@ export function PostDeviceScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
-    height: 58,
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 10,
+    paddingBottom: 10,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",

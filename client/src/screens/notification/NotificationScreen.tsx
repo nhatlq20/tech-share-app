@@ -7,7 +7,10 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -41,6 +44,11 @@ export function NotificationScreen({
   onNavigateToBooking,
   onNavigateToDevice,
 }: NotificationScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
   const dispatch = useAppDispatch();
   const { items, unreadCount, filter, isLoading, isRefreshing } = useAppSelector(
     (state) => state.notifications
@@ -223,7 +231,7 @@ export function NotificationScreen({
   return (
     <View style={styles.container}>
       {/* ── Top Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={onBack}
@@ -338,11 +346,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background,
   },
   header: {
-    height: 56,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
+    paddingBottom: 10,
     backgroundColor: theme.card,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
