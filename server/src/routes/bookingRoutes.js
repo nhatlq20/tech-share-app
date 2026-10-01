@@ -6,6 +6,7 @@ import {
   cancelBooking,
   requestExtension,
   respondExtension,
+  getDeviceBusyDates,
 } from '../controllers/bookingController.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
@@ -13,6 +14,7 @@ const router = express.Router();
 
 router.post('/', requireAuth, createBooking);
 router.get('/my-bookings', requireAuth, getMyBookings);
+router.get('/busy-dates/:deviceId', getDeviceBusyDates);
 router.get('/:id', requireAuth, getBookingById);
 router.put('/:id/cancel', requireAuth, cancelBooking);
 router.post('/:id/extend', requireAuth, requestExtension);

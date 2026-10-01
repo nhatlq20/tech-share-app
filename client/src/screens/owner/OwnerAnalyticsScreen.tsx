@@ -76,7 +76,8 @@ const getChartData = (
   }));
 };
 
-const formatDate = (dateValue: string) => {
+const formatDate = (dateValue?: string | null) => {
+  if (!dateValue) return "-";
   const date = new Date(dateValue);
   return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("vi-VN");
 };

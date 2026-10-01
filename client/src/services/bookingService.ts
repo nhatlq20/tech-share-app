@@ -67,4 +67,11 @@ export const bookingService = {
     });
     return res.data.data;
   },
+
+  getDeviceBusyDates: async (
+    deviceId: string
+  ): Promise<{ _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]> => {
+    const res = await apiClient.get(`/bookings/busy-dates/${deviceId}`);
+    return res.data.busyRanges || [];
+  },
 };
