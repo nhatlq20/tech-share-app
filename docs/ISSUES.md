@@ -525,13 +525,13 @@ Xây dựng tiện ích Đồng hồ đếm ngược thời gian thuê (`RentalC
 Nhắc nhở người thuê sắp đến hạn trả máy tránh bị phạt trễ hạn, đồng thời tạo cơ hội tăng doanh thu cho chủ máy thông qua tính năng gia hạn trực tuyến.
 
 ### Scope of Work
-- [ ] Xây dựng component `src/components/booking/RentalCountdownTimer.tsx` cập nhật thời gian theo từng giây.
-- [ ] Xây dựng Modal "Yêu cầu gia hạn": chọn số ngày muốn thuê thêm và xem trước phụ phí phát sinh.
-- [ ] Xây dựng API Backend `POST /api/bookings/:id/extend` gửi thông báo đề xuất gia hạn tới chủ máy.
+- [x] Xây dựng component `src/components/booking/RentalCountdownTimer.tsx` cập nhật thời gian theo từng giây.
+- [x] Xây dựng Modal "Yêu cầu gia hạn": chọn số ngày muốn thuê thêm và xem trước phụ phí phát sinh.
+- [x] Xây dựng API Backend `POST /api/bookings/:id/extend` gửi thông báo đề xuất gia hạn tới chủ máy.
 
 ### Acceptance Criteria
-- [ ] Đồng hồ đếm ngược hiển thị chuẩn xác thời gian còn lại của gói thuê đối với các đơn `active`.
-- [ ] Gửi yêu cầu gia hạn thành công, hệ thống thông báo gửi tới chủ máy xem xét duyệt.
+- [x] Đồng hồ đếm ngược hiển thị chuẩn xác thời gian còn lại của gói thuê đối với các đơn `active`.
+- [x] Gửi yêu cầu gia hạn thành công, hệ thống thông báo gửi tới chủ máy xem xét duyệt.
 
 ---
 
