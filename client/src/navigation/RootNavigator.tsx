@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSelector } from 'react-redux';
@@ -17,6 +19,7 @@ import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
 import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -33,6 +36,7 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const ONBOARDING_STORAGE_KEY = 'techshare.onboarding.completed';
 
 const DeviceDetailRoute = ({ route, navigation }: any) => (
   <DeviceDetailScreen
@@ -63,6 +67,30 @@ const NotificationRoute = ({ navigation }: any) => (
 export function RootNavigator() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isAdmin = isAuthenticated && user?.role === 'admin';
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null as boolean | null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)
+      .then((value) => setHasSeenOnboarding(value === 'true'))
+      .catch(() => setHasSeenOnboarding(false));
+  }, []);
+
+  const completeOnboarding = () =>
+    AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true')
+      .catch(() => undefined)
+      .finally(() => setHasSeenOnboarding(true));
+
+  if (hasSeenOnboarding === null) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}>
+        <ActivityIndicator color={colors.light.primary} />
+      </View>
+    );
+  }
+
+  if (!hasSeenOnboarding) {
+    return <OnboardingScreen onComplete={completeOnboarding} />;
+  }
 
   return (
     <NavigationContainer>
