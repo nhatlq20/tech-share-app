@@ -1,6 +1,8 @@
 import Booking from '../models/Booking.js';
 import Device from '../models/Device.js';
 import Voucher from '../models/Voucher.js';
+import User from '../models/User.js';
+import WalletTransaction from '../models/WalletTransaction.js';
 import { createAndSendNotification } from '../services/notificationService.js';
 
 // @desc    Create new booking
@@ -103,17 +105,20 @@ export const createBooking = async (req, res) => {
       timeline: [{ status: 'pending', note: 'Booking created' }]
     });
 
-    // Tự động bắn thông báo tức thì đến chủ máy
+    // Tự động bắn thông báo tức thì đến chủ máy kèm tên khách thuê
     if (device.ownerId) {
+      const renter = await User.findById(req.auth.id || req.auth._id).select('name');
+      const renterName = renter?.name || 'Khách thuê';
       createAndSendNotification({
         userId: device.ownerId,
         title: 'Yêu cầu thuê thiết bị mới! 📦',
-        body: `Có khách hàng vừa gửi yêu cầu thuê thiết bị "${device.name}" (${totalDays} ngày). Mã đơn: #${bookingCode}.`,
+        body: `Khách hàng ${renterName} vừa gửi yêu cầu thuê thiết bị "${device.name}" (${totalDays} ngày). Mã đơn: #${bookingCode}. Bấm để duyệt ngay.`,
         type: 'order',
         relatedId: booking._id,
         data: {
           bookingId: booking._id.toString(),
           deviceId: device._id.toString(),
+          status: 'pending',
         },
       }).catch(err => console.error('❌ Lỗi gửi thông báo cho chủ máy:', err.message));
     }
@@ -176,16 +181,21 @@ export const cancelBooking = async (req, res) => {
 
     await booking.save();
 
-    // Optionally notify the owner
+    // Bắn thông báo chi tiết cho chủ máy khi khách hủy đơn
     if (booking.ownerId) {
+      const renter = await User.findById(userId).select('name');
+      const renterName = renter?.name || 'Khách thuê';
+      const dev = await Device.findById(booking.deviceId).select('name');
+      const deviceName = dev?.name || 'thiết bị';
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Đơn thuê đã bị hủy ❌',
-        body: `Khách hàng vừa hủy đơn yêu cầu thuê thiết bị. Mã đơn: #${booking.bookingCode}.`,
+        title: 'Đơn thuê đã bị hủy ⚠️',
+        body: `Khách thuê ${renterName} đã hủy đơn yêu cầu thuê "${deviceName}" (#${booking.bookingCode}). Thiết bị đã tự động mở lại lịch trống.`,
         type: 'order',
         relatedId: booking._id,
         data: {
           bookingId: booking._id.toString(),
+          status: 'cancelled',
         },
       }).catch(err => console.error('❌ Lỗi gửi thông báo cho chủ máy:', err.message));
     }
@@ -373,3 +383,312 @@ export const respondExtension = async (req, res) => {
     res.status(500).json({ success: false, message: 'Lỗi máy chủ khi phản hồi gia hạn' });
   }
 };
+
+// @desc    Get owner's bookings (requests sent to owner's devices)
+// @route   GET /api/bookings/owner-bookings
+// @access  Private (Owner)
+export const getOwnerBookings = async (req, res) => {
+  try {
+    const ownerId = req.auth.id || req.auth._id;
+    const { status } = req.query;
+
+    // Tìm tất cả thiết bị thuộc sở hữu của chủ máy này
+    const myDevices = await Device.find({
+      $or: [
+        { ownerId },
+        { owner: ownerId },
+      ],
+    }).select('_id');
+    const myDeviceIds = myDevices.map(d => d._id);
+
+    // Điều kiện: đơn trực tiếp theo ownerId HOẶC đơn của thiết bị thuộc chủ máy
+    const ownerMatch = [
+      { ownerId },
+      ...(myDeviceIds.length > 0 ? [{ deviceId: { $in: myDeviceIds } }] : []),
+    ];
+
+    let query = { $or: ownerMatch };
+    if (status) {
+      query.status = status;
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('deviceId', 'name title images brand model category pricePerDay dailyRate depositAmount depositValue location addressText')
+      .populate('renterId', 'name avatar phone email trustScore isVerified')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: bookings });
+  } catch (error) {
+    console.error('Error getting owner bookings:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách đơn của chủ máy' });
+  }
+};
+
+// @desc    Owner approves or rejects a booking request
+// @route   PATCH /api/bookings/:id/status
+// @access  Private (Owner)
+export const updateBookingStatusByOwner = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { status, reason } = req.body;
+    const ownerId = req.auth.id || req.auth._id;
+
+    if (!['approved', 'rejected', 'active', 'completed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trạng thái không hợp lệ. Chỉ có thể duyệt (approved), từ chối (rejected), bàn giao (active) hoặc hoàn tất (completed).',
+      });
+    }
+
+    // Tìm các thiết bị thuộc sở hữu của owner để cấp quyền duyệt
+    const myDevices = await Device.find({
+      $or: [
+        { ownerId },
+        { owner: ownerId },
+      ],
+    }).select('_id');
+    const myDeviceIds = myDevices.map(d => d._id);
+
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      $or: [
+        { ownerId },
+        ...(myDeviceIds.length > 0 ? [{ deviceId: { $in: myDeviceIds } }] : []),
+      ],
+    })
+      .populate('deviceId', 'name title images brand')
+      .populate('renterId', 'name avatar');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn thuê hoặc bạn không phải chủ sở hữu của đơn này',
+      });
+    }
+
+    const deviceName = booking.deviceId?.name || booking.deviceId?.title || 'thiết bị';
+    const renterName = booking.renterId?.name || 'Khách thuê';
+
+    if (status === 'approved') {
+      if (booking.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: `Đơn thuê hiện đang ở trạng thái "${booking.status}", chỉ có thể duyệt đơn đang chờ duyệt (pending).`,
+        });
+      }
+
+      booking.status = 'approved';
+      booking.timeline.push({
+        status: 'approved',
+        timestamp: new Date(),
+        note: 'Chủ máy đã phê duyệt yêu cầu thuê.',
+      });
+
+      await booking.save();
+
+      // Gửi thông báo cho người thuê
+      createAndSendNotification({
+        userId: booking.renterId?._id || booking.renterId,
+        title: 'Đơn thuê đã được duyệt! 🎉',
+        body: `Chủ máy đã phê duyệt yêu cầu thuê thiết bị "${deviceName}". Mã đơn: #${booking.bookingCode}. Vui lòng chuẩn bị nhận máy theo lịch hẹn.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'approved',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo duyệt đơn cho renter:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã phê duyệt đơn thuê thành công',
+        data: booking,
+      });
+    } else if (status === 'rejected') {
+      if (booking.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: `Đơn thuê hiện đang ở trạng thái "${booking.status}", chỉ có thể từ chối đơn đang chờ duyệt (pending).`,
+        });
+      }
+
+      booking.status = 'rejected';
+      booking.rejectReason = reason || 'Chủ máy bận hoặc thiết bị chưa sẵn sàng';
+      booking.timeline.push({
+        status: 'rejected',
+        timestamp: new Date(),
+        note: `Chủ máy đã từ chối yêu cầu thuê. Lý do: ${booking.rejectReason}`,
+      });
+
+      await booking.save();
+
+      // Gửi thông báo cho người thuê
+      createAndSendNotification({
+        userId: booking.renterId?._id || booking.renterId,
+        title: 'Đơn thuê bị từ chối ❌',
+        body: `Rất tiếc, chủ máy đã từ chối đơn thuê #${booking.bookingCode} (${deviceName}). Lý do: ${booking.rejectReason}.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'rejected',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo từ chối đơn cho renter:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã từ chối đơn thuê',
+        data: booking,
+      });
+    } else if (status === 'active') {
+      if (booking.status !== 'approved') {
+        return res.status(400).json({
+          success: false,
+          message: `Chỉ có thể bàn giao đơn đã được duyệt (approved). Trạng thái hiện tại: "${booking.status}".`,
+        });
+      }
+
+      booking.status = 'active';
+      booking.timeline.push({
+        status: 'active',
+        timestamp: new Date(),
+        note: 'Chủ máy và khách thuê đã đối soát bàn giao thiết bị thành công. Đơn thuê kích hoạt.',
+      });
+
+      await booking.save();
+
+      // 1. Gửi thông báo cho Người thuê (Renter)
+      createAndSendNotification({
+        userId: booking.renterId?._id || booking.renterId,
+        title: 'Bàn giao thiết bị thành công! 📱',
+        body: `Bạn đã nhận thiết bị "${deviceName}". Đơn thuê #${booking.bookingCode} chính thức kích hoạt. Hãy bảo quản máy cẩn thận.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'active',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo bàn giao cho renter:', err.message));
+
+      // 2. Gửi thông báo cho Chủ máy (Owner)
+      createAndSendNotification({
+        userId: booking.ownerId,
+        title: 'Đã bàn giao thiết bị 🤝',
+        body: `Bạn đã bàn giao thiết bị "${deviceName}" cho khách thuê ${renterName}. Trạng thái đơn: Đang thuê.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'active',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo bàn giao cho owner:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã bàn giao thiết bị thành công. Đơn thuê đang hoạt động.',
+        data: booking,
+      });
+    } else if (status === 'completed') {
+      if (booking.status !== 'active') {
+        return res.status(400).json({
+          success: false,
+          message: `Chỉ có thể hoàn tất đơn đang thuê (active). Trạng thái hiện tại: "${booking.status}".`,
+        });
+      }
+
+      booking.status = 'completed';
+      booking.timeline.push({
+        status: 'completed',
+        timestamp: new Date(),
+        note: 'Chủ máy đã kiểm tra máy nguyên vẹn và xác nhận nhận lại thiết bị. Đơn thuê hoàn tất.',
+      });
+
+      await booking.save();
+
+      const depositAmount = booking.depositFee || 0;
+      const rentalIncome = booking.rentalFee || 0;
+
+      // Giải tỏa cọc cho Renter nếu có cọc
+      if (depositAmount > 0) {
+        await User.findByIdAndUpdate(booking.renterId?._id || booking.renterId, {
+          $inc: { walletBalance: depositAmount, walletEscrowBalance: -depositAmount },
+        }).catch(err => console.warn('Lỗi cập nhật ví renter:', err.message));
+
+        await WalletTransaction.create({
+          userId: booking.renterId?._id || booking.renterId,
+          type: 'deposit_refund',
+          amount: depositAmount,
+          relatedBookingId: booking._id,
+          status: 'success',
+        }).catch(err => console.warn('Lỗi tạo transaction refund:', err.message));
+      }
+
+      // Cộng tiền doanh thu thuê vào ví Owner
+      if (rentalIncome > 0) {
+        await User.findByIdAndUpdate(booking.ownerId, {
+          $inc: { walletBalance: rentalIncome },
+        }).catch(err => console.warn('Lỗi cộng ví owner:', err.message));
+
+        await WalletTransaction.create({
+          userId: booking.ownerId,
+          type: 'rental_income',
+          amount: rentalIncome,
+          relatedBookingId: booking._id,
+          status: 'success',
+        }).catch(err => console.warn('Lỗi tạo transaction income:', err.message));
+      }
+
+      // 1. Gửi thông báo cho Renter (Kèm thông tin hoàn cọc)
+      createAndSendNotification({
+        userId: booking.renterId?._id || booking.renterId,
+        title: 'Đơn thuê hoàn tất & Hoàn tiền cọc! 💸',
+        body: `Đơn thuê #${booking.bookingCode} đã hoàn tất. Tiền cọc ${depositAmount.toLocaleString('vi-VN')} đ đã được giải tỏa hoàn trả về ví của bạn. Đừng quên đánh giá thiết bị nhé!`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'completed',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo hoàn tất cho renter:', err.message));
+
+      // 2. Gửi thông báo cho Owner (Kèm thông tin doanh thu)
+      createAndSendNotification({
+        userId: booking.ownerId,
+        title: 'Đơn thuê hoàn tất thành công! 💰',
+        body: `Đã nhận lại thiết bị "${deviceName}". Doanh thu ${rentalIncome.toLocaleString('vi-VN')} đ đã được cộng vào số dư ví khả dụng của bạn.`,
+        type: 'order',
+        relatedId: booking._id,
+        data: {
+          bookingId: booking._id.toString(),
+          status: 'completed',
+        },
+      }).catch(err => console.error('❌ Lỗi gửi thông báo hoàn tất cho owner:', err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Đã hoàn tất đơn thuê và giải tỏa tiền cọc / doanh thu thành công.',
+        data: booking,
+      });
+    }
+  } catch (error) {
+    console.error('Error updating booking status by owner:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi cập nhật trạng thái đơn thuê' });
+  }
+};
+
+// @desc    Handover booking (chuyển sang active và thông báo 2 bên)
+// @route   PATCH /api/bookings/:id/handover
+// @access  Private (Owner)
+export const handoverBooking = async (req, res) => {
+  req.body.status = 'active';
+  return updateBookingStatusByOwner(req, res);
+};
+
+// @desc    Complete booking (nhận lại máy, hoàn cọc và cộng doanh thu)
+// @route   PATCH /api/bookings/:id/complete
+// @access  Private (Owner)
+export const completeBooking = async (req, res) => {
+  req.body.status = 'completed';
+  return updateBookingStatusByOwner(req, res);
+};
+

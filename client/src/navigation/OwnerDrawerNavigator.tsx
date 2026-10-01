@@ -42,6 +42,7 @@ export function OwnerDrawerNavigator({ navigation }: any) {
               navigation.navigate('DeviceDetail', { deviceId })
             }
             onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
+            onNavigateToNotifications={() => navigation.navigate('Notification')}
             onOpenDrawer={() => props.navigation.openDrawer()}
           />
         )}

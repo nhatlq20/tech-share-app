@@ -103,14 +103,21 @@ export const notificationSlice = createSlice({
       state.filter = action.payload;
     },
     receiveRealtimeNotification: (state, action: PayloadAction<Notification>) => {
-      const exists = state.items.some((item) => item._id === action.payload._id);
+      const targetId = String(action.payload?._id || '');
+      const exists = targetId ? state.items.some((item) => String(item._id) === targetId) : false;
       if (!exists) {
         state.items.unshift(action.payload);
         state.total += 1;
         if (!action.payload.isRead) {
-          state.unreadCount += 1;
+          state.unreadCount = (state.unreadCount || 0) + 1;
         }
       }
+    },
+    incrementUnreadCount: (state) => {
+      state.unreadCount = (state.unreadCount || 0) + 1;
+    },
+    setUnreadCount: (state, action: PayloadAction<number>) => {
+      state.unreadCount = Math.max(0, action.payload);
     },
     clearNotifications: (state) => {
       state.items = [];
@@ -177,7 +184,12 @@ export const notificationSlice = createSlice({
   },
 });
 
-export const { setFilter, receiveRealtimeNotification, clearNotifications } =
-  notificationSlice.actions;
+export const {
+  setFilter,
+  receiveRealtimeNotification,
+  incrementUnreadCount,
+  setUnreadCount,
+  clearNotifications,
+} = notificationSlice.actions;
 
 export default notificationSlice.reducer;

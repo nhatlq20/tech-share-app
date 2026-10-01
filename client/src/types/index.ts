@@ -21,6 +21,7 @@ export interface Role {
 
 export interface Account {
   _id: string;
+  userId?: string | User;
   username: string;
   email: string;
   roleId: string | Role;
@@ -45,7 +46,6 @@ export interface UserAddress {
 
 export interface User {
   _id: string;
-  accountId?: string | Account;
   account?: Account;
   name: string;
   username?: string;

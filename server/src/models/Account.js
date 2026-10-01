@@ -13,6 +13,10 @@ const accountSchema = new mongoose.Schema(
       select: false,
     },
     roleId: mongoose.Schema.Types.ObjectId,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     isActive: {
       type: Boolean,
       default: true,

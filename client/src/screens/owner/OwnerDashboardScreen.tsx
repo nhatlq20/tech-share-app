@@ -12,18 +12,31 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  Modal,
+  TextInput,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
+import { socketService } from '../../services/socketService';
 import {
   ownerAnalyticsService,
   FALLBACK_OWNER_ANALYTICS_WEEK,
 } from '../../services/ownerAnalyticsService';
+import { bookingService, Booking } from '../../services/bookingService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';
 import { RevenueChart } from '../../components/owner/RevenueChart';
 import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
+
+const REJECT_REASONS = [
+  'Thiết bị đang bảo trì hoặc chưa sẵn sàng',
+  'Trùng lịch sử dụng cá nhân đột xuất',
+  'Thời gian thuê không thuận tiện giao máy',
+  'Khách thuê không phản hồi xác minh thông tin',
+  'Lý do khác',
+];
 
 interface OwnerDashboardScreenProps {
   route?: any;
@@ -33,6 +46,7 @@ interface OwnerDashboardScreenProps {
   onNavigateToPostDevice?: () => void;
   onLogout?: () => void;
   onOpenDrawer?: () => void;
+  onNavigateToNotifications?: () => void;
 }
 
 type PeriodType = 'week' | 'month';
@@ -46,9 +60,34 @@ export function OwnerDashboardScreen({
   onNavigateToPostDevice,
   onLogout,
   onOpenDrawer,
+  onNavigateToNotifications,
 }: OwnerDashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const currentUser = useAppSelector((state) => state.auth.user);
+  const unreadCount = useAppSelector((state) => state.notifications?.unreadCount ?? 0);
+
+  const notifScale = useRef(new Animated.Value(1)).current;
+  const prevUnreadRef = useRef(unreadCount);
+
+  // Hiệu ứng nhảy số khi có thông báo mới tới cho Owner
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      Animated.sequence([
+        Animated.timing(notifScale, {
+          toValue: 1.45,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.spring(notifScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount, notifScale]);
 
   const scrollViewRef: any = useRef(null);
   const sectionLayouts: any = useRef({});
@@ -63,11 +102,16 @@ export function OwnerDashboardScreen({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // State xử lý đơn hàng cần duyệt
-  const [orderActionState, setOrderActionState] = useState(
-    'pending' as 'pending' | 'approved' | 'rejected'
-  );
-  const [handoverDone, setHandoverDone] = useState(false);
+  // State quản lý danh sách đơn thuê thật từ DB
+  const [ownerBookings, setOwnerBookings] = useState([] as Booking[]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+
+  // State Modal từ chối đơn
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [selectedBookingToReject, setSelectedBookingToReject] = useState(null as Booking | null);
+  const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
+  const [customRejectReason, setCustomRejectReason] = useState('');
 
   // State quản lý danh sách thiết bị kho máy
   const [deviceFilter, setDeviceFilter] = useState('all' as DeviceFilterType);
@@ -90,10 +134,37 @@ export function OwnerDashboardScreen({
     }
   }, []);
 
+  // Gọi API lấy danh sách đơn thuê thật của chủ máy
+  const fetchOwnerOrders = useCallback(async () => {
+    try {
+      setLoadingOrders(true);
+      const data = await bookingService.getOwnerBookings();
+      setOwnerBookings(data || []);
+    } catch (error) {
+      console.warn('⚠️ [OwnerDashboardScreen] Lỗi khi tải danh sách đơn thuê:', error);
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
-    fetchAnalytics(period).finally(() => setLoading(false));
-  }, [fetchAnalytics, period]);
+    Promise.all([
+      fetchAnalytics(period),
+      fetchOwnerOrders(),
+    ]).finally(() => setLoading(false));
+  }, [fetchAnalytics, fetchOwnerOrders, period]);
+
+  // Lắng nghe thông báo đơn mới hoặc đổi trạng thái để tự động cập nhật danh sách đơn thật
+  useEffect(() => {
+    const unsub = socketService.onNewNotification((notif) => {
+      if (notif.type === 'order' || notif.type === 'reminder') {
+        fetchOwnerOrders();
+        fetchAnalytics(period);
+      }
+    });
+    return () => unsub();
+  }, [fetchOwnerOrders, fetchAnalytics, period]);
 
   // Cuộn tới vị trí section được chọn từ Sidebar
   useEffect(() => {
@@ -108,7 +179,10 @@ export function OwnerDashboardScreen({
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchAnalytics(period);
+    await Promise.all([
+      fetchAnalytics(period),
+      fetchOwnerOrders(),
+    ]);
     setRefreshing(false);
   };
 
@@ -129,40 +203,131 @@ export function OwnerDashboardScreen({
     );
   };
 
-  // Xử lý Duyệt đơn
-  const handleApproveOrder = () => {
-    setOrderActionState('approved');
+  // Xử lý Duyệt đơn thật qua API
+  const handleApproveBooking = (booking: Booking) => {
     Alert.alert(
-      'Phê duyệt thành công! 🎉',
-      'Đơn thuê #TS-20260915 đã được phê duyệt. Thông báo thời gian thực đã được gửi tức thì đến máy của người thuê.'
-    );
-  };
-
-  // Xử lý Từ chối đơn
-  const handleRejectOrder = () => {
-    Alert.alert(
-      'Xác nhận từ chối',
-      'Bạn có chắc chắn muốn từ chối yêu cầu thuê này không?',
+      'Xác nhận duyệt đơn 📦',
+      `Phê duyệt đơn thuê #${booking.bookingCode} cho khách thuê? Thông báo xác nhận sẽ được gửi tức thì đến máy của khách.`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Từ chối',
-          style: 'destructive',
-          onPress: () => {
-            setOrderActionState('rejected');
-            Alert.alert('Đã từ chối', 'Đơn thuê #TS-20260915 đã bị hủy.');
+          text: 'Duyệt đơn ngay',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setIsUpdatingOrder(true);
+              await bookingService.updateBookingStatusByOwner(booking._id, 'approved');
+              Alert.alert(
+                'Phê duyệt thành công! 🎉',
+                `Đơn thuê #${booking.bookingCode} đã được phê duyệt thành công.`
+              );
+              await fetchOwnerOrders();
+            } catch (err: any) {
+              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể phê duyệt đơn lúc này.');
+            } finally {
+              setIsUpdatingOrder(false);
+            }
           },
         },
       ]
     );
   };
 
-  // Xử lý Bàn giao máy
-  const handleScanHandover = () => {
+  // Mở modal từ chối đơn
+  const handleOpenRejectModal = (booking: Booking) => {
+    setSelectedBookingToReject(booking);
+    setRejectReason(REJECT_REASONS[0]);
+    setCustomRejectReason('');
+    setRejectModalVisible(true);
+  };
+
+  // Xác nhận từ chối đơn thật qua API
+  const handleConfirmReject = async () => {
+    if (!selectedBookingToReject) return;
+    const finalReason =
+      rejectReason === 'Lý do khác' && customRejectReason.trim()
+        ? customRejectReason.trim()
+        : rejectReason;
+
+    try {
+      setIsUpdatingOrder(true);
+      await bookingService.updateBookingStatusByOwner(
+        selectedBookingToReject._id,
+        'rejected',
+        finalReason
+      );
+      Alert.alert(
+        'Đã từ chối đơn',
+        `Đơn thuê #${selectedBookingToReject.bookingCode} đã được từ chối.`
+      );
+      setRejectModalVisible(false);
+      setSelectedBookingToReject(null);
+      setRejectReason(REJECT_REASONS[0]);
+      setCustomRejectReason('');
+      await fetchOwnerOrders();
+    } catch (err: any) {
+      Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể từ chối đơn lúc này.');
+    } finally {
+      setIsUpdatingOrder(false);
+    }
+  };
+
+  // Xử lý Bàn giao máy thật qua API
+  const handleHandoverBooking = (booking: Booking) => {
+    const deviceName = (booking.deviceId as any)?.name || (booking.deviceId as any)?.title || 'thiết bị';
+    const renterName = (booking.renterId as any)?.name || 'khách thuê';
+
     Alert.alert(
-      'Biên bản bàn giao thiết bị 📱',
-      'Đã đối soát mã QR thành công. Trạng thái đơn chuyển sang Đang thuê (active). Tiền cọc tiếp tục được bảo toàn trong ví ký quỹ.',
-      [{ text: 'Đồng ý', onPress: () => setHandoverDone(true) }]
+      'Bàn giao thiết bị 📱',
+      `Xác nhận đối soát mã QR và bàn giao "${deviceName}" cho ${renterName}?\n\nĐơn thuê sẽ kích hoạt và bắn thông báo đẩy đến cả 2 bên.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận bàn giao',
+          onPress: async () => {
+            try {
+              setIsUpdatingOrder(true);
+              await bookingService.handoverBooking(booking._id);
+              Alert.alert('Thành công 🎉', `Đã bàn giao máy thành công. Đơn thuê #${booking.bookingCode} đã được kích hoạt.`);
+              await fetchOwnerOrders();
+            } catch (err: any) {
+              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể bàn giao đơn lúc này.');
+            } finally {
+              setIsUpdatingOrder(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Xử lý Hoàn tất nhận lại máy thật qua API
+  const handleCompleteBooking = (booking: Booking) => {
+    const deviceName = (booking.deviceId as any)?.name || (booking.deviceId as any)?.title || 'thiết bị';
+    const depositAmount = (booking.depositFee || 0).toLocaleString('vi-VN');
+    const incomeAmount = (booking.rentalFee || 0).toLocaleString('vi-VN');
+
+    Alert.alert(
+      'Xác nhận nhận lại máy & Hoàn tất 💰',
+      `Bạn đã kiểm tra thiết bị "${deviceName}" nguyên vẹn?\n\n• Tiền cọc: ${depositAmount} đ sẽ được hoàn trả cho khách thuê.\n• Doanh thu: +${incomeAmount} đ sẽ được cộng vào ví của bạn.\n\nThông báo đẩy sẽ được gửi tức thì đến cả 2 bên.`,
+      [
+        { text: 'Kiểm tra lại', style: 'cancel' },
+        {
+          text: 'Xác nhận hoàn tất',
+          onPress: async () => {
+            try {
+              setIsUpdatingOrder(true);
+              await bookingService.completeBooking(booking._id);
+              Alert.alert('Thành công 🎉', `Đơn thuê #${booking.bookingCode} đã hoàn tất. Tiền cọc đã giải tỏa và doanh thu đã cộng vào ví của bạn.`);
+              await Promise.all([fetchOwnerOrders(), fetchAnalytics(period)]);
+            } catch (err: any) {
+              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể hoàn tất đơn lúc này.');
+            } finally {
+              setIsUpdatingOrder(false);
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -221,20 +386,53 @@ export function OwnerDashboardScreen({
           </View>
         </View>
 
-        {onBackToHome && (
+        <View style={styles.topBarRight}>
+          {/* Nút thông báo quả chuông với badge nhảy số */}
           <TouchableOpacity
-            style={styles.switchModeButton}
-            onPress={onBackToHome}
-            activeOpacity={0.8}
+            style={styles.notificationButton}
+            onPress={() => {
+              if (onNavigateToNotifications) {
+                onNavigateToNotifications();
+              } else if (navigation?.navigate) {
+                navigation.navigate('Notification');
+              }
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Xem thông báo"
           >
-            <Ionicons
-              name="swap-horizontal"
-              size={14}
-              color={theme.colors.primary[600]}
-            />
-            <Text style={styles.switchModeText}>Đi thuê</Text>
+            <Ionicons name="notifications-outline" size={22} color={theme.textPrimary} />
+            {unreadCount > 0 && (
+              <Animated.View
+                style={[
+                  styles.notifBadge,
+                  {
+                    transform: [{ scale: notifScale }],
+                  },
+                ]}
+              >
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 99 ? '99+' : String(unreadCount)}
+                </Text>
+              </Animated.View>
+            )}
           </TouchableOpacity>
-        )}
+
+          {onBackToHome && (
+            <TouchableOpacity
+              style={styles.switchModeButton}
+              onPress={onBackToHome}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="swap-horizontal"
+                size={14}
+                color={theme.colors.primary[600]}
+              />
+              <Text style={styles.switchModeText}>Đi thuê</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -500,141 +698,237 @@ export function OwnerDashboardScreen({
       </View>
 
       {/* ── 4. KHỐI ĐƠN THUÊ CẦN XỬ LÝ KHẨN CẤP (ACTION REQUIRED) ── */}
-      <View
-        style={styles.sectionContainer}
-        onLayout={(e: any) => {
-          sectionLayouts.current.orders = e.nativeEvent.layout.y;
-        }}
-      >
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionTitleWithBadge}>
-            <Text style={styles.sectionHeaderTitle}>📦 ĐƠN CẦN XỬ LÝ GẤP</Text>
-            <View style={styles.badgeAlertCount}>
-              <Text style={styles.badgeAlertCountText}>
-                {(orderActionState === 'pending' ? 1 : 0) + (!handoverDone ? 1 : 0)} việc
-              </Text>
-            </View>
-          </View>
-        </View>
+      {(() => {
+        const pendingOrders = ownerBookings.filter((b: Booking) => b.status === 'pending');
+        const approvedOrders = ownerBookings.filter((b: Booking) => b.status === 'approved');
+        const activeOrders = ownerBookings.filter((b: Booking) => b.status === 'active');
+        const urgentOrders = [...pendingOrders, ...approvedOrders, ...activeOrders];
 
-        {/* Thẻ 1: Đơn mới chờ duyệt */}
-        {orderActionState === 'pending' && (
-          <View style={styles.actionCard}>
-            <View style={styles.actionCardHeader}>
-              <View style={styles.badgePendingPill}>
-                <Text style={styles.badgePendingText}>Đơn mới chờ duyệt</Text>
-              </View>
-              <Text style={styles.orderCodeText}>#TS-20260915</Text>
-              <Text style={styles.orderPriceHighlight}>900.000 đ</Text>
-            </View>
-
-            <View style={styles.orderInfoBody}>
-              <Image
-                source={{
-                  uri: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400',
-                }}
-                style={styles.orderThumb}
-              />
-              <View style={styles.orderDetailCol}>
-                <Text style={styles.orderDeviceTitle} numberOfLines={1}>
-                  Sony Alpha A7 IV Kit 24-70mm
-                </Text>
-                <Text style={styles.orderDurationText}>
-                  Thời gian: 2 ngày (22/09 - 24/09)
-                </Text>
-
-                {/* Hồ sơ tín nhiệm khách thuê */}
-                <View style={styles.customerTrustRow}>
-                  <Image
-                    source={{
-                      uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-                    }}
-                    style={styles.customerAvatar}
-                  />
-                  <Text style={styles.customerName}>Hoàng Nam Creator</Text>
-                  <View style={styles.trustPill}>
-                    <Text style={styles.trustPillText}>⭐ 5.0 (Uy tín: 100)</Text>
-                  </View>
+        return (
+          <View
+            style={styles.sectionContainer}
+            onLayout={(e: any) => {
+              sectionLayouts.current.orders = e.nativeEvent.layout.y;
+            }}
+          >
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionTitleWithBadge}>
+                <Text style={styles.sectionHeaderTitle}>📦 ĐƠN CẦN XỬ LÝ GẤP</Text>
+                <View style={styles.badgeAlertCount}>
+                  <Text style={styles.badgeAlertCountText}>
+                    {urgentOrders.length} việc
+                  </Text>
                 </View>
               </View>
-            </View>
-
-            <View style={styles.orderActionButtonsRow}>
               <TouchableOpacity
-                style={styles.btnReject}
-                onPress={handleRejectOrder}
-                activeOpacity={0.8}
+                onPress={fetchOwnerOrders}
+                disabled={loadingOrders}
+                style={{ padding: 4 }}
+                activeOpacity={0.7}
               >
                 <Ionicons
-                  name="close-circle-outline"
+                  name="refresh-outline"
                   size={16}
-                  color={theme.colors.danger[600]}
+                  color={theme.colors.slate[600]}
                 />
-                <Text style={styles.btnRejectText}>Từ chối</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnApprove}
-                onPress={handleApproveOrder}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={16}
-                  color={theme.colors.white}
-                />
-                <Text style={styles.btnApproveText}>Duyệt đơn ngay</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
 
-        {/* Thẻ 2: Đơn đã duyệt, cần bàn giao thiết bị */}
-        {(!handoverDone || orderActionState === 'approved') && (
-          <View style={[styles.actionCard, styles.actionCardHandover]}>
-            <View style={styles.actionCardHeader}>
-              <View style={styles.badgeHandoverPill}>
-                <Text style={styles.badgeHandoverText}>Bàn giao hôm nay</Text>
-              </View>
-              <Text style={styles.orderCodeText}>#TS-20260912</Text>
-              <Text style={styles.orderPriceHighlight}>1.200.000 đ</Text>
-            </View>
-
-            <View style={styles.orderInfoBody}>
-              <Image
-                source={{
-                  uri: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
-                }}
-                style={styles.orderThumb}
-              />
-              <View style={styles.orderDetailCol}>
-                <Text style={styles.orderDeviceTitle} numberOfLines={1}>
-                  iPhone 15 Pro Max 256GB Titanium
-                </Text>
-                <Text style={styles.orderDurationText}>Khách hẹn nhận: 14:00 hôm nay</Text>
-                <Text style={styles.orderDeliveryNote}>
-                  📍 Nhận trực tiếp tại Cửa hàng
+            {loadingOrders && ownerBookings.length === 0 ? (
+              <View style={styles.emptyOrdersCard}>
+                <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+                <Text style={[styles.emptyOrdersDesc, { marginTop: 8 }]}>
+                  Đang đồng bộ đơn thuê từ hệ thống...
                 </Text>
               </View>
-            </View>
+            ) : urgentOrders.length === 0 ? (
+              <View style={styles.emptyOrdersCard}>
+                <View style={styles.emptyOrdersIconBox}>
+                  <Ionicons
+                    name="checkmark-done-circle"
+                    size={32}
+                    color={theme.colors.success[600]}
+                  />
+                </View>
+                <Text style={styles.emptyOrdersTitle}>Không có đơn cần xử lý gấp</Text>
+                <Text style={styles.emptyOrdersDesc}>
+                  Tất cả yêu cầu thuê thiết bị đã được giải quyết. Khi có khách thuê mới gửi đơn, thông tin sẽ lập tức hiển thị tại đây để bạn phê duyệt.
+                </Text>
+              </View>
+            ) : (
+              urgentOrders.map((booking: Booking) => {
+                const isPending = booking.status === 'pending';
+                const device = (booking.deviceId as any) || {};
+                const renter = (booking.renterId as any) || {};
+                const deviceImage =
+                  device.images?.[0] ||
+                  'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400';
+                const deviceTitle =
+                  device.name || device.title || 'Thiết bị công nghệ';
+                const renterName = renter.name || 'Khách thuê';
+                const renterAvatar =
+                  renter.avatar ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+                const startDateStr = new Date(booking.startDate).toLocaleDateString('vi-VN');
+                const endDateStr = new Date(booking.endDate).toLocaleDateString('vi-VN');
 
-            <View style={styles.orderActionButtonsRow}>
-              <TouchableOpacity
-                style={styles.btnScanQR}
-                onPress={handleScanHandover}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="qr-code-outline"
-                  size={16}
-                  color={theme.colors.primary[600]}
-                />
-                <Text style={styles.btnScanQRText}>Quét QR bàn giao máy</Text>
-              </TouchableOpacity>
-            </View>
+                const isApproved = booking.status === 'approved';
+                const isActive = booking.status === 'active';
+
+                return (
+                  <View
+                    key={booking._id}
+                    style={[
+                      styles.actionCard,
+                      !isPending && styles.actionCardHandover,
+                    ]}
+                  >
+                    <View style={styles.actionCardHeader}>
+                      <View
+                        style={
+                          isPending
+                            ? styles.badgePendingPill
+                            : isApproved
+                            ? styles.badgeHandoverPill
+                            : styles.badgeActivePill
+                        }
+                      >
+                        <Text
+                          style={
+                            isPending
+                              ? styles.badgePendingText
+                              : isApproved
+                              ? styles.badgeHandoverText
+                              : styles.badgeActiveText
+                          }
+                        >
+                          {isPending
+                            ? 'Đơn mới chờ duyệt'
+                            : isApproved
+                            ? 'Đã duyệt • Bàn giao'
+                            : 'Đang thuê • Nhận lại máy'}
+                        </Text>
+                      </View>
+                      <Text style={styles.orderCodeText}>#{booking.bookingCode}</Text>
+                      <Text style={styles.orderPriceHighlight}>
+                        {(booking.totalAmount || 0).toLocaleString('vi-VN')} đ
+                      </Text>
+                    </View>
+
+                    <View style={styles.orderInfoBody}>
+                      <Image source={{ uri: deviceImage }} style={styles.orderThumb} />
+                      <View style={styles.orderDetailCol}>
+                        <Text style={styles.orderDeviceTitle} numberOfLines={1}>
+                          {deviceTitle}
+                        </Text>
+                        <Text style={styles.orderDurationText}>
+                          Thời gian: {booking.totalDays} ngày ({startDateStr} - {endDateStr})
+                        </Text>
+
+                        {/* Hồ sơ tín nhiệm khách thuê */}
+                        <View style={styles.customerTrustRow}>
+                          <Image
+                            source={{ uri: renterAvatar }}
+                            style={styles.customerAvatar}
+                          />
+                          <Text style={styles.customerName}>{renterName}</Text>
+                          <View style={styles.trustPill}>
+                            <Text style={styles.trustPillText}>
+                              ⭐ 5.0 (Uy tín: {renter.trustScore || 100})
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {isPending ? (
+                      <View style={styles.orderActionButtonsRow}>
+                        <TouchableOpacity
+                          style={styles.btnReject}
+                          onPress={() => handleOpenRejectModal(booking)}
+                          disabled={isUpdatingOrder}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons
+                            name="close-circle-outline"
+                            size={16}
+                            color={theme.colors.danger[600]}
+                          />
+                          <Text style={styles.btnRejectText}>Từ chối</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.btnApprove}
+                          onPress={() => handleApproveBooking(booking)}
+                          disabled={isUpdatingOrder}
+                          activeOpacity={0.8}
+                        >
+                          {isUpdatingOrder ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <>
+                              <Ionicons
+                                name="checkmark-circle-outline"
+                                size={16}
+                                color={theme.colors.white}
+                              />
+                              <Text style={styles.btnApproveText}>Duyệt đơn ngay</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    ) : isApproved ? (
+                      <View style={styles.orderActionButtonsRow}>
+                        <TouchableOpacity
+                          style={styles.btnScanQR}
+                          onPress={() => handleHandoverBooking(booking)}
+                          disabled={isUpdatingOrder}
+                          activeOpacity={0.8}
+                        >
+                          {isUpdatingOrder ? (
+                            <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                          ) : (
+                            <>
+                              <Ionicons
+                                name="qr-code-outline"
+                                size={16}
+                                color={theme.colors.primary[600]}
+                              />
+                              <Text style={styles.btnScanQRText}>Quét QR bàn giao máy</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.orderActionButtonsRow}>
+                        <TouchableOpacity
+                          style={styles.btnComplete}
+                          onPress={() => handleCompleteBooking(booking)}
+                          disabled={isUpdatingOrder}
+                          activeOpacity={0.8}
+                        >
+                          {isUpdatingOrder ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <>
+                              <Ionicons
+                                name="checkmark-done-circle-outline"
+                                size={16}
+                                color={theme.colors.white}
+                              />
+                              <Text style={styles.btnCompleteText}>Xác nhận nhận máy & Hoàn tất</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
           </View>
-        )}
-      </View>
+        );
+      })()}
 
 
 
@@ -855,6 +1149,104 @@ export function OwnerDashboardScreen({
         subtitle="Bạn có chắc chắn muốn đăng xuất khỏi tài khoản Chủ máy?"
       />
     )}
+
+    {/* MODAL TỪ CHỐI ĐƠN THUÊ */}
+    <Modal
+      visible={rejectModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setRejectModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitle}>Từ chối yêu cầu thuê máy</Text>
+              {selectedBookingToReject && (
+                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                  Đơn #{selectedBookingToReject.bookingCode} •{' '}
+                  {(selectedBookingToReject.deviceId as any)?.name ||
+                    (selectedBookingToReject.deviceId as any)?.title ||
+                    'Thiết bị'}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => setRejectModalVisible(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSectionLabel}>Chọn lý do từ chối:</Text>
+
+          <View style={{ gap: 6 }}>
+            {REJECT_REASONS.map((reason) => {
+              const isSelected = rejectReason === reason;
+              return (
+                <TouchableOpacity
+                  key={reason}
+                  style={[styles.reasonChip, isSelected && styles.reasonChipSelected]}
+                  onPress={() => setRejectReason(reason)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                    size={16}
+                    color={isSelected ? theme.colors.danger[600] : theme.colors.slate[400]}
+                  />
+                  <Text
+                    style={[
+                      styles.reasonChipText,
+                      isSelected && styles.reasonChipTextSelected,
+                    ]}
+                  >
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {rejectReason === 'Lý do khác' && (
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="Nhập lý do cụ thể gửi tới khách thuê..."
+              placeholderTextColor={theme.colors.slate[400]}
+              value={customRejectReason}
+              onChangeText={setCustomRejectReason}
+              multiline
+              maxLength={200}
+            />
+          )}
+
+          <View style={styles.modalActionsRow}>
+            <TouchableOpacity
+              style={styles.modalBtnCancel}
+              onPress={() => setRejectModalVisible(false)}
+              disabled={isUpdatingOrder}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalBtnCancelText}>Hủy bỏ</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalBtnConfirmReject}
+              onPress={handleConfirmReject}
+              disabled={isUpdatingOrder}
+              activeOpacity={0.8}
+            >
+              {isUpdatingOrder ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.modalBtnConfirmRejectText}>Xác nhận từ chối</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   </View>
 );
 }
@@ -1014,6 +1406,45 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.danger[50],
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notificationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.slate[50],
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.danger[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: theme.card,
+    zIndex: 10,
+    elevation: 4,
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 12,
   },
   switchModeButton: {
     flexDirection: 'row',
@@ -1190,6 +1621,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  badgeActivePill: {
+    backgroundColor: theme.colors.indigo[50],
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radii.sm,
+  },
+  badgeActiveText: {
+    color: theme.colors.indigo[600],
+    fontSize: 11,
+    fontWeight: '700',
+  },
   orderCodeText: {
     fontSize: 12,
     color: theme.textSecondary,
@@ -1304,6 +1746,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: theme.colors.primary[600],
+  },
+  btnComplete: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.success[600],
+  },
+  btnCompleteText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
 
   // 4. KPI & Charts
@@ -1532,5 +1989,146 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.textSecondary,
     lineHeight: 16,
+  },
+
+  // 7. Empty Orders & Rejection Modal
+  emptyOrdersCard: {
+    backgroundColor: theme.card,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderStyle: 'dashed',
+  },
+  emptyOrdersIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.success[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  emptyOrdersTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  emptyOrdersDesc: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: theme.spacing.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: theme.card,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.lg,
+    ...theme.shadows.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.md,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    marginBottom: 2,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: theme.colors.slate[600],
+  },
+  modalSectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginBottom: 8,
+  },
+  reasonChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.colors.slate[50],
+  },
+  reasonChipSelected: {
+    borderColor: theme.colors.danger[500],
+    backgroundColor: theme.colors.danger[50],
+  },
+  reasonChipText: {
+    fontSize: 13,
+    color: theme.textPrimary,
+    flex: 1,
+  },
+  reasonChipTextSelected: {
+    fontWeight: '700',
+    color: theme.colors.danger[600],
+  },
+  reasonInput: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radii.md,
+    padding: 10,
+    fontSize: 13,
+    color: theme.textPrimary,
+    backgroundColor: theme.colors.slate[50],
+    minHeight: 64,
+    textAlignVertical: 'top',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: theme.spacing.lg,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.slate[100],
+  },
+  modalBtnCancelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.slate[600],
+  },
+  modalBtnConfirmReject: {
+    flex: 1.4,
+    paddingVertical: 11,
+    borderRadius: theme.radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.danger[600],
+  },
+  modalBtnConfirmRejectText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
 });

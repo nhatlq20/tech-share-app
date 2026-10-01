@@ -376,12 +376,13 @@ export const approveEkyc = async (req, res) => {
       user.trustScore = Math.min(100, (user.trustScore || 100) + 10);
       await user.save();
 
-      // Cập nhật role trong Account tương ứng
-      if (user.accountId) {
-        const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
-        if (ownerRole) {
-          await Account.updateOne({ _id: user.accountId }, { roleId: ownerRole._id });
-        }
+      // Cập nhật role trong Account tương ứng (tìm theo userId hoặc email)
+      const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
+      if (ownerRole) {
+        await Account.updateOne(
+          { $or: [{ userId: user._id }, { email: user.email }] },
+          { roleId: ownerRole._id }
+        );
       }
 
       // Bắn thông báo chúc mừng

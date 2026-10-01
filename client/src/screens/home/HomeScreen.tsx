@@ -51,7 +51,7 @@ export function HomeScreen({
   onNavigateToChat,
   onNavigateToOwnerDashboard,
   unreadMessages = 2,
-  unreadNotifications = 5,
+  unreadNotifications,
 }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(

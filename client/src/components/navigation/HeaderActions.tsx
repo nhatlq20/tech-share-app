@@ -4,8 +4,8 @@
  * Tuân thủ 100% Design Tokens từ src/constants/theme.ts (theme-skill.md).
  */
 
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAppSelector } from '../../store';
@@ -13,7 +13,7 @@ import { useAppSelector } from '../../store';
 interface HeaderActionsProps {
   /** Số tin nhắn chưa đọc — hiện chấm đỏ nếu > 0 */
   unreadMessages?: number;
-  /** Số thông báo chưa đọc — hiện chấm đỏ nếu > 0 */
+  /** Số thông báo chưa đọc — hiện số đếm nếu > 0 */
   unreadNotifications?: number;
   onPressChat?: () => void;
   onPressNotifications?: () => void;
@@ -27,6 +27,30 @@ export function HeaderActions({
 }: HeaderActionsProps) {
   const reduxUnread = useAppSelector((state) => state.notifications?.unreadCount ?? 0);
   const effectiveUnread = unreadNotifications !== undefined ? unreadNotifications : reduxUnread;
+
+  const notifScale = useRef(new Animated.Value(1)).current;
+  const prevUnreadRef = useRef(effectiveUnread);
+
+  // Hiệu ứng nhảy số khi có thông báo mới (số lượng tăng lên)
+  useEffect(() => {
+    if (effectiveUnread > prevUnreadRef.current) {
+      Animated.sequence([
+        Animated.timing(notifScale, {
+          toValue: 1.45,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.spring(notifScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    prevUnreadRef.current = effectiveUnread;
+  }, [effectiveUnread, notifScale]);
+
   return (
     <View style={styles.container}>
       {/* Nút Tin nhắn */}
@@ -41,10 +65,10 @@ export function HeaderActions({
           size={22}
           color={theme.textPrimary}
         />
-        {unreadMessages > 0 && <View style={styles.badge} />}
+        {unreadMessages > 0 && <View style={styles.dotBadge} />}
       </TouchableOpacity>
 
-      {/* Nút Thông báo */}
+      {/* Nút Thông báo — Badge hiển thị số lượng và nhảy số khi có thông báo */}
       <TouchableOpacity
         style={styles.iconButton}
         onPress={onPressNotifications}
@@ -56,7 +80,20 @@ export function HeaderActions({
           size={22}
           color={theme.textPrimary}
         />
-        {effectiveUnread > 0 && <View style={styles.badge} />}
+        {effectiveUnread > 0 && (
+          <Animated.View
+            style={[
+              styles.badge,
+              {
+                transform: [{ scale: notifScale }],
+              },
+            ]}
+          >
+            <Text style={styles.badgeText}>
+              {effectiveUnread > 99 ? '99+' : String(effectiveUnread)}
+            </Text>
+          </Animated.View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -75,9 +112,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.slate[50], // nền nhạt từ slate-50 token
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  /** Chấm đỏ unread badge — màu danger từ token */
-  badge: {
+  /** Chấm đỏ tin nhắn */
+  dotBadge: {
     position: 'absolute',
     top: 5,
     right: 5,
@@ -86,6 +124,30 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.full,
     backgroundColor: theme.colors.danger[500],
     borderWidth: 1.5,
-    borderColor: theme.card, // nền thẻ (trắng) làm viền tách biệt
+    borderColor: theme.card,
+  },
+  /** Badge số lượng thông báo nhảy số — tông đỏ danger nổi bật */
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.danger[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: theme.card, // viền trắng tách biệt icon
+    zIndex: 10,
+    elevation: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 12,
   },
 });
