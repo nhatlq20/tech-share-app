@@ -24,7 +24,7 @@ app.use('/api/profile', profileRoutes);
 
 // Routes
 app.use('/api/admin', adminRoutes);
-app.use('/api/devices', ownerAnalyticsRoutes);
+app.use('/api/devices', deviceRoutes);
 app.use('/api/owner', ownerAnalyticsRoutes);
 
 // Health check endpoint
