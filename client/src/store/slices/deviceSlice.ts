@@ -35,7 +35,7 @@ export const fetchDevices = createAsyncThunk(
       return data;
     } catch (err: unknown) {
       const error = err as { message?: string };
-      return rejectWithValue(error.message || 'Không thể tải danh sách thiết bị');
+      return rejectWithValue(error.message || 'Failed to load devices');
     }
   }
 );
@@ -49,7 +49,7 @@ export const refreshDevices = createAsyncThunk(
       return data;
     } catch (err: unknown) {
       const error = err as { message?: string };
-      return rejectWithValue(error.message || 'Không thể làm mới danh sách thiết bị');
+      return rejectWithValue(error.message || 'Failed to refresh devices');
     }
   }
 );
