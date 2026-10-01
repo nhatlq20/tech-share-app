@@ -8,6 +8,7 @@ export interface OwnerAnalyticsDevice {
   pricePerDay?: number;
   rentalCount?: number;
   ratingAvg?: number;
+  revenueTotal?: number;
   status: string;
   images?: string[];
 }
@@ -34,10 +35,12 @@ export interface OwnerAnalyticsData {
   totalRevenue: number;
   totalDevices: number;
   totalBookings: number;
+  rentedDevices: number;
   revenueByDay: OwnerRevenueByDay[];
   devices: OwnerAnalyticsDevice[];
   bookings: OwnerAnalyticsBooking[];
 }
+
 
 type OwnerAnalyticsApiResponse = {
   success: boolean;

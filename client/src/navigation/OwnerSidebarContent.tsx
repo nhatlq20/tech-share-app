@@ -38,6 +38,12 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
     sectionParam: 'overview',
   },
   {
+    id: 'analytics',
+    label: 'Doanh thu & Phân tích',
+    icon: 'analytics-outline',
+    targetScreen: 'OwnerAnalytics',
+  },
+  {
     id: 'orders',
     label: 'Đơn thuê cần xử lý',
     icon: 'receipt-outline',
@@ -201,6 +207,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
           let isActive = false;
           if (activeRouteName === 'OwnerDashboard' && item.targetScreen === 'OwnerDashboard') {
             isActive = currentSection === item.sectionParam;
+          } else if (activeRouteName === item.targetScreen) {
+            isActive = true;
           }
 
           return (
