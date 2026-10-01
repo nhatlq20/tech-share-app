@@ -94,7 +94,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
               isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
             ]}
           >
-            {isAvailable ? 'Có sẵn' : 'Đang thuê'}
+            {isAvailable ? 'Available' : 'Rented'}
           </Text>
         </View>
       </View>
@@ -129,7 +129,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
         {/* Giá thuê & Nút xem */}
         <View style={styles.bottomRow}>
           <View>
-            <Text style={styles.priceLabel}>Giá thuê</Text>
+            <Text style={styles.priceLabel}>Daily Rate</Text>
             <Text style={styles.priceText}>{formatPrice(device.dailyRate)}</Text>
           </View>
 
