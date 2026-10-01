@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -7,9 +17,9 @@ import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { DevicePreviewCard } from '../../components/map/DevicePreviewCard';
 import {
-  OpenStreetMapFallback,
-  OpenStreetMapFallbackHandle,
-} from '../../components/map/OpenStreetMapFallback';
+  OpenStreetMap,
+  OpenStreetMapHandle,
+} from '../../components/map/OpenStreetMap';
 
 const MAX_DISTANCE = 10000; // S-04 accepts meters (10km default)
 const MAX_LAST_KNOWN_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours: use cached location immediately, refresh in background
@@ -71,7 +81,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   const [nearbyState, setNearbyState] = useState('loading' as 'loading' | 'ready' | 'error');
   const [nearbyAttempt, setNearbyAttempt] = useState(0);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
-  const osmMapRef = useRef(null as OpenStreetMapFallbackHandle | null);
+  const osmMapRef = useRef(null as OpenStreetMapHandle | null);
   const isRequestingLocation = useRef(false);
   const isRefreshingCurrentLocation = useRef(false);
   const locationRequestId = useRef(0);
@@ -549,7 +559,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
           {/* Map View */}
           <View style={styles.mapContainer}>
-            <OpenStreetMapFallback
+            <OpenStreetMap
               controllerRef={osmMapRef}
               userPosition={position}
               devices={devices}
