@@ -1,12 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../store';
+import { clearAuth } from '../store/slices/authSlice';
+import { socketService } from '../services/socketService';
 import { theme } from '../constants/theme';
 import { colors } from '../theme/colors';
 import { AdminDrawerNavigator } from './AdminDrawerNavigator';
+import { OwnerDrawerNavigator } from './OwnerDrawerNavigator';
 import { MainBottomTabNavigator } from './MainBottomTabNavigator';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
@@ -23,6 +26,7 @@ export type RootStackParamList = {
   Register: undefined;
   ForgotPassword: undefined;
   AdminRoot: undefined;
+  OwnerRoot: undefined;
   MainTabs: undefined;
   MyDevices: undefined;
   DeviceDetail: { deviceId: string; hideBookNow?: boolean };
@@ -61,8 +65,15 @@ const NotificationRoute = ({ navigation }: any) => (
 );
 
 export function RootNavigator() {
+  const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isAdmin = isAuthenticated && user?.role === 'admin';
+  const isOwner = isAuthenticated && user?.role === 'owner';
+
+  const handleLogout = () => {
+    socketService.disconnect();
+    dispatch(clearAuth());
+  };
 
   return (
     <NavigationContainer>
@@ -108,6 +119,29 @@ export function RootNavigator() {
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
           </Stack.Group>
+        ) : isOwner ? (
+          <Stack.Group>
+            <Stack.Screen name="OwnerRoot" component={OwnerDrawerNavigator} />
+            <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
+            <Stack.Screen name="MyDevices">
+              {({ navigation }) => (
+                <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
+                  <MyDevicesScreen onBack={() => navigation.goBack()} />
+                </SafeAreaView>
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
+            <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
+            <Stack.Screen name="PostDevice">
+              {({ navigation }) => (
+                <PostDeviceScreen
+                  onBack={() => navigation.goBack()}
+                  onPublished={() => navigation.navigate('OwnerRoot')}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+          </Stack.Group>
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
@@ -130,13 +164,19 @@ export function RootNavigator() {
             </Stack.Screen>
             <Stack.Screen name="OwnerDashboard">
               {({ navigation }) => (
-                <OwnerDashboardScreen
-                  onBackToHome={() => navigation.navigate('MainTabs')}
-                  onNavigateToDeviceDetail={(deviceId) =>
-                    navigation.navigate('DeviceDetail', { deviceId })
-                  }
-                  onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
-                />
+                <SafeAreaView
+                  style={{ flex: 1, backgroundColor: theme.background }}
+                  edges={['top', 'left', 'right']}
+                >
+                  <OwnerDashboardScreen
+                    onBackToHome={() => navigation.navigate('MainTabs')}
+                    onNavigateToDeviceDetail={(deviceId) =>
+                      navigation.navigate('DeviceDetail', { deviceId })
+                    }
+                    onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
+                    onLogout={handleLogout}
+                  />
+                </SafeAreaView>
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
