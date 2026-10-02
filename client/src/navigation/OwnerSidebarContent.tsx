@@ -98,6 +98,9 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
   const { navigation, state } = props;
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const unreadNotifications = useSelector(
+    (state: RootState) => state.notifications?.unreadCount ?? 0
+  );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -112,6 +115,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         initialSection: item.sectionParam,
         _t: Date.now(),
       });
+    } else if (item.targetScreen === 'Notification') {
+      (navigation as any).navigate('Notification', { from: 'owner' });
     } else {
       (navigation as any).navigate(item.targetScreen);
     }
@@ -241,8 +246,14 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                 </Text>
               </View>
 
-              {/* Badge số lượng việc cần làm nếu có */}
-              {item.badgeCount && item.badgeCount > 0 ? (
+              {/* Badge số lượng thông báo hoặc việc cần làm */}
+              {item.id === 'notifications' && unreadNotifications > 0 ? (
+                <View style={[styles.menuBadge, styles.menuBadgeRed]}>
+                  <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications} mới
+                  </Text>
+                </View>
+              ) : item.badgeCount && item.badgeCount > 0 ? (
                 <View
                   style={[
                     styles.menuBadge,

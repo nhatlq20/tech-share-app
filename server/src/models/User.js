@@ -2,11 +2,6 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    accountId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Account',
-      index: true,
-    },
     name: {
       type: String,
       required: [true, 'Full name is required'],
@@ -140,11 +135,11 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Virtual reference to Account
+// Virtual reference to Account (Account holds userId referencing User._id)
 userSchema.virtual('account', {
   ref: 'Account',
-  localField: 'accountId',
-  foreignField: '_id',
+  localField: '_id',
+  foreignField: 'userId',
   justOne: true,
 });
 

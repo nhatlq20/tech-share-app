@@ -19,7 +19,6 @@ const createToken = user => {
   return jwt.sign(
     {
       id: user._id,
-      accountId: user.accountId,
       email: user.email,
       role: user.role,
       name: user.name,
@@ -71,15 +70,19 @@ router.post('/login', async (req, res) => {
       ? roleRecord.code
       : 'renter';
 
-    // Existing profiles may predate the accounts/users link and only contain email.
-    let user = await User.findOne({ accountId: account._id }).lean()
-      || await User.findOne({ email: account.email }).lean();
+    // Account holds userId referencing User._id
+    let user = null;
+    if (account.userId) {
+      user = await User.findById(account.userId).lean();
+    }
+    if (!user) {
+      user = await User.findOne({ email: account.email }).lean();
+    }
 
     if (!user) {
       const fallbackName = account.username || account.email.split('@')[0];
 
       user = await User.create({
-        accountId: account._id,
         name: fallbackName,
         email: account.email,
         role: accountRole,
@@ -93,6 +96,11 @@ router.post('/login', async (req, res) => {
         success: false,
         message: 'Profile not found for this account',
       });
+    }
+
+    // Đảm bảo Account có userId trỏ tới user._id
+    if (!account.userId || account.userId.toString() !== user._id.toString()) {
+      await Account.updateOne({ _id: account._id }, { userId: user._id });
     }
 
     // Chỉ xác thực isVerified = true khi đã có đơn eKYC được Admin duyệt (hoặc role admin)
@@ -363,6 +371,9 @@ router.post('/register', async (req, res) => {
       trustScore: 100,
     });
 
+    // Cập nhật ngược lại userId vào bảng Account
+    await Account.updateOne({ _id: account._id }, { userId: user._id });
+
     // Delete used OTP
     await Otp.deleteMany({ email: normalizedEmail, purpose: 'register' });
 
@@ -467,7 +478,7 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     // Find profile info to personalize email
-    const user = await User.findOne({ accountId: account._id }).lean()
+    const user = (account.userId ? await User.findById(account.userId).lean() : null)
       || await User.findOne({ email: account.email }).lean();
 
     // Generate 6-digit numeric OTP code

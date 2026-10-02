@@ -119,6 +119,7 @@ const seedDatabase = async () => {
       // 1. Admin
       {
         _id: accountAdminId,
+        userId: userAdminId,
         username: 'admin',
         email: 'admin@techshare.vn',
         passwordHash: defaultHashedPassword,
@@ -128,6 +129,7 @@ const seedDatabase = async () => {
       // 2. Owner 1 - 5
       ...ownerAccountIds.map((id, index) => ({
         _id: id,
+        userId: ownerUserIds[index],
         username: `owner${index + 1}`,
         email: `owner${index + 1}@techshare.vn`,
         passwordHash: defaultHashedPassword,
@@ -137,6 +139,7 @@ const seedDatabase = async () => {
       // 3. Renter 1 - 5
       ...renterAccountIds.map((id, index) => ({
         _id: id,
+        userId: renterUserIds[index],
         username: `renter${index + 1}`,
         email: `renter${index + 1}@techshare.vn`,
         passwordHash: defaultHashedPassword,
@@ -145,8 +148,9 @@ const seedDatabase = async () => {
       })),
     ];
 
+    await Account.deleteMany({});
     await Account.insertMany(accountsData);
-    console.log(`🔐 [TechShare Seed] Seeded ${accountsData.length} Accounts with password '123456' (1 Admin, 5 Owner, 5 Renter).`);
+    console.log(`🔐 [TechShare Seed] Seeded ${accountsData.length} Accounts with userId and password '123456' (1 Admin, 5 Owner, 5 Renter).`);
 
     // Avatars for profiles
     const ownerAvatars = [
@@ -170,8 +174,9 @@ const seedDatabase = async () => {
       // 1. Admin
       {
         _id: userAdminId,
-        accountId: accountAdminId,
         username: 'admin',
+        email: 'admin@techshare.vn',
+        role: 'admin',
         name: 'TechShare Administrator',
         phone: '0901234567',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
@@ -188,8 +193,9 @@ const seedDatabase = async () => {
       // 2. Owner 1 - 5
       ...ownerUserIds.map((id, index) => ({
         _id: id,
-        accountId: ownerAccountIds[index],
         username: `owner${index + 1}`,
+        email: `owner${index + 1}@techshare.vn`,
+        role: 'owner',
         name: index === 0 ? 'Minh Tuan Tech Review' : `Owner User ${index + 1}`,
         phone: `092200000${index + 1}`,
         avatar: ownerAvatars[index],
@@ -207,8 +213,9 @@ const seedDatabase = async () => {
       // 4. Renter 1 - 5
       ...renterUserIds.map((id, index) => ({
         _id: id,
-        accountId: renterAccountIds[index],
         username: `renter${index + 1}`,
+        email: `renter${index + 1}@techshare.vn`,
+        role: 'renter',
         name: index === 0 ? 'Hoang Nam Creator' : `Renter User ${index + 1}`,
         phone: `093300000${index + 1}`,
         avatar: renterAvatars[index],

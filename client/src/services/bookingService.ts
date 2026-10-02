@@ -68,6 +68,35 @@ export const bookingService = {
     return res.data.data;
   },
 
+  getOwnerBookings: async (status?: string): Promise<Booking[]> => {
+    const res = await apiClient.get('/bookings/owner-bookings', {
+      params: status ? { status } : {},
+    });
+    return res.data.data;
+  },
+
+  updateBookingStatusByOwner: async (
+    bookingId: string,
+    status: 'approved' | 'rejected' | 'active' | 'completed',
+    reason?: string
+  ): Promise<Booking> => {
+    const res = await apiClient.patch(`/bookings/${bookingId}/status`, {
+      status,
+      reason,
+    });
+    return res.data.data;
+  },
+
+  handoverBooking: async (bookingId: string): Promise<Booking> => {
+    const res = await apiClient.patch(`/bookings/${bookingId}/handover`);
+    return res.data.data;
+  },
+
+  completeBooking: async (bookingId: string): Promise<Booking> => {
+    const res = await apiClient.patch(`/bookings/${bookingId}/complete`);
+    return res.data.data;
+  },
+
   getDeviceBusyDates: async (
     deviceId: string
   ): Promise<{ _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]> => {
@@ -75,3 +104,4 @@ export const bookingService = {
     return res.data.busyRanges || [];
   },
 };
+
