@@ -457,7 +457,7 @@ export function OwnerDashboardScreen({
               if (onNavigateToNotifications) {
                 onNavigateToNotifications();
               } else if (navigation?.navigate) {
-                navigation.navigate('Notification');
+                navigation.navigate('Notification', { from: 'owner' });
               }
             }}
             activeOpacity={0.7}

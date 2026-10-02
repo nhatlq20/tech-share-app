@@ -115,6 +115,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         initialSection: item.sectionParam,
         _t: Date.now(),
       });
+    } else if (item.targetScreen === 'Notification') {
+      (navigation as any).navigate('Notification', { from: 'owner' });
     } else {
       (navigation as any).navigate(item.targetScreen);
     }

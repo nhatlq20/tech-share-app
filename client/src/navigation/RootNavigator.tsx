@@ -30,15 +30,30 @@ export type RootStackParamList = {
   Register: undefined;
   ForgotPassword: undefined;
   AdminRoot: undefined;
-  OwnerRoot: undefined;
-  MainTabs: undefined;
+  OwnerRoot:
+    | {
+        screen?: string;
+        params?: {
+          initialSection?: 'overview' | 'orders' | 'fleet' | 'wallet' | 'ai_tools';
+          _t?: number;
+          bookingId?: string;
+        };
+      }
+    | undefined;
+  MainTabs: { screen?: string } | undefined;
   MyDevices: undefined;
   DeviceDetail: { deviceId: string; hideBookNow?: boolean };
   BookingDetail: { bookingId: string };
   BookingCreate: { deviceId: string };
   PostDevice: undefined;
-  OwnerDashboard: undefined;
-  Notification: undefined;
+  OwnerDashboard:
+    | {
+        initialSection?: 'overview' | 'orders' | 'fleet' | 'wallet' | 'ai_tools';
+        _t?: number;
+        bookingId?: string;
+      }
+    | undefined;
+  Notification: { from?: string } | undefined;
 };
 
 export const rootNavigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -70,15 +85,48 @@ const BookingDetailRoute = ({ route, navigation }: any) => (
   />
 );
 
-const NotificationRoute = ({ navigation }: any) => (
-  <NotificationScreen
-    onBack={() => navigation.goBack()}
-    onNavigateToBooking={() => navigation.navigate('MainTabs')}
-    onNavigateToDevice={(deviceId) => {
-      if (deviceId) navigation.navigate('DeviceDetail', { deviceId });
-    }}
-  />
-);
+const NotificationRoute = ({ route, navigation }: any) => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isOwner = user?.role === 'owner' || route?.params?.from === 'owner';
+
+  return (
+    <NotificationScreen
+      onBack={() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else if (user?.role === 'owner') {
+          navigation.navigate('OwnerRoot');
+        } else if (route?.params?.from === 'owner') {
+          navigation.navigate('OwnerDashboard');
+        } else {
+          navigation.navigate('MainTabs');
+        }
+      }}
+      onNavigateToBooking={(bookingId) => {
+        if (user?.role === 'owner') {
+          // Chủ máy: Điều hướng thẳng về Bảng điều khiển Owner (mục Quản lý đơn thuê)
+          navigation.navigate('OwnerRoot', {
+            screen: 'OwnerDashboard',
+            params: { initialSection: 'orders', _t: Date.now(), bookingId },
+          });
+        } else if (route?.params?.from === 'owner') {
+          navigation.navigate('OwnerDashboard', {
+            initialSection: 'orders',
+            _t: Date.now(),
+            bookingId,
+          });
+        } else if (bookingId) {
+          navigation.navigate('BookingDetail', { bookingId });
+        } else {
+          navigation.navigate('MainTabs');
+        }
+      }}
+      onNavigateToDevice={(deviceId) => {
+        if (deviceId) navigation.navigate('DeviceDetail', { deviceId });
+      }}
+    />
+  );
+};
 
 export function RootNavigator() {
   const dispatch = useDispatch();
@@ -172,6 +220,7 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
+            <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
@@ -211,11 +260,15 @@ export function RootNavigator() {
                   edges={['top', 'left', 'right']}
                 >
                   <OwnerDashboardScreen
+                    navigation={navigation}
                     onBackToHome={() => navigation.navigate('MainTabs')}
                     onNavigateToDeviceDetail={(deviceId) =>
                       navigation.navigate('DeviceDetail', { deviceId })
                     }
                     onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
+                    onNavigateToNotifications={() =>
+                      navigation.navigate('Notification', { from: 'owner' })
+                    }
                     onLogout={handleLogout}
                   />
                 </SafeAreaView>
