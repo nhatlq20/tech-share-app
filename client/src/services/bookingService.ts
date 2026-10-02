@@ -23,6 +23,8 @@ export interface Booking {
   status: 'pending' | 'approved' | 'active' | 'completed' | 'cancelled' | 'rejected';
   paymentStatus: 'unpaid' | 'deposit_held' | 'paid' | 'refunded' | 'disputed';
   extensionRequest?: ExtensionRequestInfo;
+  isReviewed?: boolean;
+  reviewId?: string;
   createdAt: string;
 }
 
@@ -36,6 +38,11 @@ export const bookingService = {
     const res = await apiClient.get('/bookings/my-bookings', {
       params: status ? { status } : {},
     });
+    return res.data.data;
+  },
+
+  getBookingById: async (bookingId: string): Promise<Booking> => {
+    const res = await apiClient.get(`/bookings/${bookingId}`);
     return res.data.data;
   },
 
@@ -88,6 +95,13 @@ export const bookingService = {
   completeBooking: async (bookingId: string): Promise<Booking> => {
     const res = await apiClient.patch(`/bookings/${bookingId}/complete`);
     return res.data.data;
+  },
+
+  getDeviceBusyDates: async (
+    deviceId: string
+  ): Promise<{ _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]> => {
+    const res = await apiClient.get(`/bookings/busy-dates/${deviceId}`);
+    return res.data.busyRanges || [];
   },
 };
 

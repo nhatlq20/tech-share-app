@@ -24,22 +24,22 @@ export const CATEGORIES: CategoryItem[] = [
   },
   {
     id: 'smartphone',
-    name: 'Smartphone',
+    name: 'Smartphones',
     icon: 'phone-portrait-outline',
   },
   {
     id: 'laptop',
-    name: 'Laptop',
+    name: 'Laptops',
     icon: 'laptop-outline',
   },
   {
     id: 'camera',
-    name: 'Camera',
+    name: 'Cameras',
     icon: 'camera-outline',
   },
   {
     id: 'drone',
-    name: 'Drone',
+    name: 'Drones',
     icon: 'airplane-outline',
   },
   {

@@ -1,25 +1,34 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, Linking, StyleSheet, View, Text, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { LatLng, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { DevicePreviewCard } from '../../components/map/DevicePreviewCard';
-import { DeviceMapMarker } from '../../components/map/DeviceMapMarker';
-import { DeviceMapOverlayMarker } from '../../components/map/DeviceMapOverlayMarker';
+import {
+  OpenStreetMap,
+  OpenStreetMapHandle,
+} from '../../components/map/OpenStreetMap';
 
-// React 19 JSX typing compatibility wrapper
-const MapViewComponent = MapView as any;
-const MarkerNative = Marker as any;
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const MAX_DISTANCE = 5000; // S-04 accepts meters (5km default)
-const MAX_LAST_KNOWN_AGE_MS = 15 * 60 * 1000;
+const MAX_DISTANCE = 10000; // S-04 accepts meters (10km default)
+const MAX_LAST_KNOWN_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours: use cached location immediately, refresh in background
 const SIGNIFICANT_MOVEMENT_METERS = 150;
+
+interface LatLng {
+  latitude: number;
+  longitude: number;
+}
 
 function distanceInMeters(from: LatLng, to: LatLng): number {
   const earthRadiusMeters = 6371000;
@@ -57,34 +66,6 @@ interface DeviceMarkerData {
   distanceMeters: number;
 }
 
-interface DeviceOverlayMarkerData extends DeviceMarkerData {
-  left: number;
-  top: number;
-}
-
-interface MapRegion {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
-
-function fittedRegion(coordinates: LatLng[]): MapRegion {
-  const latitudes = coordinates.map((coordinate) => coordinate.latitude);
-  const longitudes = coordinates.map((coordinate) => coordinate.longitude);
-  const minLatitude = Math.min(...latitudes);
-  const maxLatitude = Math.max(...latitudes);
-  const minLongitude = Math.min(...longitudes);
-  const maxLongitude = Math.max(...longitudes);
-
-  return {
-    latitude: (minLatitude + maxLatitude) / 2,
-    longitude: (minLongitude + maxLongitude) / 2,
-    latitudeDelta: Math.max((maxLatitude - minLatitude) * 1.7, 0.02),
-    longitudeDelta: Math.max((maxLongitude - minLongitude) * 1.7, 0.02),
-  };
-}
-
 export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -100,16 +81,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   const [nearbyState, setNearbyState] = useState('loading' as 'loading' | 'ready' | 'error');
   const [nearbyAttempt, setNearbyAttempt] = useState(0);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null as string | null);
-  const [mapReady, setMapReady] = useState(false);
-  const [visibleRegion, setVisibleRegion] = useState(null as MapRegion | null);
-  const [mapViewport, setMapViewport] = useState({
-    y: 0,
-    width: SCREEN_WIDTH,
-    height: Math.max(SCREEN_HEIGHT - 200, 300),
-  });
-
-  const mapRef = useRef(null as any);
-  const fittedCoordinatesSignature = useRef('');
+  const osmMapRef = useRef(null as OpenStreetMapHandle | null);
   const isRequestingLocation = useRef(false);
   const isRefreshingCurrentLocation = useRef(false);
   const locationRequestId = useRef(0);
@@ -189,10 +161,6 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             console.log(`[C-06 GPS] Background movement: ${Math.round(movement)} m`);
             if (movement >= SIGNIFICANT_MOVEMENT_METERS) {
               setPosition(currentCoordinate);
-              mapRef.current?.animateToRegion(
-                { ...currentCoordinate, latitudeDelta: 0.08, longitudeDelta: 0.08 },
-                500,
-              );
             }
           })
           .catch((currentError: unknown) => {
@@ -214,6 +182,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           });
       };
 
+      console.log('[LOCATION DEBUG] init');
+      const permBefore = await Location.getForegroundPermissionsAsync().catch(() => null);
+      console.log('[LOCATION DEBUG] permission before request:', permBefore?.status ?? 'error');
+
       try {
         const permissionStartedAt = Date.now();
         permissionRequest.current ??= Location.requestForegroundPermissionsAsync();
@@ -224,9 +196,11 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
         permissionStatus = permission.status;
         permissionCanAskAgain = permission.canAskAgain;
         setCanAskAgain(permission.canAskAgain);
+        console.log('[LOCATION DEBUG] permission after request:', permissionStatus);
 
         if (!permission.granted) {
           gpsError = new Error(`Foreground location permission is ${permission.status}`);
+          console.log('[LOCATION DEBUG] fatal error reason:', errorMessage(gpsError));
           setLocationState('denied');
           setError(errorMessage(gpsError));
           return;
@@ -235,6 +209,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
         const serviceStartedAt = Date.now();
         servicesEnabled = await Location.hasServicesEnabledAsync();
         logPerformance('Service check completed', serviceStartedAt);
+        console.log('[LOCATION DEBUG] services enabled:', servicesEnabled);
 
         try {
           providerStatus = await Location.getProviderStatusAsync();
@@ -259,12 +234,14 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
         let lastKnownPosition: Location.LocationObject | null = null;
         const lastKnownStartedAt = Date.now();
+        console.log('[LOCATION DEBUG] lastKnown start');
         try {
           lastKnownPosition = await Location.getLastKnownPositionAsync();
         } catch (lastKnownError: unknown) {
           console.log('[C-06 GPS] Last known lookup failed:', errorMessage(lastKnownError));
         }
         logPerformance('Last Known completed', lastKnownStartedAt);
+        console.log('[LOCATION DEBUG] lastKnown result:', lastKnownPosition);
 
         if (!isActiveRequest()) return;
 
@@ -288,6 +265,13 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             ? `STALE (${Math.round(cacheAgeMs / 60000)} min)`
             : 'NULL';
 
+        console.log('[LOCATION DEBUG] cache result:', {
+          hasUsableCache,
+          cacheAgeMs,
+          cachedCoordinate,
+          maxAgeMs: MAX_LAST_KNOWN_AGE_MS,
+        });
+
         console.log('[C-06 GPS] Last known:', lastKnownPositionResult);
         if (hasUsableCache && cachedCoordinate) {
           locationDiag.current = {
@@ -301,6 +285,8 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           setError(null);
           setPosition(cachedCoordinate);
           setLocationState('ready');
+          console.log('[LOCATION DEBUG] final location source: LAST_KNOWN');
+          console.log('[LOCATION DEBUG] final coordinates:', cachedCoordinate);
           console.log(`[C-06 PERFORMANCE] Map ready after: ${Date.now() - startedAt} ms`);
           refreshCurrentPositionInBackground(cachedCoordinate);
           return;
@@ -308,14 +294,40 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
         // No usable cache: current position is now the only request allowed to block loading.
         let currentPosition: Location.LocationObject;
+        console.log('[LOCATION DEBUG] current start');
         try {
           currentPosition = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
             mayShowUserSettingsDialog: true,
           });
           currentPositionResult = 'PASS';
-        } catch (currentError: unknown) {
+          console.log('[LOCATION DEBUG] current success:', currentPosition);
+        } catch (currentError: any) {
           currentPositionResult = 'FAIL';
+          console.log('[LOCATION DEBUG] current error name:', currentError?.name ?? 'unknown');
+          console.log(
+            '[LOCATION DEBUG] current error message:',
+            currentError?.message ?? String(currentError),
+          );
+
+          if (cachedCoordinate && validCoordinate(cachedCoordinate.latitude, cachedCoordinate.longitude)) {
+            console.log('[C-06 GPS] Current position failed, using available last-known position:', cachedCoordinate);
+            locationDiag.current = {
+              permission: permissionStatus,
+              servicesEnabled,
+              currentPositionResult: 'FAIL',
+              currentError: errorMessage(currentError),
+              lastKnownResult: lastKnownPositionResult,
+              locationSource: 'LAST_KNOWN_FALLBACK',
+            };
+            setError(null);
+            setPosition(cachedCoordinate);
+            setLocationState('ready');
+            console.log('[LOCATION DEBUG] final location source: LAST_KNOWN_FALLBACK');
+            console.log('[LOCATION DEBUG] final coordinates:', cachedCoordinate);
+            return;
+          }
+
           throw currentError;
         }
         if (!isActiveRequest()) return;
@@ -339,6 +351,8 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
         setError(null);
         setPosition(currentCoordinate);
         setLocationState('ready');
+        console.log('[LOCATION DEBUG] final location source: CURRENT');
+        console.log('[LOCATION DEBUG] final coordinates:', currentCoordinate);
         console.log(`[C-06 PERFORMANCE] Map ready after: ${Date.now() - startedAt} ms`);
       } catch (error: unknown) {
         if (!gpsError) gpsError = error;
@@ -350,6 +364,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           lastKnownResult: lastKnownPositionResult,
           locationSource: 'NONE',
         };
+        console.log('[LOCATION DEBUG] fatal error reason:', errorMessage(gpsError));
         console.log('[C-06 GPS] Initial location resolution failed:', errorMessage(gpsError));
 
         if (isActiveRequest()) {
@@ -447,7 +462,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     };
   }, [position, nearbyAttempt]);
 
-  // GeoJSON coordinate mapping: MongoDB [longitude, latitude] -> MapView { latitude, longitude }
+  // GeoJSON coordinate mapping: MongoDB [longitude, latitude] -> renderer { latitude, longitude }
   const markers = useMemo((): DeviceMarkerData[] => {
     if (!position) return [];
     return devices.flatMap((device: Device) => {
@@ -476,119 +491,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     [markers, selectedDeviceId],
   );
 
-  const activeRegion = useMemo((): MapRegion | null => {
-    if (visibleRegion) return visibleRegion;
-    if (position) {
-      if (markers.length > 0) {
-        return fittedRegion([position, ...markers.map((m: DeviceMarkerData) => m.coordinate)]);
-      }
-      return {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        latitudeDelta: 0.08,
-        longitudeDelta: 0.08,
-      };
-    }
-    return null;
-  }, [markers, position, visibleRegion]);
-
-  const userPositionScreen = useMemo(() => {
-    if (!position || !activeRegion || mapViewport.width <= 0 || mapViewport.height <= 0) return null;
-    const x =
-      ((position.longitude - (activeRegion.longitude - activeRegion.longitudeDelta / 2)) /
-        activeRegion.longitudeDelta) *
-      mapViewport.width;
-    const y =
-      (((activeRegion.latitude + activeRegion.latitudeDelta / 2) - position.latitude) /
-        activeRegion.latitudeDelta) *
-      mapViewport.height;
-
-    if (x < -30 || x > mapViewport.width + 30 || y < -30 || y > mapViewport.height + 30) {
-      return null;
-    }
-    return { left: x - 11, top: y - 11 };
-  }, [activeRegion, mapViewport, position]);
-
-  const overlayMarkers = useMemo((): DeviceOverlayMarkerData[] => {
-    if (!activeRegion || mapViewport.width <= 0 || mapViewport.height <= 0) return [];
-
-    const duplicateIndex = new Map<string, number>();
-    return markers.flatMap((marker: DeviceMarkerData) => {
-      const x =
-        ((marker.coordinate.longitude - (activeRegion.longitude - activeRegion.longitudeDelta / 2)) /
-          activeRegion.longitudeDelta) *
-        mapViewport.width;
-      const y =
-        (((activeRegion.latitude + activeRegion.latitudeDelta / 2) - marker.coordinate.latitude) /
-          activeRegion.latitudeDelta) *
-        mapViewport.height;
-
-      if (x < -60 || x > mapViewport.width + 60 || y < -35 || y > mapViewport.height + 35) {
-        return [];
-      }
-
-      const coordinateKey = `${marker.coordinate.latitude.toFixed(5)},${marker.coordinate.longitude.toFixed(5)}`;
-      const overlapIndex = duplicateIndex.get(coordinateKey) ?? 0;
-      duplicateIndex.set(coordinateKey, overlapIndex + 1);
-      const horizontalOffset = overlapIndex === 0 ? 0 : overlapIndex % 2 === 1 ? 28 : -28;
-      const verticalOffset = overlapIndex > 0 ? -10 : 0;
-
-      return [{
-        ...marker,
-        left: x - 26 + horizontalOffset,
-        top: y - 14 + verticalOffset,
-      }];
-    });
-  }, [activeRegion, mapViewport, markers]);
-
-  useEffect(() => {
-    if (!mapReady || !position || markers.length === 0) return;
-
-    const signature = markers
-      .map(({ device, coordinate }: DeviceMarkerData) =>
-        `${device._id}:${coordinate.latitude.toFixed(5)},${coordinate.longitude.toFixed(5)}`,
-      )
-      .join('|');
-    if (fittedCoordinatesSignature.current === signature) return;
-    fittedCoordinatesSignature.current = signature;
-
-    const coordinates = [position, ...markers.map((marker: DeviceMarkerData) => marker.coordinate)];
-    setVisibleRegion(fittedRegion(coordinates));
-    mapRef.current?.fitToCoordinates(
-      coordinates,
-      {
-        edgePadding: { top: 70, right: 45, bottom: 190, left: 45 },
-        animated: true,
-      },
-    );
-    console.log('[C-07 MAP RUNTIME] Camera fit:', markers.length, 'device markers');
-  }, [mapReady, markers, position]);
-
   const handleSelectMarker = (deviceId: string) => {
     console.log('[C-07 SELECT]');
     console.log('Selected device:', deviceId);
     setSelectedDeviceId(deviceId);
-
-    // Camera focus: smoothly center on marker, offset slightly south so the marker rests comfortably above the bottom preview card
-    const targetMarker = markers.find((m: DeviceMarkerData) => m.device._id === deviceId);
-    if (targetMarker && mapRef.current) {
-      const currentDelta =
-        visibleRegion?.latitudeDelta && visibleRegion.latitudeDelta > 0
-          ? visibleRegion.latitudeDelta
-          : 0.04;
-      const targetDelta = Math.min(Math.max(currentDelta, 0.02), 0.035);
-      const offsetLatitude = targetMarker.coordinate.latitude - targetDelta * 0.22;
-
-      mapRef.current.animateToRegion(
-        {
-          latitude: offsetLatitude,
-          longitude: targetMarker.coordinate.longitude,
-          latitudeDelta: targetDelta,
-          longitudeDelta: targetDelta,
-        },
-        300,
-      );
-    }
   };
 
   const openDeviceDetails = (deviceId: string) => {
@@ -634,12 +540,12 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             {nearbyState === 'loading' && <ActivityIndicator color={colors.light.primary} />}
             <Text style={styles.statusText}>
               {nearbyState === 'loading'
-                ? 'Đang tìm thiết bị trong bán kính 5 km…'
+                ? 'Đang tìm thiết bị trong bán kính 10 km…'
                 : nearbyState === 'error'
                   ? 'Không thể tải thiết bị gần bạn. Vui lòng thử lại.'
                   : devices.length === 0
-                    ? 'Chưa có thiết bị trong bán kính 5 km.'
-                    : `${markers.length} thiết bị trên bản đồ · Bán kính 5 km`}
+                    ? 'Chưa có thiết bị trong bán kính 10 km.'
+                    : `${markers.length} thiết bị trên bản đồ · Bán kính 10 km`}
             </Text>
             {nearbyState === 'error' && (
               <TouchableOpacity
@@ -652,92 +558,17 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           </View>
 
           {/* Map View */}
-          <View
-            style={styles.mapContainer}
-            onLayout={(event: any) => {
-              const { y, width, height } = event.nativeEvent.layout;
-              setMapViewport({ y, width, height });
-              console.log('[C-07 MAP RUNTIME] Layout:', { y, width, height });
-            }}
-          >
-            <MapViewComponent
-              ref={mapRef}
-              style={styles.map}
-              mapType="standard"
-              scrollEnabled={true}
-              zoomEnabled={true}
-              rotateEnabled={true}
-              pitchEnabled={true}
-              showsUserLocation={true}
-              showsMyLocationButton={false}
-              initialRegion={{
-                latitude: position.latitude,
-                longitude: position.longitude,
-                latitudeDelta: 0.08,
-                longitudeDelta: 0.08,
-              }}
-              onMapReady={() => {
-                console.log('[C-07 MAP RUNTIME] Map ready: YES');
-                setMapReady(true);
-              }}
-              onMapLoaded={() => console.log('[C-07 MAP RUNTIME] Map loaded: YES')}
-              onPanDrag={() => {
-                console.log('[MAP INTERACTION] onPanDrag');
-              }}
-              onRegionChange={(region: any) => {
-                setVisibleRegion(region);
-              }}
-              onRegionChangeComplete={(region: any) => {
-                setVisibleRegion(region);
-                console.log('[MAP INTERACTION] onRegionChangeComplete:', region);
-              }}
-              onPress={(event: any) => {
-                console.log('[MAP INTERACTION] onPress');
-                if (event.nativeEvent?.action !== 'marker-press') {
-                  setSelectedDeviceId(null);
-                }
-              }}
-            >
-              {markers.map(({ device, coordinate }: DeviceMarkerData) => (
-                <DeviceMapMarker
-                  key={device._id}
-                  device={device}
-                  coordinate={coordinate}
-                  selected={selectedDeviceId === device._id}
-                  onSelect={handleSelectMarker}
-                />
-              ))}
-            </MapViewComponent>
-          </View>
-
-          {/* Custom Overlay Markers */}
-          <View
-            collapsable={false}
-            pointerEvents="box-none"
-            style={[styles.markerOverlay, { top: mapViewport.y, height: mapViewport.height }]}
-          >
-            {userPositionScreen && (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.userLocationMarker,
-                  { left: userPositionScreen.left, top: userPositionScreen.top },
-                ]}
-              >
-                <View style={styles.userLocationHalo} />
-                <View style={styles.userLocationDot} />
-              </View>
-            )}
-            {overlayMarkers.map((marker: DeviceOverlayMarkerData) => (
-              <DeviceMapOverlayMarker
-                key={marker.device._id}
-                device={marker.device}
-                selected={selectedDeviceId === marker.device._id}
-                left={marker.left}
-                top={marker.top}
-                onSelect={handleSelectMarker}
-              />
-            ))}
+          <View style={styles.mapContainer}>
+            <OpenStreetMap
+              controllerRef={osmMapRef}
+              userPosition={position}
+              devices={devices}
+              selectedDeviceId={selectedDeviceId}
+              initialFitReady={nearbyState !== 'loading'}
+              onSelectDevice={handleSelectMarker}
+              onMapPress={() => setSelectedDeviceId(null)}
+              onReady={() => console.log('[OSM MAP RUNTIME] Map ready: YES')}
+            />
           </View>
 
           {/* Floating My Location Button */}
@@ -750,19 +581,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
               accessibilityRole="button"
               accessibilityLabel="Vị trí của tôi"
               activeOpacity={0.85}
-              onPress={() => {
-                if (position && mapRef.current) {
-                  mapRef.current.animateToRegion(
-                    {
-                      latitude: position.latitude,
-                      longitude: position.longitude,
-                      latitudeDelta: 0.03,
-                      longitudeDelta: 0.03,
-                    },
-                    300,
-                  );
-                }
-              }}
+              onPress={() => osmMapRef.current?.recenter(position)}
             >
               <Ionicons name="locate" size={20} color={colors.light.primary} />
             </TouchableOpacity>
@@ -867,38 +686,6 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     overflow: 'hidden',
-  },
-  map: {
-    flex: 1,
-  },
-  markerOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    elevation: 20,
-  },
-  userLocationMarker: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userLocationHalo: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(37, 99, 235, 0.22)',
-  },
-  userLocationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#2563EB',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   statusBar: {
     flexDirection: 'row',

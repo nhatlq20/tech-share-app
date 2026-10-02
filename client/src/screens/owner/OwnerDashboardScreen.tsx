@@ -23,10 +23,11 @@ import { useAppSelector } from '../../store';
 import { socketService } from '../../services/socketService';
 import {
   ownerAnalyticsService,
-  FALLBACK_OWNER_ANALYTICS_WEEK,
+  OwnerAnalyticsData,
 } from '../../services/ownerAnalyticsService';
 import { bookingService, Booking } from '../../services/bookingService';
 import { OwnerAnalyticsResponse, FleetDeviceItem } from '../../types';
+
 import { RevenueChart } from '../../components/owner/RevenueChart';
 import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
 
@@ -51,6 +52,61 @@ interface OwnerDashboardScreenProps {
 
 type PeriodType = 'week' | 'month';
 type DeviceFilterType = 'all' | 'rented' | 'available';
+
+const mapAnalyticsToDashboard = (
+  data: OwnerAnalyticsData,
+  period: PeriodType,
+): OwnerAnalyticsResponse => {
+  const devices = data.devices || [];
+  const bookings = data.bookings || [];
+  const rentedDevices = devices.filter((device) => device.status === 'rented').length;
+  const availableDevices = devices.filter((device) => device.status === 'available').length;
+  const totalDevices = data.totalDevices ?? devices.length;
+
+  const chartItems = period === 'week'
+    ? (data.revenueByDay || []).map((item) => ({ label: item.day, revenue: item.revenue }))
+    : Array.from({ length: 5 }, (_, index) => ({
+        label: `Week ${index + 1}`,
+        revenue: bookings.reduce((sum, booking) => {
+          const bookingDate = new Date(booking.updatedAt || booking.endDate || booking.startDate);
+          const isCurrentMonth =
+            bookingDate.getFullYear() === new Date().getFullYear() &&
+            bookingDate.getMonth() === new Date().getMonth();
+          const bookingWeek = Math.floor((bookingDate.getDate() - 1) / 7);
+          return isCurrentMonth && bookingWeek === index
+            ? sum + Number(booking.rentalFee || 0)
+            : sum;
+        }, 0),
+      }));
+
+  const fleet: FleetDeviceItem[] = devices.map((device) => ({
+    _id: device._id,
+    name: device.name,
+    brand: device.brand || '',
+    category: device.category || '',
+    imageUrl: device.images?.[0] || '',
+    pricePerDay: device.pricePerDay || 0,
+    rentalCount: device.rentalCount || 0,
+    ratingAvg: device.ratingAvg || 0,
+    revenueTotal: device.revenueTotal || 0,
+    status: device.status,
+  }));
+
+  return {
+    overview: {
+      totalRevenue: data.totalRevenue || 0,
+      activeRentals: rentedDevices,
+      escrowHolding: 0,
+      utilizationRate: totalDevices ? (rentedDevices / totalDevices) * 100 : 0,
+    },
+    revenueChart: {
+      period,
+      labels: chartItems.map((item) => item.label),
+      datasets: [{ data: chartItems.map((item) => item.revenue) }],
+    },
+    fleet,
+  };
+};
 
 export function OwnerDashboardScreen({
   route,
@@ -93,12 +149,20 @@ export function OwnerDashboardScreen({
   const sectionLayouts: any = useRef({});
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const token = useAppSelector((state) => state.auth.token);
 
   // State quản lý số liệu phân tích
   const [period, setPeriod] = useState('week' as PeriodType);
-  const [analyticsData, setAnalyticsData] = useState(
-    FALLBACK_OWNER_ANALYTICS_WEEK as OwnerAnalyticsResponse
-  );
+  const [analyticsData, setAnalyticsData] = useState({
+    overview: {
+      totalRevenue: 0,
+      activeRentals: 0,
+      escrowHolding: 0,
+      utilizationRate: 0,
+    },
+    revenueChart: { period: 'week', labels: [], datasets: [{ data: [] }] },
+    fleet: [],
+  } as OwnerAnalyticsResponse);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -115,24 +179,23 @@ export function OwnerDashboardScreen({
 
   // State quản lý danh sách thiết bị kho máy
   const [deviceFilter, setDeviceFilter] = useState('all' as DeviceFilterType);
-  const [fleetList, setFleetList] = useState(
-    (FALLBACK_OWNER_ANALYTICS_WEEK.fleet || []) as FleetDeviceItem[]
-  );
+  const [fleetList, setFleetList] = useState([] as FleetDeviceItem[]);
 
   // Gọi API lấy dữ liệu thống kê
   const fetchAnalytics = useCallback(async (selectedPeriod: PeriodType) => {
+    if (!token) return;
+
     try {
-      const res = await ownerAnalyticsService.getOwnerAnalytics(selectedPeriod);
+      const response = await ownerAnalyticsService.getOwnerAnalytics(token);
+      const res = mapAnalyticsToDashboard(response, selectedPeriod);
       if (res) {
         setAnalyticsData(res);
-        if (res.fleet && res.fleet.length > 0) {
-          setFleetList(res.fleet);
-        }
+        setFleetList(res.fleet);
       }
     } catch (error) {
       console.warn('⚠️ [OwnerDashboardScreen] Lỗi khi tải thống kê:', error);
     }
-  }, []);
+  }, [token]);
 
   // Gọi API lấy danh sách đơn thuê thật của chủ máy
   const fetchOwnerOrders = useCallback(async () => {
@@ -186,8 +249,8 @@ export function OwnerDashboardScreen({
     setRefreshing(false);
   };
 
-  const overview = analyticsData.overview || FALLBACK_OWNER_ANALYTICS_WEEK.overview;
-  const chartData = analyticsData.revenueChart || FALLBACK_OWNER_ANALYTICS_WEEK.revenueChart;
+  const overview = analyticsData.overview;
+  const chartData = analyticsData.revenueChart;
 
   // Xử lý bật / tắt cho thuê nhanh thiết bị
   const toggleDeviceAvailability = (id: string) => {

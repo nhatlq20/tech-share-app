@@ -3,6 +3,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { theme } from '../constants/theme';
 import { OwnerSidebarContent } from './OwnerSidebarContent';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
+import { OwnerAnalyticsScreen } from '../screens/owner/OwnerAnalyticsScreen';
 
 export type OwnerDrawerParamList = {
   OwnerDashboard:
@@ -11,6 +12,7 @@ export type OwnerDrawerParamList = {
         _t?: number;
       }
     | undefined;
+  OwnerAnalytics: undefined;
 };
 
 const Drawer = createDrawerNavigator<OwnerDrawerParamList>();
@@ -44,6 +46,22 @@ export function OwnerDrawerNavigator({ navigation }: any) {
             onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
             onOpenDrawer={() => props.navigation.openDrawer()}
+          />
+        )}
+      </Drawer.Screen>
+      <Drawer.Screen
+        name="OwnerAnalytics"
+        options={{ title: 'Owner Analytics', drawerLabel: 'Doanh thu & Phân tích' }}
+      >
+        {(props: any) => (
+          <OwnerAnalyticsScreen
+            onBackToHome={() => {
+              if (props.navigation.canGoBack()) {
+                props.navigation.goBack();
+              } else {
+                props.navigation.navigate('OwnerDashboard');
+              }
+            }}
           />
         )}
       </Drawer.Screen>

@@ -10,6 +10,8 @@ interface BookingItemCardProps {
   onPress: () => void;
   onCancel?: () => void;
   onExtend?: () => void;
+  onReview?: () => void;
+  onReRent?: () => void;
 }
 
 const STATUS_CONFIG = {
@@ -21,7 +23,7 @@ const STATUS_CONFIG = {
   rejected: { label: 'Từ chối', color: colors.light.error, icon: 'close-circle-outline' },
 };
 
-export function BookingItemCard({ booking, onPress, onCancel, onExtend }: BookingItemCardProps) {
+export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview, onReRent }: BookingItemCardProps) {
   const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
   const deviceName = booking.deviceId?.name || 'Thiết bị';
   const deviceImage = booking.deviceId?.images?.[0] || 'https://via.placeholder.com/150';
@@ -95,7 +97,7 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend }: Bookin
       </View>
 
       {/* Action Row */}
-      {(booking.status === 'pending' || isActive) && (
+      {(booking.status === 'pending' || isActive || booking.status === 'completed') && (
         <View style={styles.actionRow}>
           {booking.status === 'pending' && onCancel && (
             <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
@@ -127,6 +129,28 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend }: Bookin
                 {isPendingExtension ? 'Chờ duyệt gia hạn' : 'Gia hạn thuê'}
               </Text>
             </TouchableOpacity>
+          )}
+
+          {booking.status === 'completed' && (
+            booking.isReviewed ? (
+              <View style={styles.completedActions}>
+                <View style={styles.reviewedBadge}>
+                  <Ionicons name="checkmark-done-circle" size={15} color={colors.light.success} />
+                  <Text style={styles.reviewedBadgeText}>Đã đánh giá</Text>
+                </View>
+                {onReRent && (
+                  <TouchableOpacity style={styles.reRentButton} onPress={onReRent} activeOpacity={0.8}>
+                    <Ionicons name="repeat" size={15} color="#FFFFFF" />
+                    <Text style={styles.reRentButtonText}>Thuê lại</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : onReview ? (
+              <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
+                <Ionicons name="star" size={14} color="#FFFFFF" />
+                <Text style={styles.reviewButtonText}>Đánh giá dịch vụ</Text>
+              </TouchableOpacity>
+            ) : null
           )}
         </View>
       )}
@@ -309,5 +333,52 @@ const styles = StyleSheet.create({
   extendButtonTextDisabled: {
     color: colors.light.textSecondary,
     fontWeight: '600',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B',
+  },
+  reviewButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  reviewedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#DCFCE7',
+  },
+  reviewedBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  completedActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reRentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.light.primary,
+  },
+  reRentButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

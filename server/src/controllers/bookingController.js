@@ -28,6 +28,24 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ message: 'Thời gian trả máy phải sau thời gian nhận máy' });
     }
 
+    // Kiểm tra trùng lịch với đơn đang active (hoặc approved) trên MongoDB
+    const conflictingBooking = await Booking.findOne({
+      deviceId: device._id,
+      status: { $in: ['active', 'approved'] },
+      startDate: { $lt: end },
+      endDate: { $gt: start },
+    });
+
+
+    if (conflictingBooking) {
+      const fromStr = new Date(conflictingBooking.startDate).toLocaleDateString('vi-VN');
+      const toStr = new Date(conflictingBooking.endDate).toLocaleDateString('vi-VN');
+      const statusText = conflictingBooking.status === 'active' ? 'đang được thuê' : 'đã được duyệt cho thuê';
+      return res.status(400).json({
+        message: `Thiết bị ${statusText} trong khoảng thời gian (${fromStr} - ${toStr}). Vui lòng chọn thời gian khác!`,
+      });
+    }
+
     const diffTime = Math.abs(end - start);
     let totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (totalDays === 0) totalDays = 1;
@@ -152,6 +170,43 @@ export const getMyBookings = async (req, res) => {
   } catch (error) {
     console.error('Error getting my bookings:', error);
     res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách đơn' });
+  }
+};
+
+// @desc    Get booking details by ID
+// @route   GET /api/bookings/:id
+// @access  Private
+export const getBookingById = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const userId = req.auth.id || req.auth._id;
+
+    const booking = await Booking.findById(bookingId)
+      .populate(
+        'deviceId',
+        'name images brand model category pricePerDay dailyRate depositValue description condition addressText'
+      )
+      .populate('ownerId', 'name avatar phone email rating totalReviews')
+      .populate('renterId', 'name avatar phone email');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê' });
+    }
+
+    const renterIdStr = booking.renterId?._id ? booking.renterId._id.toString() : booking.renterId?.toString();
+    const ownerIdStr = booking.ownerId?._id ? booking.ownerId._id.toString() : booking.ownerId?.toString();
+    const isRenter = renterIdStr === userId;
+    const isOwner = ownerIdStr === userId;
+    const isAdmin = req.auth.role === 'admin' || req.auth.roles?.includes('admin');
+
+    if (!isRenter && !isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xem đơn thuê này' });
+    }
+
+    res.status(200).json({ success: true, data: booking });
+  } catch (error) {
+    console.error('Error getting booking by ID:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy chi tiết đơn thuê' });
   }
 };
 
@@ -690,5 +745,44 @@ export const handoverBooking = async (req, res) => {
 export const completeBooking = async (req, res) => {
   req.body.status = 'completed';
   return updateBookingStatusByOwner(req, res);
+};
+
+// @desc    Lấy danh sách các khoảng thời gian thiết bị đang có người thuê / bận
+// @route   GET /api/bookings/busy-dates/:deviceId
+// @access  Public
+export const getDeviceBusyDates = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    // Tìm các đơn thuê đang có status là 'active' hoặc 'approved' và chưa kết thúc trong quá khứ
+    const now = new Date();
+    const busyBookings = await Booking.find({
+      deviceId,
+      status: { $in: ['active', 'approved'] },
+      endDate: { $gte: now },
+    })
+      .select('startDate endDate status bookingCode')
+      .sort({ startDate: 1 });
+
+    const busyRanges = busyBookings.map((b) => ({
+      _id: b._id,
+      startDate: b.startDate,
+      endDate: b.endDate,
+      status: b.status,
+      bookingCode: b.bookingCode,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      busyRanges,
+    });
+  } catch (error) {
+    console.error('Error getting device busy dates:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi tải lịch bận của thiết bị',
+      error: error.message,
+    });
+  }
 };
 

@@ -502,15 +502,15 @@ Xây dựng màn hình Chi tiết đơn thuê (`BookingDetailScreen.tsx`): hiể
 Cung cấp cái nhìn toàn diện về tiến trình thực hiện đơn hàng và cho phép khách thuê chủ động hủy đơn khi thay đổi kế hoạch mà không gây phiền hà.
 
 ### Scope of Work
-- [ ] Xây dựng màn hình `src/screens/booking/BookingDetailScreen.tsx`.
-- [ ] Xây dựng component `src/components/booking/OrderTimeline.tsx` với các icon tiến trình.
-- [ ] Thêm nút bấm "Hủy đơn thuê" hiển thị popup hộp thoại xác nhận hủy đơn.
-- [ ] Xây dựng API Backend `PATCH /api/bookings/:id/cancel` chuyển trạng thái đơn sang `cancelled`.
+- [x] Xây dựng màn hình `src/screens/booking/BookingDetailScreen.tsx`.
+- [x] Xây dựng component `src/components/booking/OrderTimeline.tsx` với các icon tiến trình.
+- [x] Thêm nút bấm "Hủy đơn thuê" hiển thị popup hộp thoại xác nhận hủy đơn.
+- [x] Xây dựng API Backend `PUT /api/bookings/:id/cancel` chuyển trạng thái đơn sang `cancelled`.
 
 ### Acceptance Criteria
-- [ ] Sơ đồ Timeline hiển thị chính xác mốc thời gian của từng bước trong vòng đời đơn.
-- [ ] Hủy đơn thành công khi đơn đang `pending`, đơn lập tức chuyển sang tab Đã hủy và mở lại lịch trống cho máy.
-- [ ] Ẩn nút hủy đơn đối với các đơn đã được duyệt hoặc đang trong quá trình thuê.
+- [x] Sơ đồ Timeline hiển thị chính xác mốc thời gian của từng bước trong vòng đời đơn.
+- [x] Hủy đơn thành công khi đơn đang `pending`, đơn lập tức chuyển sang tab Đã hủy và mở lại lịch trống cho máy.
+- [x] Ẩn nút hủy đơn đối với các đơn đã được duyệt hoặc đang trong quá trình thuê.
 
 ---
 

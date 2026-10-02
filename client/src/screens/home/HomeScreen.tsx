@@ -174,7 +174,7 @@ export function HomeScreen({
               <Text style={styles.brandTitle}>TechShare</Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-sharp" size={11} color={colors.light.primary} />
-                <Text style={styles.locationText}>Hà Nội, Việt Nam</Text>
+                <Text style={styles.locationText}>Hanoi, Vietnam</Text>
               </View>
             </View>
           </View>
@@ -200,7 +200,7 @@ export function HomeScreen({
                 <Ionicons name="briefcase" size={14} color={colors.light.primary} />
               </View>
               <Text style={styles.ownerSwitchText}>
-                Đang ở chế độ Đi thuê • <Text style={styles.ownerSwitchTextBold}>Về Bảng Chủ máy</Text>
+                Renter Mode • <Text style={styles.ownerSwitchTextBold}>Owner Dashboard</Text>
               </Text>
             </View>
             <View style={styles.ownerSwitchCta}>
@@ -254,14 +254,14 @@ export function HomeScreen({
 
         {/* SECTION HEADER */}
         <SectionHeader
-          title="Available devices"
+          title="Discover Devices"
           subtitle={
             selectedCategory === 'all'
               ? 'All tech categories'
               : `Filtered by: ${selectedCategory.toUpperCase()}`
           }
           badgeCount={filteredDevices.length}
-          actionText={selectedCategory !== 'all' ? 'Clear filter' : undefined}
+          actionText={selectedCategory !== 'all' ? 'See All' : undefined}
           onActionPress={
             selectedCategory !== 'all'
               ? () => {
@@ -317,7 +317,7 @@ export function HomeScreen({
         <View style={styles.emptyIconCircle}>
           <Ionicons name="hardware-chip-outline" size={36} color="#64748B" />
         </View>
-        <Text style={styles.emptyTitle}>No devices available yet</Text>
+        <Text style={styles.emptyTitle}>No devices found</Text>
         <Text style={styles.emptySubtitle}>
           {searchQuery || selectedCategory !== 'all'
             ? 'No matching devices were found for your current filters.'
@@ -338,7 +338,7 @@ export function HomeScreen({
             activeOpacity={0.8}
           >
             <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.resetBtnText}>View all devices</Text>
+            <Text style={styles.resetBtnText}>See All</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -357,7 +357,7 @@ export function HomeScreen({
         activeOpacity={0.8}
       >
         <Ionicons name="reload-outline" size={16} color="#FFFFFF" />
-        <Text style={styles.retryBtnText}>Retry</Text>
+        <Text style={styles.retryBtnText}>Try Again</Text>
       </TouchableOpacity>
     </View>
   );
