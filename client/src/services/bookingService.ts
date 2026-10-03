@@ -22,6 +22,10 @@ export interface Booking {
   totalAmount: number;
   status: 'pending' | 'approved' | 'active' | 'completed' | 'cancelled' | 'rejected';
   paymentStatus: 'unpaid' | 'deposit_held' | 'paid' | 'refunded' | 'disputed';
+  deliveryMethod?: 'pickup' | 'delivery' | string;
+  deliveryAddress?: string;
+  rejectReason?: string;
+  cancelReason?: string;
   extensionRequest?: ExtensionRequestInfo;
   isReviewed?: boolean;
   reviewId?: string;

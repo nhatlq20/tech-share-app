@@ -24,6 +24,7 @@ import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
 import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { BookingManageScreen, BookingManageTab } from '../screens/booking/BookingManageScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   DeviceDetail: { deviceId: string; hideBookNow?: boolean };
   BookingDetail: { bookingId: string };
   BookingCreate: { deviceId: string };
+  BookingManage: { initialTab?: BookingManageTab } | undefined;
   PostDevice: undefined;
   OwnerDashboard:
     | {
@@ -85,6 +87,16 @@ const BookingDetailRoute = ({ route, navigation }: any) => (
   />
 );
 
+const BookingManageRoute = ({ route, navigation }: any) => (
+  <BookingManageScreen
+    route={route}
+    navigation={navigation}
+    onBack={() => navigation.goBack()}
+    onNavigateToBookingDetail={(bookingId) => navigation.navigate('BookingDetail', { bookingId })}
+    onNavigateToNotifications={() => navigation.navigate('Notification', { from: 'owner' })}
+  />
+);
+
 const NotificationRoute = ({ route, navigation }: any) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const isOwner = user?.role === 'owner' || route?.params?.from === 'owner';
@@ -104,17 +116,12 @@ const NotificationRoute = ({ route, navigation }: any) => {
       }}
       onNavigateToBooking={(bookingId) => {
         if (user?.role === 'owner') {
-          // Chủ máy: Điều hướng thẳng về Bảng điều khiển Owner (mục Quản lý đơn thuê)
           navigation.navigate('OwnerRoot', {
-            screen: 'OwnerDashboard',
-            params: { initialSection: 'orders', _t: Date.now(), bookingId },
+            screen: 'BookingManage',
+            params: { initialTab: 'pending' },
           });
         } else if (route?.params?.from === 'owner') {
-          navigation.navigate('OwnerDashboard', {
-            initialSection: 'orders',
-            _t: Date.now(),
-            bookingId,
-          });
+          navigation.navigate('BookingManage', { initialTab: 'pending' });
         } else if (bookingId) {
           navigation.navigate('BookingDetail', { bookingId });
         } else {
@@ -222,6 +229,7 @@ export function RootNavigator() {
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
+            <Stack.Screen name="BookingManage">{BookingManageRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
                 <PostDeviceScreen
@@ -245,6 +253,7 @@ export function RootNavigator() {
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
+            <Stack.Screen name="BookingManage">{BookingManageRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
                 <PostDeviceScreen

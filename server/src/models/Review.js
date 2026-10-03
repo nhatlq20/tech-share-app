@@ -27,14 +27,14 @@ const reviewSchema = new mongoose.Schema(
 
     rating: {
       type: Number,
-      required: [true, 'Rating is required'],
       min: [1, 'Rating must be at least 1 star'],
       max: [5, 'Rating cannot exceed 5 stars'],
+      default: 5,
     },
     comment: {
       type: String,
-      required: [true, 'Review comment is required'],
       trim: true,
+      default: '',
     },
     ownerRating: {
       type: Number,
@@ -43,6 +43,18 @@ const reviewSchema = new mongoose.Schema(
       default: 5,
     },
     ownerFeedback: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    // ── Chiều 2: Chủ máy đánh giá ý thức Khách thuê ──
+    renterTrustRating: {
+      type: Number,
+      min: [1, 'Renter trust rating must be at least 1 star'],
+      max: [5, 'Renter trust rating cannot exceed 5 stars'],
+      default: null,
+    },
+    renterFeedback: {
       type: String,
       trim: true,
       default: '',
