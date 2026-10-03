@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { Booking } from '../../services/bookingService';
+import { ReviewItem } from '../../services/reviewService';
 import { RentalCountdownTimer } from './RentalCountdownTimer';
 
 export interface OwnerApprovalCardProps {
@@ -19,6 +20,8 @@ export interface OwnerApprovalCardProps {
   onHandover?: (booking: Booking) => void;
   onComplete?: (booking: Booking) => void;
   onPress?: (booking: Booking) => void;
+  onRateRenter?: (booking: Booking) => void;
+  renterReview?: ReviewItem;
   isUpdating?: boolean;
 }
 
@@ -71,6 +74,8 @@ export function OwnerApprovalCard({
   onHandover,
   onComplete,
   onPress,
+  onRateRenter,
+  renterReview,
   isUpdating = false,
 }: OwnerApprovalCardProps) {
   const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
@@ -248,6 +253,45 @@ export function OwnerApprovalCard({
           </Text>
         </View>
       )}
+
+      {/* ── 7B. CHIỀU 2: CHỦ MÁY ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ ── */}
+      {isCompleted && renterReview?.renterTrustRating ? (
+        <View style={styles.ratedTrustBox}>
+          <View style={styles.ratedTrustHeader}>
+            <Ionicons name="shield-checkmark" size={15} color={colors.light.primary} />
+            <Text style={styles.ratedTrustTitle}>Đã chấm ý thức khách:</Text>
+            <View style={styles.ratedStarBadge}>
+              <Ionicons name="star" size={12} color="#FBBF24" />
+              <Text style={styles.ratedStarText}>{renterReview.renterTrustRating}/5 sao</Text>
+            </View>
+          </View>
+          {!!renterReview.renterFeedback && (
+            <Text style={styles.ratedFeedbackText} numberOfLines={2}>
+              "{renterReview.renterFeedback}"
+            </Text>
+          )}
+        </View>
+      ) : isCompleted && onRateRenter ? (
+        <View style={styles.rateRenterCtaBox}>
+          <View style={styles.rateRenterCtaTextCol}>
+            <View style={styles.rateRenterTagRow}>
+              <Ionicons name="star" size={13} color="#F59E0B" />
+              <Text style={styles.rateRenterCtaTitle}>Chấm điểm ý thức khách thuê</Text>
+            </View>
+            <Text style={styles.rateRenterCtaSub}>
+              Cộng hoặc trừ điểm tín nhiệm khách thuê
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnRateRenter}
+            onPress={() => onRateRenter(booking)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.btnRateRenterText}>Đánh giá ngay</Text>
+            <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* ── 8. HÀNG NÚT THAO TÁC THEO TRẠNG THÁI ── */}
       {isPending && (
@@ -643,6 +687,90 @@ const styles = StyleSheet.create({
   },
   btnCompleteText: {
     fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  ratedTrustBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  ratedTrustHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ratedTrustTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#166534',
+    flex: 1,
+  },
+  ratedStarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  ratedStarText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  ratedFeedbackText: {
+    fontSize: 12,
+    color: '#374151',
+    fontStyle: 'italic',
+    marginTop: 4,
+    marginLeft: 21,
+  },
+  rateRenterCtaBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    gap: 8,
+  },
+  rateRenterCtaTextCol: {
+    flex: 1,
+  },
+  rateRenterTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  rateRenterCtaTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  rateRenterCtaSub: {
+    fontSize: 11,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  btnRateRenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D97706',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  btnRateRenterText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },

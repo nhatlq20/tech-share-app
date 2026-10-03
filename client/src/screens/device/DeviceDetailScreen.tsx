@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { ReviewListSection } from '../../components/device/ReviewListSection';
 
 interface DeviceDetailScreenProps {
   deviceId: string;
@@ -198,6 +199,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
             </View>
           )}
         </View>
+
+        {/* Review List Section */}
+        <ReviewListSection
+          deviceId={deviceId}
+          ratingAvg={device.ratingAvg ?? (device as any).ratingAverage}
+          ratingCount={(device as any).reviewCount ?? (device as any).ratingCount}
+        />
       </ScrollView>
 
       {/* Bottom Sticky Action Bar (CTA bo góc 12px theo theme-skill.md) */}
@@ -294,7 +302,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   scrollContent: {
-    paddingBottom: 90,
+    paddingBottom: 120,
   },
   imageContainer: {
     width: '100%',

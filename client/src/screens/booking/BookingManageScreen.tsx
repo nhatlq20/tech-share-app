@@ -17,7 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { OwnerApprovalCard } from '../../components/booking/OwnerApprovalCard';
+import { OwnerRateRenterModal } from '../../components/booking/OwnerRateRenterModal';
 import { bookingService, Booking } from '../../services/bookingService';
+import { reviewService, ReviewItem } from '../../services/reviewService';
 import { socketService } from '../../services/socketService';
 
 export type BookingManageTab = 'pending' | 'renting' | 'history';
@@ -70,11 +72,30 @@ export function BookingManageScreen({
   const [selectedRejectReason, setSelectedRejectReason] = useState(REJECT_REASONS[0]);
   const [customRejectReason, setCustomRejectReason] = useState('');
 
+  // Owner Rate Renter Modal State
+  const [rateRenterModalVisible, setRateRenterModalVisible] = useState(false);
+  const [selectedReviewToRate, setSelectedReviewToRate] = useState(null as ReviewItem | null);
+  // Map: bookingId → reviewId (for already-reviewed completed bookings)
+  const [reviewMap, setReviewMap] = useState({} as Record<string, ReviewItem>);
+
   // ── GỌI API LẤY DANH SÁCH ĐƠN CỦA CHỦ MÁY ──
   const fetchOwnerBookings = useCallback(async () => {
     try {
       const data = await bookingService.getOwnerBookings();
       setBookings(data || []);
+
+      // Sau khi có danh sách đơn, tải map review để kiểm tra đơn nào đã được Owner đánh giá
+      try {
+        const myReviews = await reviewService.getMyOwnerReviews();
+        const map: Record<string, ReviewItem> = {};
+        (myReviews || []).forEach((r: ReviewItem) => {
+          const bId = typeof r.bookingId === 'string' ? r.bookingId : (r.bookingId as any)?._id;
+          if (bId) map[bId] = r;
+        });
+        setReviewMap(map);
+      } catch {
+        // ignore review map error silently
+      }
     } catch (error) {
       console.warn('⚠️ [BookingManageScreen] Lỗi khi tải danh sách đơn:', error);
     } finally {
@@ -299,6 +320,35 @@ export function BookingManageScreen({
       onNavigateToBookingDetail(booking._id);
     } else if (navigation?.navigate) {
       navigation.navigate('BookingDetail', { bookingId: booking._id });
+    }
+  };
+
+  // ── HÀNH ĐỘNG 5: MỞ MODAL ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ (sau khi hoàn tất) ──
+  const handleOpenRateRenter = async (booking: Booking) => {
+    // Kiểm tra xem review cho đơn này đã tồn tại chưa
+    const existing = reviewMap[booking._id];
+    if (existing) {
+      if (existing.renterTrustRating !== null && existing.renterTrustRating !== undefined) {
+        Alert.alert('Đã đánh giá', 'Bạn đã đánh giá ý thức khách thuê cho đơn này rồi.');
+        return;
+      }
+      // Review tồn tại nhưng Owner chưa rate → mở modal
+      const reviewWithRenter: ReviewItem = {
+        ...existing,
+        renterId: (booking.renterId as any) || existing.renterId,
+        deviceId: (booking.deviceId as any) || existing.deviceId,
+      };
+      setSelectedReviewToRate(reviewWithRenter);
+      setRateRenterModalVisible(true);
+    } else {
+      // Đơn đã completed nhưng chưa có review record -> vẫn cho phép chủ máy chấm điểm trực tiếp
+      const newReviewItem: any = {
+        bookingId: booking._id,
+        renterId: booking.renterId,
+        deviceId: booking.deviceId,
+      };
+      setSelectedReviewToRate(newReviewItem);
+      setRateRenterModalVisible(true);
     }
   };
 
@@ -550,6 +600,8 @@ export function BookingManageScreen({
               onHandover={handleHandoverBooking}
               onComplete={handleCompleteBooking}
               onPress={handleCardPress}
+              onRateRenter={handleOpenRateRenter}
+              renterReview={reviewMap[item._id]}
               isUpdating={isUpdatingOrder}
             />
           )}
@@ -708,6 +760,19 @@ export function BookingManageScreen({
           </View>
         </View>
       </Modal>
+
+      {/* ── 7. MODAL CHỦ MÁY ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ ── */}
+      <OwnerRateRenterModal
+        visible={rateRenterModalVisible}
+        onClose={() => {
+          setRateRenterModalVisible(false);
+          setSelectedReviewToRate(null);
+        }}
+        review={selectedReviewToRate}
+        onSuccess={() => {
+          fetchOwnerBookings();
+        }}
+      />
     </View>
   );
 }
