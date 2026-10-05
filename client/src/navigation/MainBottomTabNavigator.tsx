@@ -6,6 +6,7 @@ import { HomeScreen } from '../screens/home/HomeScreen';
 import { MyBookingsScreen } from '../screens/booking/MyBookingsScreen';
 import { MapScreen } from '../screens/map/MapScreen';
 import { ProfileScreen } from '../screens/user/ProfileScreen';
+import { AiCompareScreen } from '../screens/ai/AiCompareScreen';
 import { BottomTabNavigator as CustomTabBar } from '../components/navigation/BottomTabNavigator';
 import { clearAuth } from '../store/slices/authSlice';
 import { socketService } from '../services/socketService';
@@ -16,6 +17,7 @@ export type MainBottomTabParamList = {
   Home: undefined;
   Bookings: undefined;
   Map: undefined;
+  Compare: undefined;
   Profile: undefined;
 };
 
@@ -105,6 +107,8 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
           />
         )}
       </Tab.Screen>
+
+      <Tab.Screen name="Compare" component={AiCompareScreen} />
 
       <Tab.Screen name="Profile">
         {() => (

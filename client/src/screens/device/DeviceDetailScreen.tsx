@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import {
   StyleSheet,
   View,
@@ -9,6 +10,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +18,9 @@ import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
 import { ReviewListSection } from '../../components/device/ReviewListSection';
+import { getAIReview } from '../../services/aiService';
+import type { AIReview } from '../../types/ai';
+import { AiReviewModal } from '../../components/ai/AiReviewModal';
 
 interface DeviceDetailScreenProps {
   deviceId: string;
@@ -37,6 +42,33 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [aiReview, setAiReview] = useState<AIReview | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const aiRequestInProgress = useRef(false);
+
+  const handleAIReview = async () => {
+    if (!device || aiRequestInProgress.current) return;
+
+    aiRequestInProgress.current = true;
+    try {
+      setAiLoading(true);
+      const data = await getAIReview(device._id);
+      setAiReview(data);
+      setShowAiModal(true);
+    } catch (err: unknown) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      Alert.alert(
+        'Error',
+        status === 503
+          ? 'AI is currently busy. Please try again later.'
+          : 'Unable to analyze this device. Please try again.'
+      );
+    } finally {
+      aiRequestInProgress.current = false;
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -198,6 +230,22 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
               ))}
             </View>
           )}
+
+          <TouchableOpacity
+            style={[styles.aiReviewButton, aiLoading && styles.aiReviewButtonDisabled]}
+            onPress={handleAIReview}
+            disabled={aiLoading}
+            activeOpacity={0.8}
+          >
+            {aiLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="sparkles-outline" size={18} color="#FFFFFF" />
+            )}
+            <Text style={styles.aiReviewButtonText}>
+              {aiLoading ? 'Analyzing...' : 'AI Review'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Review List Section */}
@@ -235,6 +283,12 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
           </TouchableOpacity>
         </View>
       )}
+
+      <AiReviewModal
+        visible={showAiModal}
+        review={aiReview}
+        onClose={() => setShowAiModal(false)}
+      />
     </View>
   );
 }
@@ -453,6 +507,24 @@ const styles = StyleSheet.create({
   },
   specsContainer: {
     marginBottom: 20,
+  },
+  aiReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.light.primary,
+    borderRadius: 12,
+    paddingVertical: 13,
+    marginBottom: 20,
+  },
+  aiReviewButtonDisabled: {
+    opacity: 0.7,
+  },
+  aiReviewButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   specRow: {
     flexDirection: 'row',

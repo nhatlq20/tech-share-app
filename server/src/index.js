@@ -14,6 +14,7 @@ import bookingRoutes from './routes/bookingRoutes.js';
 import voucherRoutes from './routes/voucherRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import aiRoutes from "./routes/aiRoutes.js";
 import { initSocket } from './socket.js';
 import { startReminderScheduler, stopReminderScheduler } from './services/reminderScheduler.js';
 
@@ -32,7 +33,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/devices/owner', ownerAnalyticsRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/owner', ownerAnalyticsRoutes);
-
+app.use("/api/ai", aiRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
