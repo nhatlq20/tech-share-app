@@ -66,6 +66,12 @@ const TAB_CONFIGS: TabConfig[] = [
     iconInactive: 'map-outline',
   },
   {
+    key: 'compare',
+    label: 'So sánh',
+    iconActive: 'git-compare',
+    iconInactive: 'git-compare-outline',
+  },
+  {
     key: 'profile',
     label: 'Tài khoản',
     iconActive: 'person',

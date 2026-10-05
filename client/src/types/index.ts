@@ -458,6 +458,7 @@ export type ScreenType =
   | 'home'
   | 'bookings'
   | 'map'
+  | 'compare'
   | 'postDevice'
   | 'owner'
   | 'admin'
