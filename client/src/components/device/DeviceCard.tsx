@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
   Text,
   Image,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
-import { wishlistService } from '../../services/wishlistService';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { toggleFavoriteDevice } from '../../store/slices/wishlistSlice';
 import { API_BASE_URL } from '../../config/api';
 
 interface DeviceCardProps {
@@ -63,21 +65,21 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
 
   const isAvailable = device.status === 'available';
 
-  const [isFavorite, setIsFavorite] = useState(false);
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+  const favoriteIds = useAppSelector(state => state.wishlist.favoriteIds);
+  const deviceIdStr = (device._id || (device as any).id)?.toString();
+  const isFavorite = favoriteIds.includes(deviceIdStr);
 
-  useEffect(() => {
-    let isMounted = true;
-    wishlistService.checkIsFavorite(device._id).then((fav) => {
-      if (isMounted) setIsFavorite(fav);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, [device._id]);
-
-  const handleToggleFavorite = async () => {
-    const res = await wishlistService.toggleWishlist(device);
-    setIsFavorite(res.isInWishlist);
+  const handleToggleFavorite = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Vui lòng đăng nhập để lưu thiết bị vào danh sách yêu thích.'
+      );
+      return;
+    }
+    dispatch(toggleFavoriteDevice(device));
   };
 
   return (

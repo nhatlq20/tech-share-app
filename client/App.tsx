@@ -9,7 +9,9 @@ import {
   fetchUnreadCount,
   receiveRealtimeNotification,
 } from './src/store/slices/notificationSlice';
+import { fetchWishlist, clearWishlist } from './src/store/slices/wishlistSlice';
 import { socketService } from './src/services/socketService';
+import { wishlistService } from './src/services/wishlistService';
 import { InAppNotificationBanner } from './src/components/common/InAppNotificationBanner';
 import { Notification } from './src/types';
 import { theme } from './src/constants/theme';
@@ -39,12 +41,15 @@ function AppContent() {
   useEffect(() => {
     if (!isAuthenticated || !userId) {
       socketService.disconnect();
+      wishlistService.clearCache();
+      dispatch(clearWishlist());
       return;
     }
 
     socketService.connect(userId);
     dispatch(fetchUnreadCount() as any);
     dispatch(fetchNotifications(undefined) as any);
+    dispatch(fetchWishlist() as any);
 
     const unsubscribe = socketService.onNewNotification((notification) => {
       // 1. Cập nhật Redux store: thêm thông báo và tăng unreadCount nhảy số ngay lập tức

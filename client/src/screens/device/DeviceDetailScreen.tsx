@@ -16,9 +16,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
-import { wishlistService } from '../../services/wishlistService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { toggleFavoriteDevice } from '../../store/slices/wishlistSlice';
 import { ReviewListSection } from '../../components/device/ReviewListSection';
 import { getAIReview } from '../../services/aiService';
 import type { AIReview } from '../../types/ai';
@@ -82,7 +83,11 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isFavorite, setIsFavorite] = useState(false);
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+  const favoriteIds = useAppSelector(state => state.wishlist.favoriteIds);
+  const isFavorite = favoriteIds.includes(deviceId?.toString());
+
   const [retryCount, setRetryCount] = useState(0);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState({} as Record<number, boolean>);
@@ -92,10 +97,17 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [showAiModal, setShowAiModal] = useState(false);
   const aiRequestInProgress = useRef(false);
 
-  const handleToggleFavorite = async () => {
-    if (!device) return;
-    const res = await wishlistService.toggleWishlist(device);
-    setIsFavorite(res.isInWishlist);
+  const handleToggleFavorite = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Vui lòng đăng nhập để lưu thiết bị vào danh sách yêu thích.'
+      );
+      return;
+    }
+    if (device) {
+      dispatch(toggleFavoriteDevice(device));
+    }
   };
 
   const handleAIReview = async () => {
@@ -123,9 +135,6 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
 
   useEffect(() => {
     let isMounted = true;
-    wishlistService.checkIsFavorite(deviceId).then((fav) => {
-      if (isMounted) setIsFavorite(fav);
-    });
 
     (async () => {
       setLoading(true);

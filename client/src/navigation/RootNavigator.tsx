@@ -7,6 +7,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../store';
 import { clearAuth } from '../store/slices/authSlice';
+import { clearWishlist } from '../store/slices/wishlistSlice';
+import { wishlistService } from '../services/wishlistService';
 import { socketService } from '../services/socketService';
 import { theme } from '../constants/theme';
 import { colors } from '../theme/colors';
@@ -175,6 +177,8 @@ export function RootNavigator() {
 
   const handleLogout = () => {
     socketService.disconnect();
+    wishlistService.clearCache();
+    dispatch(clearWishlist());
     dispatch(clearAuth());
   };
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null as boolean | null);

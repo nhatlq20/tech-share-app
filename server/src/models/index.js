@@ -12,6 +12,7 @@ import Dispute from './Dispute.js';
 import EkycRequest from './EkycRequest.js';
 import AiCache from './AiCache.js';
 import Otp from './Otp.js';
+import Wishlist from './Wishlist.js';
 
 export {
   Role,
@@ -28,6 +29,7 @@ export {
   EkycRequest,
   AiCache,
   Otp,
+  Wishlist,
 };
 
 export default {
@@ -45,4 +47,5 @@ export default {
   EkycRequest,
   AiCache,
   Otp,
+  Wishlist,
 };
