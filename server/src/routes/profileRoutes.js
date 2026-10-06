@@ -8,6 +8,8 @@ import {
   getMyEkyc,
   submitEkyc,
   uploadEkycImage,
+  getMyWishlist,
+  toggleWishlist,
   recalculateMyTrustScore,
 } from '../controllers/profileController.js';
 
@@ -18,6 +20,10 @@ router.get('/me', getMyProfile);
 router.post('/me/avatar', uploadAvatar, uploadMyAvatar);
 router.patch('/me', updateMyProfile);
 router.post('/me/recalculate-trust-score', recalculateMyTrustScore);
+
+// Wishlist
+router.get('/wishlist', getMyWishlist);
+router.post('/wishlist/toggle/:deviceId', toggleWishlist);
 
 // eKYC routes for user
 router.get('/ekyc', getMyEkyc);

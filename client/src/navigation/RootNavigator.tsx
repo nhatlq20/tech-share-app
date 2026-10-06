@@ -25,6 +25,7 @@ import { NotificationScreen } from '../screens/notification/NotificationScreen';
 import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BookingManageScreen, BookingManageTab } from '../screens/booking/BookingManageScreen';
+import { WishlistScreen } from '../screens/device/WishlistScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -48,6 +49,7 @@ export type RootStackParamList = {
   BookingCreate: { deviceId: string };
   BookingManage: { initialTab?: BookingManageTab } | undefined;
   PostDevice: undefined;
+  Wishlist: undefined;
   OwnerDashboard:
     | {
         initialSection?: 'overview' | 'orders' | 'fleet' | 'wallet' | 'ai_tools';
@@ -95,7 +97,7 @@ const BookingCreateRoute = ({ route, navigation }: any) => (
   <BookingCreateScreen
     deviceId={route.params.deviceId}
     onBack={() => navigation.goBack()}
-    onNavigateToVerification={() => navigation.navigate('MainTabs', { screen: 'Profile' })}
+    onSuccess={() => navigation.navigate('MainTabs', { screen: 'Bookings' })}
   />
 );
 
@@ -115,6 +117,14 @@ const BookingManageRoute = ({ route, navigation }: any) => (
     onBack={() => navigation.goBack()}
     onNavigateToBookingDetail={(bookingId) => navigation.navigate('BookingDetail', { bookingId })}
     onNavigateToNotifications={() => navigation.navigate('Notification', { from: 'owner' })}
+  />
+);
+
+const WishlistRoute = ({ navigation }: any) => (
+  <WishlistScreen
+    onBack={() => navigation.goBack()}
+    onNavigateToDeviceDetail={(deviceId) => navigation.navigate('DeviceDetail', { deviceId })}
+    onNavigateToHome={() => navigation.navigate('MainTabs')}
   />
 );
 
@@ -234,6 +244,7 @@ export function RootNavigator() {
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
+            <Stack.Screen name="Wishlist">{WishlistRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
           </Stack.Group>
         ) : isOwner ? (
@@ -251,6 +262,7 @@ export function RootNavigator() {
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="BookingManage">{BookingManageRoute}</Stack.Screen>
+            <Stack.Screen name="Wishlist">{WishlistRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
                 <PostDeviceScreen
@@ -275,6 +287,7 @@ export function RootNavigator() {
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="BookingManage">{BookingManageRoute}</Stack.Screen>
+            <Stack.Screen name="Wishlist">{WishlistRoute}</Stack.Screen>
             <Stack.Screen name="PostDevice">
               {({ navigation }) => (
                 <PostDeviceScreen

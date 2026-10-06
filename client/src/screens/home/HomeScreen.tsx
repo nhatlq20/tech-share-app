@@ -35,6 +35,7 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px screen padding + 8px gap
 
 interface HomeScreenProps {
   onNavigateToDeviceDetail: (deviceId: string) => void;
+  onNavigateToWishlist?: () => void;
   onNavigateToSearch?: () => void;
   onNavigateToNotifications?: () => void;
   onNavigateToChat?: () => void;
@@ -47,6 +48,7 @@ interface HomeScreenProps {
 
 export function HomeScreen({
   onNavigateToDeviceDetail,
+  onNavigateToWishlist,
   onNavigateToNotifications,
   onNavigateToChat,
   onNavigateToOwnerDashboard,
@@ -179,10 +181,11 @@ export function HomeScreen({
             </View>
           </View>
 
-          {/* Chat + Thông báo — dùng HeaderActions component */}
+          {/* Chat + Thông báo + Wishlist — dùng HeaderActions component */}
           <HeaderActions
             unreadMessages={unreadMessages}
             unreadNotifications={unreadNotifications}
+            onPressWishlist={onNavigateToWishlist}
             onPressChat={onNavigateToChat}
             onPressNotifications={onNavigateToNotifications}
           />
