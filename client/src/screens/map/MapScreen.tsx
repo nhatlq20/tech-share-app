@@ -73,7 +73,9 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
   const [position, setPosition] = useState(null as LatLng | null);
-  const [locationState, setLocationState] = useState('loading' as 'loading' | 'ready' | 'denied' | 'error');
+  const [locationState, setLocationState] = useState(
+    'loading' as 'loading' | 'ready' | 'denied' | 'disabled' | 'error'
+  );
   const [error, setError] = useState(null as string | null);
   const [canAskAgain, setCanAskAgain] = useState(true);
   const [locationAttempt, setLocationAttempt] = useState(0);
@@ -202,7 +204,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           gpsError = new Error(`Foreground location permission is ${permission.status}`);
           console.log('[LOCATION DEBUG] fatal error reason:', errorMessage(gpsError));
           setLocationState('denied');
-          setError(errorMessage(gpsError));
+          setError('Location permission is required.');
           return;
         }
 
@@ -218,7 +220,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
         }
 
         if (!servicesEnabled) {
-          throw new Error('Location services disabled on device');
+          gpsError = new Error('Location services disabled on device');
+          setError('Location services are disabled.');
+          setLocationState('disabled');
+          return;
         }
 
         if (!isActiveRequest()) return;
@@ -368,7 +373,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
         console.log('[C-06 GPS] Initial location resolution failed:', errorMessage(gpsError));
 
         if (isActiveRequest()) {
-          setError(errorMessage(gpsError) || 'Không lấy được vị trí');
+          setError('Unable to determine your location.');
           setLocationState('error');
         }
       } finally {
@@ -512,7 +517,13 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
   console.log('[C-06 RENDER DEBUG]');
   console.log('loading:', locationState === 'loading');
-  console.log('error:', error !== null || locationState === 'error' || locationState === 'denied');
+  console.log(
+    'error:',
+    error !== null ||
+      locationState === 'error' ||
+      locationState === 'denied' ||
+      locationState === 'disabled',
+  );
   console.log('location:', position ? 'AVAILABLE' : 'NULL');
   console.log('latitude:', position?.latitude ?? 'unavailable');
   console.log('longitude:', position?.longitude ?? 'unavailable');
@@ -526,10 +537,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="map" size={24} color={colors.light.primary} />
-          <Text style={styles.headerTitle}>Gần bạn</Text>
+          <Text style={styles.headerTitle}>Nearby Devices</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          Khám phá thiết bị công nghệ cho thuê quanh vị trí của bạn
+          Discover rental tech devices near your location
         </Text>
       </View>
 
@@ -540,19 +551,19 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             {nearbyState === 'loading' && <ActivityIndicator color={colors.light.primary} />}
             <Text style={styles.statusText}>
               {nearbyState === 'loading'
-                ? 'Đang tìm thiết bị trong bán kính 10 km…'
+                ? 'Searching for devices within 10 km…'
                 : nearbyState === 'error'
-                  ? 'Không thể tải thiết bị gần bạn. Vui lòng thử lại.'
+                  ? 'Unable to load nearby devices.'
                   : devices.length === 0
-                    ? 'Chưa có thiết bị trong bán kính 10 km.'
-                    : `${markers.length} thiết bị trên bản đồ · Bán kính 10 km`}
+                    ? 'No nearby devices'
+                    : `${markers.length} devices on the map · 10 km radius`}
             </Text>
             {nearbyState === 'error' && (
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() => setNearbyAttempt((attempt: number) => attempt + 1)}
               >
-                <Text style={styles.retryText}>Thử lại</Text>
+                <Text style={styles.retryText}>Try Again</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -579,7 +590,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                 selectedMarker ? styles.myLocationButtonRaised : styles.myLocationButtonDefault,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Vị trí của tôi"
+              accessibilityLabel="My Location"
               activeOpacity={0.85}
               onPress={() => osmMapRef.current?.recenter(position)}
             >
@@ -601,18 +612,20 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           {locationState === 'loading' ? (
             <>
               <ActivityIndicator size="large" color={colors.light.primary} />
-              <Text style={styles.description}>Đang kiểm tra quyền và lấy vị trí của bạn…</Text>
+              <Text style={styles.description}>Getting your location...</Text>
             </>
           ) : (
             <>
               <Ionicons name="location-outline" size={54} color={colors.light.primary} />
               <Text style={styles.title}>
-                {locationState === 'denied' ? 'Chưa có quyền vị trí' : 'Không lấy được vị trí'}
+                {locationState === 'denied'
+                  ? 'Location Permission Required'
+                  : locationState === 'disabled'
+                    ? 'Location Services Disabled'
+                    : 'Location Unavailable'}
               </Text>
               <Text style={styles.description}>
-                {locationState === 'denied'
-                  ? 'Cho phép TechShare truy cập vị trí khi sử dụng ứng dụng để tìm thiết bị gần bạn.'
-                  : 'Hãy bật dịch vụ vị trí/GPS, kiểm tra tín hiệu rồi thử lại.'}
+                {error || 'Unable to determine your location.'}
               </Text>
               {locationState === 'denied' && !canAskAgain && (
                 <TouchableOpacity
@@ -622,7 +635,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                     void Linking.openSettings().catch(() => setLocationState('error'));
                   }}
                 >
-                  <Text style={styles.actionButtonText}>Mở cài đặt</Text>
+                  <Text style={styles.actionButtonText}>Open Settings</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -631,11 +644,11 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                 disabled={locationState === 'loading'}
                 onPress={retryLocation}
               >
-                <Text style={styles.actionButtonText}>Thử lại</Text>
+                <Text style={styles.actionButtonText}>Try Again</Text>
               </TouchableOpacity>
               {onNavigateToHome && (
                 <TouchableOpacity accessibilityRole="button" onPress={onNavigateToHome}>
-                  <Text style={styles.retryText}>Về trang chủ</Text>
+                  <Text style={styles.retryText}>Back to Home</Text>
                 </TouchableOpacity>
               )}
             </>

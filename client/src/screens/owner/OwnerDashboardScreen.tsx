@@ -49,14 +49,18 @@ const mapAnalyticsToDashboard = (
 ): OwnerAnalyticsResponse => {
   const devices = data.devices || [];
   const bookings = data.bookings || [];
-  const rentedDevices = devices.filter((device) => device.status === 'rented').length;
-  const availableDevices = devices.filter((device) => device.status === 'available').length;
-  const totalDevices = data.totalDevices ?? devices.length;
+  const rentedDevices =
+    data.activeRentals ??
+    data.rentedDevices ??
+    devices.filter((device) => device.status === 'rented').length;
+  const utilizationRate =
+    data.utilizationRate ??
+    (totalDevices ? Number(((rentedDevices / totalDevices) * 100).toFixed(1)) : 0);
 
   const chartItems = period === 'week'
     ? (data.revenueByDay || []).map((item) => ({ label: item.day, revenue: item.revenue }))
     : Array.from({ length: 5 }, (_, index) => ({
-        label: `Week ${index + 1}`,
+        label: `Tuần ${index + 1}`,
         revenue: bookings.reduce((sum, booking) => {
           const bookingDate = new Date(booking.updatedAt || booking.endDate || booking.startDate);
           const isCurrentMonth =
@@ -86,8 +90,17 @@ const mapAnalyticsToDashboard = (
     overview: {
       totalRevenue: data.totalRevenue || 0,
       activeRentals: rentedDevices,
-      escrowHolding: 0,
-      utilizationRate: totalDevices ? (rentedDevices / totalDevices) * 100 : 0,
+      escrowHolding: data.escrowHolding || 0,
+      utilizationRate: utilizationRate,
+      totalBookings: data.totalBookings ?? bookings.length,
+      monthlyRevenue: data.monthlyRevenue ?? 0,
+      monthlyGrowth: data.monthlyGrowth ?? 0,
+      walletBalance: data.walletBalance ?? 0,
+      rating: data.rating ?? 5.0,
+      ownerRating: data.ownerRating ?? 5.0,
+      trustScore: data.trustScore ?? 100,
+      totalReviews: data.totalReviews ?? 0,
+      totalReview: data.totalReview ?? 0,
     },
     revenueChart: {
       period,
@@ -251,7 +264,7 @@ export function OwnerDashboardScreen({
 
   // Xử lý Rút tiền
   const handleWithdraw = () => {
-    const formatted = (overview.totalRevenue || 5200000).toLocaleString('vi-VN');
+    const formatted = (currentUser?.walletBalance ?? overview.walletBalance ?? overview.totalRevenue ?? 0).toLocaleString('vi-VN');
     Alert.alert(
       'Yêu cầu rút tiền về ngân hàng 💳',
       `Số dư khả dụng hiện tại: ${formatted} đ.\nLệnh rút tiền về tài khoản ngân hàng liên kết Vietcombank (*8899) đang được xử lý trong 5-10 phút.`,
@@ -387,7 +400,7 @@ export function OwnerDashboardScreen({
             <View style={styles.ownerMetaCol}>
               <View style={styles.nameRow}>
                 <Text style={styles.ownerName} numberOfLines={1}>
-                  {currentUser?.name || 'Minh Tuấn Tech'}
+                  {currentUser?.name || 'Chủ máy'}
                 </Text>
                 <Ionicons
                   name="checkmark-circle"
@@ -399,7 +412,9 @@ export function OwnerDashboardScreen({
               <View style={styles.badgeRow}>
                 <View style={styles.ratingBadge}>
                   <Ionicons name="star" size={12} color={theme.colors.warning[500]} />
-                  <Text style={styles.ratingText}>4.9 (28)</Text>
+                  <Text style={styles.ratingText}>
+                    {Number(currentUser?.rating ?? overview.rating ?? 5.0).toFixed(1)} ({currentUser?.totalReviews ?? currentUser?.totalReview ?? overview.totalReviews ?? 0})
+                  </Text>
                 </View>
 
                 <View style={styles.trustScoreBadge}>
@@ -409,7 +424,7 @@ export function OwnerDashboardScreen({
                     color={theme.colors.success[600]}
                   />
                   <Text style={styles.trustScoreText}>
-                    Uy tín: {currentUser?.trustScore || 100}
+                    Uy tín: {currentUser?.trustScore ?? overview.trustScore ?? 100}
                   </Text>
                 </View>
 
@@ -511,7 +526,9 @@ export function OwnerDashboardScreen({
             </View>
             <Text style={styles.kpiLabel}>Doanh thu thuần</Text>
             <Text style={styles.kpiValue}>
-              {((overview.totalRevenue || 42500000) / 1000000).toFixed(1)}M
+              {overview.totalRevenue >= 1000000
+                ? `${(overview.totalRevenue / 1000000).toFixed(1)}M`
+                : `${(overview.totalRevenue || 0).toLocaleString('vi-VN')} đ`}
             </Text>
           </View>
 
@@ -524,7 +541,9 @@ export function OwnerDashboardScreen({
               />
             </View>
             <Text style={styles.kpiLabel}>Lượt cho thuê</Text>
-            <Text style={styles.kpiValue}>18 đơn</Text>
+            <Text style={styles.kpiValue}>
+              {overview.totalBookings ?? ownerBookings.length} đơn
+            </Text>
           </View>
 
           <View style={styles.kpiCard}>
@@ -536,7 +555,7 @@ export function OwnerDashboardScreen({
               />
             </View>
             <Text style={styles.kpiLabel}>Đang cho thuê</Text>
-            <Text style={styles.kpiValue}>{overview.activeRentals || 2} máy</Text>
+            <Text style={styles.kpiValue}>{overview.activeRentals || 0} máy</Text>
           </View>
 
           <View style={styles.kpiCard}>
@@ -548,7 +567,7 @@ export function OwnerDashboardScreen({
               />
             </View>
             <Text style={styles.kpiLabel}>Tỷ lệ lấp đầy</Text>
-            <Text style={styles.kpiValue}>{overview.utilizationRate || 74.2}%</Text>
+            <Text style={styles.kpiValue}>{Number(overview.utilizationRate || 0).toFixed(1)}%</Text>
           </View>
         </View>
 
@@ -569,7 +588,7 @@ export function OwnerDashboardScreen({
           <View>
             <Text style={styles.walletLabel}>Số dư ví khả dụng</Text>
             <Text style={styles.walletAmount}>
-              {(overview.totalRevenue || 5200000).toLocaleString('vi-VN')} đ
+              {(currentUser?.walletBalance ?? overview.walletBalance ?? overview.totalRevenue ?? 0).toLocaleString('vi-VN')} đ
             </Text>
           </View>
           <TouchableOpacity
@@ -595,7 +614,7 @@ export function OwnerDashboardScreen({
               <Text style={styles.walletSubLabel}>Cọc đang giữ hộ (Escrow)</Text>
             </View>
             <Text style={styles.walletSubValueYellow}>
-              {(overview.escrowHolding || 15000000).toLocaleString('vi-VN')} đ
+              {(currentUser?.walletEscrowBalance ?? overview.escrowHolding ?? 0).toLocaleString('vi-VN')} đ
             </Text>
           </View>
 
@@ -609,7 +628,8 @@ export function OwnerDashboardScreen({
               <Text style={styles.walletSubLabel}>Doanh thu tháng này</Text>
             </View>
             <Text style={styles.walletSubValueBlue}>
-              {((overview.totalRevenue || 42500000) * 0.3).toLocaleString('vi-VN')} đ (+12%)
+              {(overview.monthlyRevenue ?? 0).toLocaleString('vi-VN')} đ
+              {overview.monthlyGrowth !== undefined ? ` (${overview.monthlyGrowth >= 0 ? '+' : ''}${overview.monthlyGrowth}%)` : ''}
             </Text>
           </View>
         </View>

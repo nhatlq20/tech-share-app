@@ -20,7 +20,7 @@ import { colors } from '../../theme/colors';
 
 type DeviceSlot = 'device1' | 'device2';
 
-const formatPrice = (price: number) => `${price.toLocaleString('vi-VN')} đ/day`;
+const formatPrice = (price: number) => `${price.toLocaleString('en-US')} ₫/day`;
 
 export function AiCompareScreen() {
   const [devices, setDevices] = React.useState<Device[]>([]);

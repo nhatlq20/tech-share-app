@@ -45,7 +45,6 @@ router.post('/login', async (req, res) => {
         { username: loginIdentifier },
         { email: loginIdentifier.toLowerCase() },
       ],
-      isActive: { $ne: false },
     }).select('+passwordHash');
 
     if (!account || !account.passwordHash) {
@@ -60,6 +59,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
+      });
+    }
+
+    if (account.isActive === false) {
+      const reason = account.lockReason?.trim() || 'Không có lý do cụ thể.';
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản đã bị khóa. Lý do: ${reason} Liên hệ hỗ trợ: admin@techshare.vn`,
       });
     }
 
@@ -88,6 +95,9 @@ router.post('/login', async (req, res) => {
         role: accountRole,
         isVerified: false,
         trustScore: 100,
+        rating: 5.0,
+        ownerRating: 5.0,
+        totalReviews: 0,
       });
       user = user.toObject();
     }
@@ -132,7 +142,11 @@ router.post('/login', async (req, res) => {
         avatar: user.avatar,
         role: accountRole,
         isVerified: isEkycVerified,
-        trustScore: user.trustScore,
+        trustScore: user.trustScore ?? 100,
+        rating: user.rating ?? 5.0,
+        ownerRating: user.ownerRating ?? 5.0,
+        totalReviews: user.totalReviews ?? 0,
+        totalReview: user.totalReviews ?? 0,
       },
     });
   } catch (error) {
@@ -369,6 +383,9 @@ router.post('/register', async (req, res) => {
       role: 'renter',
       isVerified: false, // Chưa qua duyệt eKYC thì chưa có Tích xanh
       trustScore: 100,
+      rating: 5.0,
+      ownerRating: 5.0,
+      totalReviews: 0,
     });
 
     // Cập nhật ngược lại userId vào bảng Account
@@ -396,7 +413,11 @@ router.post('/register', async (req, res) => {
         avatar: user.avatar,
         role: user.role,
         isVerified: user.isVerified,
-        trustScore: user.trustScore,
+        trustScore: user.trustScore ?? 100,
+        rating: user.rating ?? 5.0,
+        ownerRating: user.ownerRating ?? 5.0,
+        totalReviews: user.totalReviews ?? 0,
+        totalReview: user.totalReviews ?? 0,
       },
     });
   } catch (error) {
@@ -637,4 +658,3 @@ router.post('/reset-password', async (req, res) => {
 });
 
 export default router;
-

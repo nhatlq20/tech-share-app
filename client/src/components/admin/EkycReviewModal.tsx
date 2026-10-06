@@ -39,8 +39,10 @@ export function EkycReviewModal({
 
   const handleApprove = async () => {
     Alert.alert(
-      'Xác nhận cấp Tích xanh',
-      `Phê duyệt hồ sơ CCCD của ${ekyc.userId?.name || 'người dùng'} và cấp Tích xanh uy tín ngay bây giờ?`,
+      ekyc.verificationPurpose === 'renter' ? 'Xác nhận danh tính người dùng' : 'Xác nhận cấp Tích xanh',
+      ekyc.verificationPurpose === 'renter'
+        ? `Phê duyệt hồ sơ CCCD của ${ekyc.userId?.name || 'người dùng'} để bật quyền thuê thiết bị?`
+        : `Phê duyệt hồ sơ CCCD của ${ekyc.userId?.name || 'người dùng'} và cấp Tích xanh uy tín ngay bây giờ?`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
@@ -50,7 +52,12 @@ export function EkycReviewModal({
             try {
               const res = await adminService.approveEkyc(ekyc._id);
               if (res && res.success) {
-                Alert.alert('Thành công! 🎉', 'Đã cấp Tích xanh uy tín cho người dùng.');
+                Alert.alert(
+                  'Thành công! 🎉',
+                  ekyc.verificationPurpose === 'renter'
+                    ? 'Đã xác thực danh tính. Người dùng có thể thuê thiết bị.'
+                    : 'Đã cấp Tích xanh uy tín cho người dùng.'
+                );
                 onApproved(ekyc._id);
                 onClose();
               }
@@ -99,7 +106,11 @@ export function EkycReviewModal({
                 <Ionicons name="id-card-outline" size={20} color={colors.light.primary} />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Kiểm Duyệt Hồ Sơ eKYC</Text>
+                <Text style={styles.modalTitle}>
+                  {ekyc.verificationPurpose === 'renter'
+                    ? 'Xác thực người dùng thực'
+                    : 'Kiểm Duyệt Hồ Sơ eKYC'}
+                </Text>
                 <Text style={styles.modalSubtitle}>{ekyc.userId?.name || 'Người dùng'}</Text>
               </View>
             </View>

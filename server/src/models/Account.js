@@ -21,6 +21,11 @@ const accountSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lockReason: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   {
     collection: 'accounts',

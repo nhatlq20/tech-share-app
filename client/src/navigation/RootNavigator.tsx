@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -64,14 +64,34 @@ export const rootNavigationRef = createNavigationContainerRef<RootStackParamList
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ONBOARDING_STORAGE_KEY = 'techshare.onboarding.completed';
 
-const DeviceDetailRoute = ({ route, navigation }: any) => (
-  <DeviceDetailScreen
-    deviceId={route.params.deviceId}
-    hideBookNow={route.params.hideBookNow}
-    onBack={() => navigation.goBack()}
-    onBookNow={(deviceId) => navigation.navigate('BookingCreate', { deviceId })}
-  />
-);
+const DeviceDetailRoute = ({ route, navigation }: any) => {
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  return (
+    <DeviceDetailScreen
+      deviceId={route.params.deviceId}
+      hideBookNow={route.params.hideBookNow}
+      onBack={() => navigation.goBack()}
+      onBookNow={(deviceId) => {
+        if (user?.role === 'renter' && !user.isVerified) {
+          Alert.alert(
+            'Cần xác thực danh tính',
+            'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+            [
+              { text: 'Để sau', style: 'cancel' },
+              {
+                text: 'Xác thực ngay',
+                onPress: () => navigation.navigate('MainTabs', { screen: 'Profile' }),
+              },
+            ]
+          );
+          return;
+        }
+        navigation.navigate('BookingCreate', { deviceId });
+      }}
+    />
+  );
+};
 
 const BookingCreateRoute = ({ route, navigation }: any) => (
   <BookingCreateScreen
