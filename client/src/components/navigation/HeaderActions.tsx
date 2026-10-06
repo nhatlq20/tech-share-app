@@ -57,6 +57,8 @@ export function HeaderActions({
       <TouchableOpacity
         style={styles.iconButton}
         onPress={onPressChat}
+        accessibilityRole="button"
+        accessibilityLabel="Chat"
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
@@ -72,6 +74,8 @@ export function HeaderActions({
       <TouchableOpacity
         style={styles.iconButton}
         onPress={onPressNotifications}
+        accessibilityRole="button"
+        accessibilityLabel="Notifications"
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >

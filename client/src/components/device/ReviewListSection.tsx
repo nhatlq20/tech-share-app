@@ -22,15 +22,15 @@ interface ReviewListSectionProps {
 type FilterType = 'all' | 'photo' | '5' | '4' | '3below';
 
 const FILTER_LABELS: Record<FilterType, string> = {
-  all: 'Tất cả',
-  photo: '📷 Có ảnh',
+  all: 'All',
+  photo: '📷 With Photos',
   '5': '5 ★',
   '4': '4 ★',
   '3below': '≤ 3 ★',
 };
 
 function maskName(name: string): string {
-  if (!name) return 'Người dùng ẩn danh';
+  if (!name) return 'Anonymous User';
   const parts = name.trim().split(' ');
   return parts
     .map((part: string, idx: number) => {
@@ -132,23 +132,23 @@ export function ReviewListSection({
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>⭐ Đánh giá từ khách thuê</Text>
+        <Text style={styles.sectionTitle}>⭐ Renter Reviews</Text>
         <Text style={styles.sectionSubtitle}>
-          {ratingCount ?? totalReviews} lượt thuê thực tế
+          {ratingCount ?? totalReviews} verified rentals
         </Text>
       </View>
 
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="small" color={colors.light.primary} />
-          <Text style={styles.loadingText}>Đang tải đánh giá...</Text>
+          <Text style={styles.loadingText}>Loading reviews...</Text>
         </View>
       ) : totalReviews === 0 ? (
         <View style={styles.emptyBox}>
           <Ionicons name="chatbubble-ellipses-outline" size={36} color={colors.light.border} />
-          <Text style={styles.emptyTitle}>Chưa có đánh giá nào</Text>
+          <Text style={styles.emptyTitle}>No reviews yet</Text>
           <Text style={styles.emptyDesc}>
-            Thiết bị này chưa có lượt thuê hoặc chưa được đánh giá. Hãy là người đầu tiên trải nghiệm!
+            This device has not been reviewed yet. Be the first renter to share your experience.
           </Text>
         </View>
       ) : (
@@ -157,7 +157,7 @@ export function ReviewListSection({
             <View style={styles.scoreBlock}>
               <Text style={styles.scoreBig}>{avgRating.toFixed(1)}</Text>
               <StarRow rating={avgRating} size={16} />
-              <Text style={styles.scoreSub}>{totalReviews} đánh giá</Text>
+              <Text style={styles.scoreSub}>{totalReviews} reviews</Text>
             </View>
             <View style={styles.barBlock}>
               {[5, 4, 3, 2, 1].map((s) => (
@@ -188,7 +188,7 @@ export function ReviewListSection({
 
           {filteredReviews.length === 0 ? (
             <View style={styles.emptyFilter}>
-              <Text style={styles.emptyFilterText}>Không có đánh giá nào phù hợp bộ lọc này.</Text>
+              <Text style={styles.emptyFilterText}>No reviews match this filter.</Text>
             </View>
           ) : (
             <>
@@ -196,7 +196,7 @@ export function ReviewListSection({
                 const renter = (review.renterId as any) || {};
                 const maskedName = maskName(renter.name || '');
                 const avatar = renter.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
-                const dateStr = new Date(review.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric', year: 'numeric' });
+                const dateStr = new Date(review.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
                 return (
                   <View key={review._id} style={styles.reviewCard}>
@@ -207,7 +207,7 @@ export function ReviewListSection({
                           <Text style={styles.reviewerName}>{maskedName}</Text>
                           <View style={styles.verifiedBadge}>
                             <Ionicons name="checkmark-circle" size={11} color={colors.light.success} />
-                            <Text style={styles.verifiedText}>Đã thuê thực tế</Text>
+                            <Text style={styles.verifiedText}>Verified Rental</Text>
                           </View>
                         </View>
                         <View style={styles.reviewMetaBottom}>
@@ -221,7 +221,7 @@ export function ReviewListSection({
                       <View style={styles.ownerFeedbackBox}>
                         <View style={styles.ownerFeedbackHeader}>
                           <Ionicons name="chatbubble" size={11} color={colors.light.primary} />
-                          <Text style={styles.ownerFeedbackLabel}>Phản hồi từ Chủ máy</Text>
+                          <Text style={styles.ownerFeedbackLabel}>Owner Response</Text>
                         </View>
                         <Text style={styles.ownerFeedbackText}>{review.ownerFeedback}</Text>
                       </View>
@@ -240,13 +240,13 @@ export function ReviewListSection({
               })}
               {filteredReviews.length > 3 && !showAll && (
                 <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAll(true)} activeOpacity={0.8}>
-                  <Text style={styles.showMoreText}>Xem thêm {filteredReviews.length - 3} đánh giá</Text>
+                  <Text style={styles.showMoreText}>Show {filteredReviews.length - 3} More Reviews</Text>
                   <Ionicons name="chevron-down" size={16} color={colors.light.primary} />
                 </TouchableOpacity>
               )}
               {showAll && filteredReviews.length > 3 && (
                 <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAll(false)} activeOpacity={0.8}>
-                  <Text style={styles.showMoreText}>Thu gọn</Text>
+                  <Text style={styles.showMoreText}>Show Less</Text>
                   <Ionicons name="chevron-up" size={16} color={colors.light.primary} />
                 </TouchableOpacity>
               )}

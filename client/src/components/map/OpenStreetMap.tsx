@@ -104,7 +104,7 @@ function buildLeafletHtml(initialData: {
   const serializedInitialData = serializeForInlineScript(initialData);
 
   return `<!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -175,7 +175,7 @@ function buildLeafletHtml(initialData: {
       }
 
       function reportError(message) {
-        send({ type: 'MAP_ERROR', message: String(message || 'Không tải được bản đồ.') });
+        send({ type: 'MAP_ERROR', message: String(message || 'Unable to load the map.') });
       }
 
       function formatPrice(value) {
@@ -327,7 +327,7 @@ function buildLeafletHtml(initialData: {
             tileErrorCount += 1;
             console.log('[OSM TILE ERROR]', event && event.tile ? event.tile.src : 'unknown tile');
             send({ type: 'TILE_ERROR', url: event && event.tile ? event.tile.src : '' });
-            if (!mapReadySent && tileErrorCount >= 4) reportError('Không tải được bản đồ OpenStreetMap.');
+            if (!mapReadySent && tileErrorCount >= 4) reportError('Unable to load OpenStreetMap.');
           });
           tileLayer.addTo(map);
           map.on('click', function () { send({ type: 'MAP_PRESSED' }); });
@@ -343,10 +343,10 @@ function buildLeafletHtml(initialData: {
       var leafletScript = document.createElement('script');
       leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       leafletScript.onload = initializeMap;
-      leafletScript.onerror = function () { reportError('Không tải được thư viện Leaflet.'); };
+      leafletScript.onerror = function () { reportError('Unable to load Leaflet.'); };
       document.head.appendChild(leafletScript);
       window.setTimeout(function () {
-        if (!map) reportError('Leaflet phản hồi quá thời gian.');
+        if (!map) reportError('Leaflet timed out.');
       }, 15000);
     </script>
   </body>
@@ -447,7 +447,7 @@ export function OpenStreetMap({
         if (__DEV__) console.log('[OSM TILE ERROR]', message.url ?? 'unknown tile');
         break;
       case 'MAP_ERROR':
-        setError(typeof message.message === 'string' ? message.message : 'Không tải được bản đồ.');
+        setError(typeof message.message === 'string' ? message.message : 'Unable to load the map.');
         break;
       case 'RENDER_STATE':
         if (__DEV__) {
@@ -484,15 +484,15 @@ export function OpenStreetMap({
         androidLayerType="hardware"
         nestedScrollEnabled={true}
         onMessage={handleMessage}
-        onError={() => setError('Không tải được bản đồ.')}
-        onHttpError={() => setError('Không tải được bản đồ.')}
-        onRenderProcessGone={() => setError('Trình hiển thị bản đồ đã dừng.')}
+        onError={() => setError('Unable to load the map.')}
+        onHttpError={() => setError('Unable to load the map.')}
+        onRenderProcessGone={() => setError('The map renderer stopped unexpectedly.')}
       />
 
       {!ready && !error && (
         <View pointerEvents="none" style={styles.loadingOverlay}>
           <ActivityIndicator color={colors.light.primary} />
-          <Text style={styles.loadingText}>Đang tải bản đồ OpenStreetMap…</Text>
+          <Text style={styles.loadingText}>Loading OpenStreetMap...</Text>
         </View>
       )}
 
@@ -500,7 +500,7 @@ export function OpenStreetMap({
         <View style={styles.errorOverlay}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity accessibilityRole="button" style={styles.retryButton} onPress={retry}>
-            <Text style={styles.retryText}>Thử lại</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       )}

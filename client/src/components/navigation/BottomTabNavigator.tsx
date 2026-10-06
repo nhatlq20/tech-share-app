@@ -49,31 +49,31 @@ interface BottomTabNavigatorProps {
 const TAB_CONFIGS: TabConfig[] = [
   {
     key: 'home',
-    label: 'Trang chủ',
+    label: 'Home',
     iconActive: 'home',
     iconInactive: 'home-outline',
   },
   {
     key: 'bookings',
-    label: 'Đơn thuê',
+    label: 'Bookings',
     iconActive: 'receipt',
     iconInactive: 'receipt-outline',
   },
   {
     key: 'map',
-    label: 'Gần bạn',
+    label: 'Nearby',
     iconActive: 'map',
     iconInactive: 'map-outline',
   },
   {
     key: 'compare',
-    label: 'So sánh',
+    label: 'Compare',
     iconActive: 'git-compare',
     iconInactive: 'git-compare-outline',
   },
   {
     key: 'profile',
-    label: 'Tài khoản',
+    label: 'Profile',
     iconActive: 'person',
     iconInactive: 'person-outline',
   },
@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
    */
   tabItem: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'flex-start',   // giữ icon + label sát nhau từ trên xuống
     paddingBottom: 6,
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
    * tạo contrast với icon primary[600] bên trong.
    */
   iconPillActive: {
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.primary[50],
   },
 
   /** Badge số đơn chờ xử lý — góc trên phải pill */
@@ -268,8 +269,12 @@ const styles = StyleSheet.create({
 
   /** Label dưới icon */
   tabLabel: {
+    width: '100%',
+    paddingHorizontal: 2,
     fontSize: 11,
     letterSpacing: 0.1,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   tabLabelActive: {
     color: theme.colors.primary[600],  // #2563EB

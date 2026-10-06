@@ -54,7 +54,7 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="BookingManage"
-        options={{ title: 'Booking Manage', drawerLabel: 'Quản lý đơn thuê' }}
+        options={{ title: 'Booking Management', drawerLabel: 'Booking Management' }}
       >
         {(props: any) => (
           <BookingManageScreen
@@ -78,7 +78,7 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="OwnerAnalytics"
-        options={{ title: 'Owner Analytics', drawerLabel: 'Doanh thu & Phân tích' }}
+        options={{ title: 'Owner Analytics', drawerLabel: 'Revenue & Analytics' }}
       >
         {(props: any) => (
           <OwnerAnalyticsScreen
