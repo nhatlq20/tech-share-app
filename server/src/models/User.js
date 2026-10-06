@@ -63,13 +63,6 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Device',
-      },
-    ],
-
     walletBalance: {
       type: Number,
       default: 0,
@@ -149,11 +142,11 @@ userSchema.virtual('account', {
   justOne: true,
 });
 
-// Virtual helpers for backward compatibility
-userSchema.virtual('favoriteDevices').get(function () {
-  return this.wishlist;
-}).set(function (val) {
-  this.wishlist = val;
+// Virtual populate for wishlist collection
+userSchema.virtual('wishlist', {
+  ref: 'Wishlist',
+  localField: '_id',
+  foreignField: 'userId',
 });
 
 // Virtual alias for totalReviews / totalReview

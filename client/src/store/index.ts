@@ -3,12 +3,14 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import deviceReducer from './slices/deviceSlice';
 import authReducer from './slices/authSlice';
 import notificationReducer from './slices/notificationSlice';
+import wishlistReducer from './slices/wishlistSlice';
 
 export const store = configureStore({
   reducer: {
     devices: deviceReducer,
     auth: authReducer,
     notifications: notificationReducer,
+    wishlist: wishlistReducer,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

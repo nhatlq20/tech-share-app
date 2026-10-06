@@ -16,6 +16,7 @@ import {
   Dispute,
   EkycRequest,
   AiCache,
+  Wishlist,
 } from '../models/index.js';
 
 const seedDatabase = async () => {
@@ -231,7 +232,6 @@ const seedDatabase = async () => {
         referralCode: `RENTER0${index + 1}`,
         referredBy: userOwnerId,
         badges: ['Top Renter'],
-        wishlist: [deviceIds[0], deviceIds[1]],
         walletBalance: 2500000 + index * 200000,
         walletEscrowBalance: index === 0 ? 15000000 : 0,
       })),
@@ -538,6 +538,14 @@ const seedDatabase = async () => {
 
     await Device.insertMany(devicesData);
     console.log('📱 [TechShare Seed] Seeded 10 Tech Devices.');
+
+    // 4.1 Seed Wishlist
+    const wishlistsData = [
+      { userId: userRenterId, deviceId: deviceIds[0] },
+      { userId: userRenterId, deviceId: deviceIds[1] },
+    ];
+    await Wishlist.insertMany(wishlistsData);
+    console.log('❤️ [TechShare Seed] Seeded Wishlist items.');
 
     // 5. Seed Bookings
     const bookingsData = [

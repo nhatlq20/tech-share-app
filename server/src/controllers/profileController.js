@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Device from '../models/Device.js';
 import EkycRequest from '../models/EkycRequest.js';
+import Wishlist from '../models/Wishlist.js';
 import { calculateAndUpdateOwnerReputation } from '../services/trustScoreService.js';
 
 const profileFields = user => ({
@@ -409,16 +410,39 @@ export const submitEkyc = async (req, res) => {
 
 export const getMyWishlist = async (req, res) => {
   try {
-    const user = await User.findById(req.auth.id).populate({
-      path: 'wishlist',
-      populate: { path: 'ownerId', select: 'name avatar phone' },
-    });
+    const userId = req.auth.id;
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    // Tự động di chuyển dữ liệu cũ từ User document (nếu có) sang collection Wishlist
+    const existingCount = await Wishlist.countDocuments({ userId });
+    if (existingCount === 0) {
+      const user = await User.findById(userId);
+      if (user && Array.isArray(user._doc?.wishlist) && user._doc.wishlist.length > 0) {
+        const legacyIds = user._doc.wishlist.filter(Boolean);
+        if (legacyIds.length > 0) {
+          const ops = legacyIds.map((devId) => ({
+            updateOne: {
+              filter: { userId, deviceId: devId },
+              update: { $setOnInsert: { userId, deviceId: devId } },
+              upsert: true,
+            },
+          }));
+          await Wishlist.bulkWrite(ops);
+          await User.findByIdAndUpdate(userId, { $unset: { wishlist: 1 } });
+        }
+      }
     }
 
-    const activeWishlist = (user.wishlist || []).filter(Boolean);
+    // Lấy danh sách từ collection riêng 'wishlists'
+    const records = await Wishlist.find({ userId })
+      .populate({
+        path: 'deviceId',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      })
+      .sort({ createdAt: -1 });
+
+    const activeWishlist = records
+      .map((r) => r.deviceId)
+      .filter(Boolean);
 
     return res.status(200).json({
       success: true,
@@ -437,45 +461,56 @@ export const getMyWishlist = async (req, res) => {
 export const toggleWishlist = async (req, res) => {
   try {
     const { deviceId } = req.params;
+    const userId = req.auth.id;
 
     if (!deviceId || !mongoose.Types.ObjectId.isValid(deviceId)) {
       return res.status(400).json({ success: false, message: 'ID thiết bị không hợp lệ' });
     }
 
-    const user = await User.findById(req.auth.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    const device = await Device.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ success: false, message: 'Thiết bị không tồn tại' });
     }
 
-    const currentWishlist = (user.wishlist || []).map((id) => id?.toString());
-    const isExisted = currentWishlist.includes(deviceId.toString());
+    // Di chuyển dữ liệu cũ nếu còn tồn tại trong User
+    const user = await User.findById(userId);
+    if (user && Array.isArray(user._doc?.wishlist) && user._doc.wishlist.length > 0) {
+      const legacyIds = user._doc.wishlist.filter(Boolean);
+      const ops = legacyIds.map((devId) => ({
+        updateOne: {
+          filter: { userId, deviceId: devId },
+          update: { $setOnInsert: { userId, deviceId: devId } },
+          upsert: true,
+        },
+      }));
+      await Wishlist.bulkWrite(ops);
+      await User.findByIdAndUpdate(userId, { $unset: { wishlist: 1 } });
+    }
 
-    let updatedUser;
+    // Kiểm tra trong collection riêng 'wishlists'
+    const existing = await Wishlist.findOne({ userId, deviceId });
+
     let isInWishlist = false;
 
-    if (isExisted) {
-      updatedUser = await User.findByIdAndUpdate(
-        req.auth.id,
-        { $pull: { wishlist: deviceId } },
-        { new: true }
-      ).populate({
-        path: 'wishlist',
-        populate: { path: 'ownerId', select: 'name avatar phone' },
-      });
+    if (existing) {
+      await Wishlist.deleteOne({ _id: existing._id });
       isInWishlist = false;
     } else {
-      updatedUser = await User.findByIdAndUpdate(
-        req.auth.id,
-        { $addToSet: { wishlist: deviceId } },
-        { new: true }
-      ).populate({
-        path: 'wishlist',
-        populate: { path: 'ownerId', select: 'name avatar phone' },
-      });
+      await Wishlist.create({ userId, deviceId });
       isInWishlist = true;
     }
 
-    const activeWishlist = (updatedUser?.wishlist || []).filter(Boolean);
+    // Lấy danh sách mới nhất từ collection Wishlist
+    const records = await Wishlist.find({ userId })
+      .populate({
+        path: 'deviceId',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      })
+      .sort({ createdAt: -1 });
+
+    const activeWishlist = records
+      .map((r) => r.deviceId)
+      .filter(Boolean);
 
     return res.status(200).json({
       success: true,

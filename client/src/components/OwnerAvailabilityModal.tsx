@@ -45,14 +45,14 @@ export function OwnerAvailabilityModal({
   deviceId,
   onUpdateBlockedDates,
 }: OwnerAvailabilityModalProps) {
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState(null as string | null);
+  const [endDate, setEndDate] = useState(null as string | null);
   const today = new Date();
   const [displayedMonth, setDisplayedMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [mode, setMode] = useState<AvailabilityMode>("single");
+  const [selectedDates, setSelectedDates] = useState([] as string[]);
+  const [mode, setMode] = useState("single" as AvailabilityMode);
   const year = displayedMonth.getFullYear();
   const month = displayedMonth.getMonth();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -343,7 +343,7 @@ export function OwnerAvailabilityModal({
                 <Text style={styles.emptyText}>No blocked dates selected.</Text>
               ) : (
                 <>
-                  {selectedDates.sort().map((date) => (
+                  {selectedDates.sort().map((date: string) => (
                     <Text key={date}>Blocked Date: {date}</Text>
                   ))}
 

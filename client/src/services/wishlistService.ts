@@ -75,5 +75,6 @@ export const wishlistService = {
    */
   clearCache: () => {
     cachedWishlistIds = null;
+    isFetchingIds = false;
   },
 };
