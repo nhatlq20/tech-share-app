@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import Device from '../models/Device.js';
 import Voucher from '../models/Voucher.js';
@@ -117,9 +118,11 @@ export const createBooking = async (req, res) => {
     
     const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     const bookingCode = 'B' + Date.now().toString().slice(-6) + randomSuffix;
+    const qrToken = `TSQR-${bookingCode}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     const booking = await Booking.create({
       bookingCode,
+      qrToken,
       deviceId,
       renterId,
       ownerId: device.ownerId, // assuming device schema has ownerId
@@ -208,6 +211,11 @@ export const getBookingById = async (req, res) => {
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê' });
+    }
+
+    if (!booking.qrToken) {
+      booking.qrToken = `TSQR-${booking.bookingCode}-${booking._id.toString().slice(-4).toUpperCase()}`;
+      await booking.save();
     }
 
     const renterIdStr = booking.renterId?._id ? booking.renterId._id.toString() : booking.renterId?.toString();
@@ -802,3 +810,151 @@ export const getDeviceBusyDates = async (req, res) => {
     });
   }
 };
+
+// @desc    Lưu ảnh nhận máy và hiện trạng 4 góc thiết bị (beforeRental)
+// @route   PATCH /api/bookings/:id/handover-renter
+// @access  Private (Renter / Owner)
+export const updateBeforeRentalPhotos = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { photos, conditionNotes } = req.body;
+    const userId = req.auth.id || req.auth._id;
+
+    if (!Array.isArray(photos) || photos.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp ít nhất 1 ảnh góc máy lúc nhận bàn giao.',
+      });
+    }
+
+    const booking = await Booking.findById(bookingId)
+      .populate('deviceId', 'name title images brand')
+      .populate('renterId', 'name avatar')
+      .populate('ownerId', 'name avatar');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn thuê' });
+    }
+
+    const renterIdStr = booking.renterId?._id ? booking.renterId._id.toString() : booking.renterId?.toString();
+    const ownerIdStr = booking.ownerId?._id ? booking.ownerId._id.toString() : booking.ownerId?.toString();
+    const isRenter = renterIdStr === userId;
+    const isOwner = ownerIdStr === userId;
+    const isAdmin = req.auth.role === 'admin' || req.auth.roles?.includes('admin');
+
+    if (!isRenter && !isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền cập nhật ảnh đơn thuê này' });
+    }
+
+    if (!booking.handoverPhotos) {
+      booking.handoverPhotos = { beforeRental: [], afterRental: [] };
+    }
+    booking.handoverPhotos.beforeRental = photos;
+
+    if (!booking.conditionNotes) {
+      booking.conditionNotes = { before: '', after: '' };
+    }
+    if (conditionNotes) {
+      booking.conditionNotes.before = conditionNotes;
+    }
+
+    booking.timeline.push({
+      status: booking.status,
+      timestamp: new Date(),
+      note: `Đã cập nhật ${photos.length} ảnh hiện trạng thiết bị lúc nhận bàn giao (beforeRental).`,
+    });
+
+    await booking.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã lưu ảnh nhận bàn giao thiết bị thành công',
+      data: booking,
+    });
+  } catch (error) {
+    console.error('Error updating beforeRental photos:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ khi lưu ảnh nhận bàn giao',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Xác thực mã QR bàn giao thiết bị
+// @route   POST /api/bookings/verify-qr
+// @access  Private (Owner / Renter)
+export const verifyHandoverQr = async (req, res) => {
+  try {
+    const { qrToken, bookingCode, bookingId } = req.body;
+    if (!qrToken && !bookingCode && !bookingId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp mã QR hoặc mã đơn thuê để xác thực',
+      });
+    }
+
+    const queries = [];
+
+    // 1. By bookingId (ObjectId)
+    if (bookingId && mongoose.Types.ObjectId.isValid(bookingId)) {
+      queries.push({ _id: bookingId });
+    }
+
+    // 2. If qrToken is an ObjectId
+    if (qrToken && mongoose.Types.ObjectId.isValid(qrToken)) {
+      queries.push({ _id: qrToken });
+    }
+
+    // 3. By qrToken and clean token variants
+    if (qrToken) {
+      queries.push({ qrToken: qrToken });
+      const cleanToken = qrToken.replace(/^TSQR-/, '').replace(/^#/, '').trim();
+      if (cleanToken) {
+        queries.push({ bookingCode: cleanToken });
+        queries.push({ qrToken: cleanToken });
+      }
+    }
+
+    // 4. By bookingCode and clean code variants
+    if (bookingCode) {
+      queries.push({ bookingCode: bookingCode });
+      const cleanCode = bookingCode.replace(/^#/, '').replace(/^TSQR-/, '').trim();
+      if (cleanCode) {
+        queries.push({ bookingCode: cleanCode });
+      }
+    }
+
+    const booking = await Booking.findOne({ $or: queries })
+      .populate('deviceId', 'name title images brand pricePerDay dailyRate')
+      .populate('renterId', 'name avatar phone email trustScore isVerified')
+      .populate('ownerId', 'name avatar phone email trustScore isVerified');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn thuê tương ứng với mã QR này',
+      });
+    }
+
+    // If booking doesn't have qrToken yet, persist it
+    if (!booking.qrToken && qrToken) {
+      booking.qrToken = qrToken;
+      await booking.save().catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mã QR bàn giao hợp lệ',
+      data: booking,
+    });
+  } catch (error) {
+    console.error('Error verifying handover QR:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi xác thực mã QR bàn giao',
+      error: error.message,
+    });
+  }
+};
+
