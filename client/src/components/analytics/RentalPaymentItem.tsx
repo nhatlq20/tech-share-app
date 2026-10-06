@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../constants/theme';
 import { RentalPayment } from '../../data/ownerAnalyticsMock';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 type RentalPaymentItemProps = {
   payment: RentalPayment;
@@ -12,20 +12,24 @@ export function RentalPaymentItem({ payment }: RentalPaymentItemProps) {
   return (
     <View style={styles.card}>
       <View style={styles.iconBox}>
-        <Ionicons name="phone-portrait-outline" size={19} color={theme.colors.primary[600]} />
+        <Ionicons name="receipt-outline" size={18} color={theme.primary} />
       </View>
       <View style={styles.details}>
         <Text style={styles.deviceName} numberOfLines={1}>
           {payment.deviceName}
         </Text>
         <Text style={styles.renterName} numberOfLines={1}>
-          {payment.renterName}
+          {STRINGS.ANALYTICS.RENTER_PREFIX}{payment.renterName}
         </Text>
         <Text style={styles.date}>{payment.date}</Text>
       </View>
       <View style={styles.amountColumn}>
-        <Text style={styles.amount}>+{payment.amount.toLocaleString('vi-VN')} ₫</Text>
-        <Text style={styles.status}>Completed</Text>
+        <Text style={styles.amount}>
+          +{payment.amount.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
+        </Text>
+        <View style={styles.statusPill}>
+          <Text style={styles.statusText}>{STRINGS.ANALYTICS.STATUS_COMPLETED}</Text>
+        </View>
       </View>
     </View>
   );
@@ -35,12 +39,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
+    gap: theme.spacing.md,
+    padding: theme.spacing.base,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     borderColor: theme.border,
+    ...theme.shadows.subtle,
   },
   iconBox: {
     width: 38,
@@ -48,24 +53,26 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.primary[50],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.primaryLight,
   },
   details: {
     flex: 1,
     minWidth: 0,
   },
   deviceName: {
-    ...theme.typography.body,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   renterName: {
-    ...theme.typography.caption,
+    fontSize: theme.typography.sizes.caption,
+    color: theme.textSecondary,
     marginTop: 2,
   },
   date: {
-    fontSize: 11,
-    color: theme.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textMuted,
     marginTop: 2,
   },
   amountColumn: {
@@ -73,13 +80,20 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   amount: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.success[600],
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
+    marginBottom: theme.spacing.xs,
   },
-  status: {
-    fontSize: 10,
-    color: theme.textSecondary,
-    marginTop: 4,
+  statusPill: {
+    backgroundColor: theme.successLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.radii.full,
+  },
+  statusText: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
   },
 });

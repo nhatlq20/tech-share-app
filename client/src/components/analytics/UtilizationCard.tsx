@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { theme } from '../../constants/theme';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 type UtilizationCardProps = {
   utilizationRate: number;
@@ -13,19 +13,30 @@ export function UtilizationCard({
   rentedDevices,
   totalDevices,
 }: UtilizationCardProps) {
-  const progressWidth = `${Math.min(Math.max(utilizationRate, 0), 100)}%` as `${number}%`;
+  const boundedRate = Math.min(
+    Math.max(utilizationRate, CONFIG.LIMITS.MIN_PERCENT),
+    CONFIG.LIMITS.MAX_PERCENT,
+  );
+  const progressWidth = `${boundedRate}%` as `${number}%`;
 
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <Text style={styles.rate}>{utilizationRate}%</Text>
+        <View style={styles.rateCol}>
+          <Text style={styles.rate}>{utilizationRate}%</Text>
+          <Text style={styles.rateSub}>{STRINGS.ANALYTICS.UTILIZATION_RATE_LABEL}</Text>
+        </View>
         <Text style={styles.description}>
-          {rentedDevices} / {totalDevices} devices are currently rented
+          {STRINGS.ANALYTICS.RENTED_DEVICES_RATIO(rentedDevices, totalDevices)}
         </Text>
       </View>
       <View
         accessibilityRole="progressbar"
-        accessibilityValue={{ min: 0, max: 100, now: utilizationRate }}
+        accessibilityValue={{
+          min: CONFIG.LIMITS.MIN_PERCENT,
+          max: CONFIG.LIMITS.MAX_PERCENT,
+          now: utilizationRate,
+        }}
         style={styles.progressBackground}
       >
         <View style={[styles.progress, { width: progressWidth }]} />
@@ -36,36 +47,48 @@ export function UtilizationCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
+    padding: theme.spacing.lg,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     borderColor: theme.border,
+    ...theme.shadows.card,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    justifyContent: 'space-between',
     marginBottom: theme.spacing.md,
   },
+  rateCol: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: theme.spacing.sm,
+  },
   rate: {
-    ...theme.typography.kpi,
-    color: theme.colors.success[600],
+    fontSize: theme.typography.sizes.h1,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.primary,
+  },
+  rateSub: {
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   description: {
-    ...theme.typography.caption,
-    flexShrink: 1,
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   progressBackground: {
-    height: 9,
+    height: CONFIG.LIMITS.PROGRESS_BAR_HEIGHT,
     overflow: 'hidden',
     borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: theme.border,
   },
   progress: {
     height: '100%',
     borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.success[500],
+    backgroundColor: theme.primary,
   },
 });

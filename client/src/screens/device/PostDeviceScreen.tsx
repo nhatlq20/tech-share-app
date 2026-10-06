@@ -21,8 +21,10 @@ import { RootState } from "../../store";
 import { Device } from "../../types";
 
 type PostDeviceScreenProps = {
-  onBack: () => void;
+  onBack?: () => void;
   onPublished?: () => void;
+  onOpenDrawer?: () => void;
+  navigation?: any;
 };
 
 type Specification = {
@@ -63,6 +65,8 @@ function SectionTitle({
 export function PostDeviceScreen({
   onBack,
   onPublished,
+  onOpenDrawer,
+  navigation,
 }: PostDeviceScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -117,16 +121,24 @@ export function PostDeviceScreen({
 
   const handleBack = () => {
     if (!isDirty || submitted) {
-      onBack();
+      if (onBack) onBack();
+      else if (navigation?.goBack) navigation.goBack();
       return;
     }
 
     Alert.alert(
-      "Discard this listing?",
-      "Your entered information will be lost if you leave now.",
+      "Hủy đăng thiết bị?",
+      "Các thông tin bạn đã nhập sẽ bị mất nếu rời đi lúc này.",
       [
-        { text: "Stay", style: "cancel" },
-        { text: "Discard", style: "destructive", onPress: onBack },
+        { text: "Ở lại", style: "cancel" },
+        {
+          text: "Hủy bỏ",
+          style: "destructive",
+          onPress: () => {
+            if (onBack) onBack();
+            else if (navigation?.goBack) navigation.goBack();
+          },
+        },
       ],
     );
   };
@@ -257,23 +269,46 @@ export function PostDeviceScreen({
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
+        <View style={styles.headerLeft}>
+          {onOpenDrawer || (navigation as any)?.openDrawer ? (
+            <TouchableOpacity
+              style={styles.hamburgerButton}
+              onPress={() => {
+                if (onOpenDrawer) {
+                  onOpenDrawer();
+                } else if ((navigation as any)?.openDrawer) {
+                  (navigation as any).openDrawer();
+                }
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Mở menu quản lý chủ máy"
+            >
+              <Ionicons name="menu-outline" size={24} color="#0F172A" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleBack}
+              activeOpacity={0.8}
+              accessibilityLabel="Quay lại"
+            >
+              <Ionicons name="arrow-back" size={21} color="#0F172A" />
+            </TouchableOpacity>
+          )}
+          <View style={styles.headerTitleCol}>
+            <Text style={styles.headerTitle}>Đăng Thiết Bị Mới</Text>
+            <Text style={styles.headerSubtitle}>Tạo tin cho thuê thiết bị công nghệ</Text>
+          </View>
+        </View>
+
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={handleBack}
           activeOpacity={0.8}
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={21} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>List Your Device</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          activeOpacity={0.8}
-          accessibilityLabel="Help"
+          accessibilityLabel="Trợ giúp"
         >
           <Ionicons
             name="information-circle-outline"
-            size={21}
+            size={22}
             color="#64748B"
           />
         </TouchableOpacity>
@@ -660,19 +695,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
+  headerLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  hamburgerButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  headerTitle: { color: "#0F172A", fontSize: 16, fontWeight: "800" },
+  headerButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  headerTitleCol: {
+    flex: 1,
+  },
+  headerTitle: { color: "#0F172A", fontSize: 16, fontWeight: "700" },
+  headerSubtitle: { color: "#64748B", fontSize: 11, fontWeight: "500", marginTop: 2 },
   content: { paddingHorizontal: 16, paddingTop: 23, paddingBottom: 30 },
   intro: { marginBottom: 27 },
   introTitle: { color: "#0F172A", fontSize: 24, fontWeight: "800" },

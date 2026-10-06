@@ -309,7 +309,6 @@ export function RootNavigator() {
                 >
                   <OwnerDashboardScreen
                     navigation={navigation}
-                    onBackToHome={() => navigation.navigate('MainTabs')}
                     onNavigateToDeviceDetail={(deviceId) =>
                       navigation.navigate('DeviceDetail', { deviceId })
                     }
