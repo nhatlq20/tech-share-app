@@ -96,6 +96,41 @@ export function PostDeviceScreen({
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
 
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationError("Location permission denied.");
+        return;
+      }
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationError("Please enable location services and try again.");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const latitude = location.coords.latitude;
+      const longitude = location.coords.longitude;
+
+      // QUAN TRỌNG: lưu tọa độ trước
+      setDeviceLocation({
+        latitude,
+        longitude,
+      });
+    } catch (error: unknown) {
+      console.error("[PostDeviceScreen] Cannot get current location:", error);
+      setLocationError(
+        error instanceof Error ? error.message : "Could not get your location.",
+      );
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
   useEffect(() => {
     if (!token) return;
 
@@ -148,7 +183,17 @@ export function PostDeviceScreen({
     setValidateSignal((value: number) => value + 1);
     setPublishError("");
 
-    const isBasicInfoValid = Boolean(
+    if (!addressText.trim()) {
+      setPublishError("Please enter the device address.");
+      return;
+    }
+
+    if (!deviceLocation) {
+      setPublishError("Please use current location before publishing.");
+      return;
+    }
+
+    const hasRequiredFields = Boolean(
       deviceName.trim() &&
       brand.trim() &&
       price.trim() &&
@@ -895,6 +940,19 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: "#DC2626" },
   errorText: { color: "#DC2626", fontSize: 11, marginTop: 5 },
+  locationButton: {
+    minHeight: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    marginBottom: 8,
+    borderRadius: 10,
+    backgroundColor: "#DBEAFE",
+  },
+  locationButtonDisabled: { opacity: 0.6 },
+  locationButtonText: { color: "#2563EB", fontSize: 12, fontWeight: "700" },
+  locationStatus: { color: "#16A34A", fontSize: 11, marginBottom: 8 },
   selectInput: {
     height: 48,
     flexDirection: "row",
