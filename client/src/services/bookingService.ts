@@ -26,6 +26,15 @@ export interface Booking {
   deliveryAddress?: string;
   rejectReason?: string;
   cancelReason?: string;
+  qrToken?: string;
+  handoverPhotos?: {
+    beforeRental?: string[];
+    afterRental?: string[];
+  };
+  conditionNotes?: {
+    before?: string;
+    after?: string;
+  };
   extensionRequest?: ExtensionRequestInfo;
   isReviewed?: boolean;
   reviewId?: string;
@@ -106,6 +115,26 @@ export const bookingService = {
   ): Promise<{ _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]> => {
     const res = await apiClient.get(`/bookings/busy-dates/${deviceId}`);
     return res.data.busyRanges || [];
+  },
+
+  updateBeforeRentalPhotos: async (
+    bookingId: string,
+    photos: string[],
+    conditionNotes?: string
+  ): Promise<Booking> => {
+    const res = await apiClient.patch(`/bookings/${bookingId}/handover-renter`, {
+      photos,
+      conditionNotes,
+    });
+    return res.data.data;
+  },
+
+  verifyHandoverQr: async (
+    payload: string | { qrToken?: string; bookingCode?: string; bookingId?: string }
+  ): Promise<Booking> => {
+    const body = typeof payload === 'string' ? { qrToken: payload } : payload;
+    const res = await apiClient.post('/bookings/verify-qr', body);
+    return res.data?.data || res.data?.booking || res.data;
   },
 };
 

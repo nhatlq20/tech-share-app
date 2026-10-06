@@ -11,6 +11,8 @@ import {
   Linking,
   Platform,
   RefreshControl,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -18,6 +20,8 @@ import { bookingService, Booking } from '../../services/bookingService';
 import { RentalCountdownTimer } from '../../components/booking/RentalCountdownTimer';
 import { ExtensionModal } from '../../components/booking/ExtensionModal';
 import { ReviewModal } from '../../components/booking/ReviewModal';
+import { HandoverQrModal } from '../../components/booking/HandoverQrModal';
+import { HandoverCameraModal } from '../../components/booking/HandoverCameraModal';
 
 interface BookingDetailScreenProps {
   bookingId: string;
@@ -55,6 +59,9 @@ export function BookingDetailScreen({
 
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [handoverCameraModalVisible, setHandoverCameraModalVisible] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null as string | null);
   const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchDetail = useCallback(async () => {
@@ -420,6 +427,103 @@ export function BookingDetailScreen({
             Địa chỉ: {booking.deliveryAddress || device.addressText || 'Liên hệ trực tiếp chủ máy'}
           </Text>
         </View>
+
+        {/* ── 6. BIÊN BẢN BÀN GIAO & ẢNH NHẬN MÁY (beforeRental) ── */}
+        {(booking.status === 'approved' ||
+          booking.status === 'active' ||
+          booking.status === 'completed') && (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <Ionicons name="shield-checkmark" size={18} color="#059669" />
+                <Text style={styles.cardTitle}>Biên bản nhận máy (beforeRental)</Text>
+              </View>
+              {booking.handoverPhotos?.beforeRental && booking.handoverPhotos.beforeRental.length > 0 ? (
+                <View style={styles.photoCountBadge}>
+                  <Text style={styles.photoCountBadgeText}>
+                    {booking.handoverPhotos.beforeRental.length}/4 ảnh
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Nếu đã có ảnh nhận máy */}
+            {booking.handoverPhotos?.beforeRental && booking.handoverPhotos.beforeRental.length > 0 ? (
+              <View style={styles.handoverPhotosWrap}>
+                <Text style={styles.handoverPhotosDesc}>
+                  Ảnh hiện trạng 4 góc thiết bị khi nhận bàn giao (dùng đối chiếu lúc trả máy):
+                </Text>
+
+                <View style={styles.photoGrid}>
+                  {booking.handoverPhotos.beforeRental.map((url: string, idx: number) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.photoThumbItem}
+                      onPress={() => setPreviewImage(url)}
+                      activeOpacity={0.85}
+                    >
+                      <Image source={{ uri: url }} style={styles.photoThumbImage} />
+                      <View style={styles.photoThumbTag}>
+                        <Text style={styles.photoThumbTagText}>Góc {idx + 1}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {booking.conditionNotes?.before ? (
+                  <View style={styles.conditionNoteBox}>
+                    <Text style={styles.conditionNoteTitle}>Ghi chú hiện trạng:</Text>
+                    <Text style={styles.conditionNoteContent}>
+                      {booking.conditionNotes.before}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {(booking.status === 'approved' || booking.status === 'active') && (
+                  <TouchableOpacity
+                    style={styles.retakeBtn}
+                    onPress={() => setHandoverCameraModalVisible(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="camera-outline" size={16} color={colors.light.primary} />
+                    <Text style={styles.retakeBtnText}>Cập nhật / Chụp lại ảnh góc máy</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <View style={styles.emptyHandoverBox}>
+                <View style={styles.emptyHandoverIcon}>
+                  <Ionicons name="camera-outline" size={28} color="#64748B" />
+                </View>
+                <Text style={styles.emptyHandoverTitle}>Chưa lưu ảnh nhận bàn giao máy</Text>
+                <Text style={styles.emptyHandoverDesc}>
+                  Chụp 4 góc máy và phụ kiện kèm theo lúc nhận máy từ chủ máy để bảo vệ tiền cọc của bạn.
+                </Text>
+                <TouchableOpacity
+                  style={styles.takePhotosCta}
+                  onPress={() => setHandoverCameraModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="camera" size={18} color="#FFFFFF" />
+                  <Text style={styles.takePhotosCtaText}>Chụp ảnh nhận máy ngay (4 góc)</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Nút mở nhanh mã QR bàn giao trong Card */}
+            {(booking.status === 'approved' || booking.status === 'active') && (
+              <TouchableOpacity
+                style={styles.openQrCta}
+                onPress={() => setQrModalVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="qr-code-outline" size={18} color={colors.light.primary} />
+                <Text style={styles.openQrCtaText}>Xuất trình mã QR bàn giao</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.light.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* ── BOTTOM ACTION BAR ── */}
@@ -439,6 +543,28 @@ export function BookingDetailScreen({
               </>
             )}
           </TouchableOpacity>
+        )}
+
+        {booking.status === 'approved' && (
+          <View style={styles.approvedActionRow}>
+            <TouchableOpacity
+              style={styles.qrPrimaryBtn}
+              onPress={() => setQrModalVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="qr-code" size={18} color="#FFFFFF" />
+              <Text style={styles.qrPrimaryBtnText}>Mã QR nhận máy</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cameraSecondaryBtn}
+              onPress={() => setHandoverCameraModalVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="camera" size={18} color={colors.light.primary} />
+              <Text style={styles.cameraSecondaryBtnText}>Chụp ảnh máy</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {isActive && (
@@ -495,6 +621,38 @@ export function BookingDetailScreen({
         onClose={() => setReviewModalVisible(false)}
         onSuccess={fetchDetail}
       />
+
+      <HandoverQrModal
+        visible={qrModalVisible}
+        booking={booking}
+        onClose={() => setQrModalVisible(false)}
+      />
+
+      <HandoverCameraModal
+        visible={handoverCameraModalVisible}
+        booking={booking}
+        onClose={() => setHandoverCameraModalVisible(false)}
+        onSuccess={fetchDetail}
+      />
+
+      {/* FULL IMAGE PREVIEW MODAL */}
+      <Modal
+        visible={Boolean(previewImage)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}
+      >
+        <Pressable style={styles.previewBackdrop} onPress={() => setPreviewImage(null)}>
+          <View style={styles.previewContainer}>
+            <TouchableOpacity style={styles.previewCloseBtn} onPress={() => setPreviewImage(null)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            {previewImage && (
+              <Image source={{ uri: previewImage }} style={styles.fullPreviewImage} resizeMode="contain" />
+            )}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -902,5 +1060,229 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // ── HANDOVER BIÊN BẢN & ẢNH NHẬN MÁY ──
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  photoCountBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  photoCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  handoverPhotosWrap: {
+    marginTop: 4,
+  },
+  handoverPhotosDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  photoThumbItem: {
+    width: '23%',
+    aspectRatio: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  photoThumbImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  photoThumbTag: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 4,
+    paddingVertical: 1,
+  },
+  photoThumbTagText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  conditionNoteBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  conditionNoteTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 2,
+  },
+  conditionNoteContent: {
+    fontSize: 12,
+    color: '#0F172A',
+    lineHeight: 17,
+  },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  retakeBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.light.primary,
+  },
+  emptyHandoverBox: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  emptyHandoverIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyHandoverTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  emptyHandoverDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 17,
+    marginBottom: 12,
+  },
+  takePhotosCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.light.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  takePhotosCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  openQrCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+  },
+  openQrCtaText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginLeft: 8,
+  },
+  approvedActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  qrPrimaryBtn: {
+    flex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: colors.light.primary,
+  },
+  qrPrimaryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cameraSecondaryBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.light.primary,
+    backgroundColor: '#FFFFFF',
+  },
+  cameraSecondaryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+
+  // ── PREVIEW MODAL ──
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  previewContainer: {
+    width: '100%',
+    height: '80%',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewCloseBtn: {
+    position: 'absolute',
+    top: -30,
+    right: 10,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullPreviewImage: {
+    width: '100%',
+    height: '100%',
   },
 });

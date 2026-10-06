@@ -25,30 +25,30 @@ interface OwnerRateRenterModalProps {
 }
 
 const TRUST_LABELS: Record<number, { label: string; color: string; icon: string; desc: string }> = {
-  1: { label: 'Rất tệ', color: '#DC2626', icon: 'thumbs-down', desc: 'Vi phạm nghiêm trọng, thiết bị hư hỏng nặng hoặc mất phụ kiện' },
-  2: { label: 'Kém', color: '#F97316', icon: 'warning-outline', desc: 'Máy bẩn, xước nhẹ, trả trễ không báo trước' },
-  3: { label: 'Bình thường', color: '#F59E0B', icon: 'remove-circle-outline', desc: 'Trả trễ nhẹ nhưng có liên hệ trước, thiết bị ổn' },
-  4: { label: 'Hài lòng', color: '#16A34A', icon: 'thumbs-up-outline', desc: 'Giữ máy tốt, giao tiếp lịch sự, trả đúng hẹn' },
-  5: { label: 'Xuất sắc', color: '#2563EB', icon: 'star', desc: 'Khách hàng mẫu mực, máy sạch đẹp, phụ kiện đủ, trả sớm hơn hẹn' },
+  1: { label: 'Terrible', color: '#DC2626', icon: 'thumbs-down', desc: 'Severe violation, serious device damage, or missing essential accessories' },
+  2: { label: 'Poor', color: '#F97316', icon: 'warning-outline', desc: 'Dirty condition, minor scratches, returned late without prior notice' },
+  3: { label: 'Fair', color: '#F59E0B', icon: 'remove-circle-outline', desc: 'Slightly late return with prior communication, device in acceptable condition' },
+  4: { label: 'Good', color: '#16A34A', icon: 'thumbs-up-outline', desc: 'Well maintained, polite communication, returned punctually on time' },
+  5: { label: 'Excellent', color: '#2563EB', icon: 'star', desc: 'Exemplary renter, immaculate condition, all accessories complete, returned early' },
 };
 
 const QUICK_TAGS = [
-  { label: '✓ Máy sạch sẽ, nguyên vẹn', good: true },
-  { label: '✓ Trả đúng giờ hẹn', good: true },
-  { label: '✓ Giao tiếp lịch sự, văn minh', good: true },
-  { label: '✓ Đầy đủ phụ kiện khi trả', good: true },
-  { label: '⚠️ Trả trễ giờ', good: false },
-  { label: '⚠️ Thiết bị bị dính bẩn / xước nhẹ', good: false },
-  { label: '⚠️ Thiếu phụ kiện kèm theo', good: false },
-  { label: '⚠️ Giao tiếp khó khăn', good: false },
+  { label: '✓ Clean & pristine condition', good: true },
+  { label: '✓ Returned on time', good: true },
+  { label: '✓ Polite & respectful communication', good: true },
+  { label: '✓ All accessories complete', good: true },
+  { label: '⚠️ Late return', good: false },
+  { label: '⚠️ Stains / minor scratches', good: false },
+  { label: '⚠️ Missing included accessories', good: false },
+  { label: '⚠️ Unresponsive / difficult communication', good: false },
 ];
 
 const TRUST_DELTA_INFO: Record<number, string> = {
-  5: '+ 2 điểm tín nhiệm',
-  4: '+ 1 điểm tín nhiệm',
-  3: 'Giữ nguyên điểm',
-  2: '− 5 điểm tín nhiệm',
-  1: '− 10 điểm tín nhiệm',
+  5: '+ 2 Trust Points',
+  4: '+ 1 Trust Point',
+  3: 'No Change',
+  2: '− 5 Trust Points',
+  1: '− 10 Trust Points',
 };
 
 export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: OwnerRateRenterModalProps) {
@@ -65,7 +65,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
     reviewAny?.deviceId?.title ||
     reviewAny?.device?.name ||
     reviewAny?.device?.title ||
-    'Thiết bị';
+    'Device';
   const trustInfo = TRUST_LABELS[selectedRating];
 
   const toggleTag = (tag: string) => {
@@ -91,7 +91,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
         : (review.bookingId as any)?._id);
 
     if (!targetId) {
-      Alert.alert('Lỗi', 'Không tìm thấy thông tin đơn thuê');
+      Alert.alert('Error', 'Unable to find booking details for this review.');
       return;
     }
 
@@ -106,14 +106,14 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
 
       const deltaStr = TRUST_DELTA_INFO[selectedRating];
       Alert.alert(
-        'Đã ghi nhận đánh giá ✅',
-        `Điểm ý thức ${selectedRating} sao đã được gửi.\n${deltaStr} sẽ được cập nhật ngay vào hồ sơ khách thuê.`
+        'Rating Submitted ✅',
+        `${selectedRating}-star rating recorded.\n${deltaStr} will update immediately on the renter's profile.`
       );
       onSuccess();
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Không thể gửi đánh giá lúc này.';
-      Alert.alert('Lỗi', msg);
+      const msg = err?.response?.data?.message || 'Unable to submit rating at this time.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
@@ -147,8 +147,8 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
               <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Đánh giá ý thức khách thuê</Text>
-              <Text style={styles.headerSubtitle}>Phản hồi này ảnh hưởng đến điểm tín nhiệm khách</Text>
+              <Text style={styles.headerTitle}>Rate Renter Responsibility</Text>
+              <Text style={styles.headerSubtitle}>This feedback impacts the renter's trust score</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={20} color={colors.light.textSecondary} />
@@ -164,18 +164,18 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                   style={styles.renterAvatar}
                 />
                 <View style={styles.renterInfo}>
-                  <Text style={styles.renterName}>{renter.name || 'Khách thuê'}</Text>
+                  <Text style={styles.renterName}>{renter.name || 'Renter'}</Text>
                   <Text style={styles.renterDevice} numberOfLines={1}>{deviceName}</Text>
                   <View style={styles.trustScoreRow}>
                     <Ionicons name="shield-checkmark-outline" size={13} color={colors.light.primary} />
-                    <Text style={styles.trustScoreText}>Điểm tín nhiệm hiện tại: {currentTrustScore}/100</Text>
+                    <Text style={styles.trustScoreText}>Current trust score: {currentTrustScore}/100</Text>
                   </View>
                 </View>
               </View>
             )}
 
             {/* Star Selector */}
-            <Text style={styles.sectionLabel}>Chọn mức đánh giá ý thức:</Text>
+            <Text style={styles.sectionLabel}>Select Rating Level:</Text>
             <View style={styles.starSelector}>
               {[1, 2, 3, 4, 5].map((s) => {
                 const info = TRUST_LABELS[s];
@@ -212,7 +212,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             </View>
 
             {/* Quick Tags */}
-            <Text style={styles.sectionLabel}>Chọn nhanh nhận xét phù hợp:</Text>
+            <Text style={styles.sectionLabel}>Quick Tags:</Text>
             <View style={styles.tagsWrap}>
               {QUICK_TAGS.map((tag) => {
                 const isSelected = selectedTags.includes(tag.label);
@@ -240,10 +240,10 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             </View>
 
             {/* Free-form Feedback */}
-            <Text style={styles.sectionLabel}>Ghi chú thêm (tùy chọn):</Text>
+            <Text style={styles.sectionLabel}>Additional Comments (optional):</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Nhập nhận xét thêm về ý thức và hành vi sử dụng thiết bị..."
+              placeholder="Leave specific notes regarding device handling, care, or return..."
               placeholderTextColor={colors.light.textSecondary}
               value={feedback}
               onChangeText={setFeedback}
@@ -256,7 +256,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             {/* Action Buttons */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
-                <Text style={styles.cancelBtnText}>Bỏ qua</Text>
+                <Text style={styles.cancelBtnText}>Skip</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitBtn, { backgroundColor: trustInfo.color }]}
@@ -269,7 +269,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                 ) : (
                   <>
                     <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-                    <Text style={styles.submitBtnText}>Gửi đánh giá ({selectedRating} ★)</Text>
+                    <Text style={styles.submitBtnText}>Submit Rating ({selectedRating} ★)</Text>
                   </>
                 )}
               </TouchableOpacity>
