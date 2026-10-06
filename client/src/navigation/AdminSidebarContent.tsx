@@ -52,27 +52,12 @@ const MENU_ITEMS: AdminMenuItem[] = [
     tabParam: 'devices',
   },
   {
-    id: 'disputes',
-    label: 'Phân xử Tranh chấp Cọc',
-    icon: 'scale-outline',
-    targetScreen: 'AdminDashboard',
-    tabParam: 'disputes',
-    badgeType: 'disputes',
-  },
-  {
     id: 'ekyc',
     label: 'Xét duyệt eKYC',
     icon: 'finger-print-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'ekyc',
     badgeType: 'ekyc',
-  },
-  {
-    id: 'vouchers',
-    label: 'Voucher & Khuyến mãi',
-    icon: 'pricetags-outline',
-    targetScreen: 'AdminDashboard',
-    tabParam: 'vouchers',
   },
 ];
 

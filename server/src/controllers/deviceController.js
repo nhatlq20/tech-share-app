@@ -277,7 +277,9 @@ export const updateDeviceStatus = async (req, res) => {
       });
     }
 
-    if (device.owner.toString() !== req.auth.id) {
+    const deviceOwnerId = (device.ownerId || device.owner)?.toString();
+    const currentUserId = req.auth.id || req.auth._id;
+    if (deviceOwnerId && deviceOwnerId !== currentUserId) {
       return res.status(403).json({
         success: false,
         message: "You are not allowed to update this device",

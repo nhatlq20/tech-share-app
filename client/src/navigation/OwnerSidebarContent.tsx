@@ -65,13 +65,6 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
     targetScreen: 'PostDevice',
   },
   {
-    id: 'wallet',
-    label: 'Ví Doanh thu & Ký quỹ',
-    icon: 'wallet-outline',
-    targetScreen: 'OwnerDashboard',
-    sectionParam: 'wallet',
-  },
-  {
     id: 'ai_tools',
     label: 'Trợ lý Thông minh AI',
     icon: 'sparkles-outline',

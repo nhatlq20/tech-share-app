@@ -10,6 +10,8 @@ interface RevenueChartProps {
   chartData: OwnerRevenueChartData;
 }
 
+const PRIMARY_TEAL = '#67BEC3';
+
 export function RevenueChart({ chartData }: RevenueChartProps) {
   const screenWidth = Dimensions.get('window').width - theme.spacing.md * 2 - theme.spacing.md * 2;
 
@@ -27,50 +29,66 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
     return String(Math.round(val));
   };
 
-  const chartConfig = {
-    backgroundColor: theme.card,
-    backgroundGradientFrom: theme.card,
-    backgroundGradientTo: theme.card,
-    decimalPlaces: 0,
-    color: (opacity = 1) => theme.colors.primary[600],
-    labelColor: (opacity = 1) => theme.textSecondary,
-    style: {
-      borderRadius: theme.radii.lg,
-    },
-    propsForDots: {
-      r: '5',
-      strokeWidth: '2.5',
-      stroke: theme.colors.primary[600],
-      fill: theme.colors.white,
-    },
-    propsForBackgroundLines: {
-      strokeDasharray: '4',
-      stroke: theme.border,
-      strokeWidth: 1,
-    },
-  };
-
   const labels = chartData.labels?.length
     ? chartData.labels
     : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
   const dataValues = chartData.datasets?.[0]?.data?.length
     ? chartData.datasets[0].data
-    : [350000, 450000, 600000, 550000, 900000, 1350000, 1100000];
+    : [3500000, 18700000, 6000000, 12500000, 9000000, 15500000, 11000000];
+
+  // Tính đỉnh cao nhất trong chu kỳ
+  const peakValue = Math.max(...dataValues, 100000);
+  const ceilingValue = Math.round(peakValue * 1.18); // Tạo khoảng đệm 18% phía trên chống tràn đỉnh
+
+  const chartConfig = {
+    backgroundColor: '#FFFFFF',
+    backgroundGradientFrom: '#FFFFFF',
+    backgroundGradientTo: '#FFFFFF',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(103, 190, 195, ${opacity})`,
+    labelColor: (opacity = 1) => theme.textSecondary,
+    style: {
+      borderRadius: 16,
+      paddingTop: 16,
+    },
+    // Gradient mềm mượt hướng về trục hoành
+    fillShadowGradient: PRIMARY_TEAL,
+    fillShadowGradientOpacity: 0.35,
+    fillShadowGradientFrom: PRIMARY_TEAL,
+    fillShadowGradientFromOpacity: 0.45,
+    fillShadowGradientTo: '#FFFFFF',
+    fillShadowGradientToOpacity: 0.02,
+    propsForDots: {
+      r: '5',
+      strokeWidth: '2.5',
+      stroke: PRIMARY_TEAL,
+      fill: '#FFFFFF',
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: '4',
+      stroke: '#F1F5F9',
+      strokeWidth: 1,
+    },
+  };
 
   const formattedData = {
     labels,
     datasets: [
       {
         data: dataValues,
-        color: (opacity = 1) => theme.colors.primary[600],
+        color: (opacity = 1) => `rgba(103, 190, 195, ${opacity})`,
         strokeWidth: 2.5,
+      },
+      // Headroom dataset vô hình giúp đẩy trần trục Y lên 1.18x, chống chạm sát mép trên Card
+      {
+        data: labels.map((_, i) => (i === 0 ? ceilingValue : 0)),
+        color: () => 'transparent',
+        strokeWidth: 0,
+        withDots: false,
       },
     ],
   };
-
-  // Tính đỉnh cao nhất trong chu kỳ
-  const peakValue = Math.max(...dataValues);
 
   return (
     <View style={styles.cardContainer}>
@@ -88,12 +106,12 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
         </View>
       </View>
 
-      {/* Biểu đồ Bezier LineChart */}
+      {/* Biểu đồ Bezier LineChart có headroom thoáng đãng */}
       <View style={styles.chartWrapper}>
         <LineChartComponent
           data={formattedData}
           width={screenWidth}
-          height={190}
+          height={205}
           chartConfig={chartConfig}
           bezier
           style={styles.chartStyle}
@@ -102,8 +120,9 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
           withOuterLines={false}
           withVerticalLines={false}
           withHorizontalLines
-          withShadow={false}
+          withShadow={true}
           fromZero
+          segments={4}
         />
       </View>
     </View>
@@ -112,11 +131,12 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: '#E2E8F0',
     padding: theme.spacing.md,
+    paddingTop: 18,
     marginBottom: theme.spacing.lg,
     ...theme.shadows.card,
   },
@@ -124,7 +144,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+    paddingHorizontal: 4,
   },
   legendRow: {
     flexDirection: 'row',
@@ -135,7 +156,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary[600],
+    backgroundColor: PRIMARY_TEAL,
   },
   legendText: {
     ...theme.typography.caption,
@@ -143,23 +164,23 @@ const styles = StyleSheet.create({
     color: theme.textSecondary,
   },
   peakBadge: {
-    backgroundColor: theme.colors.primary[50],
+    backgroundColor: '#E8F6F7',
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: theme.radii.full,
   },
   peakBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.primary[600],
+    color: PRIMARY_TEAL,
   },
   chartWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.xs,
+    paddingTop: 10,
   },
   chartStyle: {
     marginVertical: 4,
-    borderRadius: theme.radii.md,
+    borderRadius: 16,
   },
 });
