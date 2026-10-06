@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Platform,
   StatusBar,
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,11 +26,14 @@ import {
 const MAX_DISTANCE = 10000; // S-04 accepts meters (10km default)
 const MAX_LAST_KNOWN_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours: use cached location immediately, refresh in background
 const SIGNIFICANT_MOVEMENT_METERS = 150;
+const LOCATION_ACCURACY = Location.Accuracy.High;
 
 interface LatLng {
   latitude: number;
   longitude: number;
 }
+
+type LocationRefreshReason = 'initial' | 'focus' | 'foreground';
 
 function distanceInMeters(from: LatLng, to: LatLng): number {
   const earthRadiusMeters = 6371000;
@@ -79,6 +84,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   const [error, setError] = useState(null as string | null);
   const [canAskAgain, setCanAskAgain] = useState(true);
   const [locationAttempt, setLocationAttempt] = useState(0);
+  const [nearbyPosition, setNearbyPosition] = useState(null as LatLng | null);
   const [devices, setDevices] = useState([] as Device[]);
   const [nearbyState, setNearbyState] = useState('loading' as 'loading' | 'ready' | 'error');
   const [nearbyAttempt, setNearbyAttempt] = useState(0);
@@ -87,6 +93,17 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   const isRequestingLocation = useRef(false);
   const isRefreshingCurrentLocation = useRef(false);
   const locationRequestId = useRef(0);
+  const latestPositionRef = useRef(null as LatLng | null);
+  const nearbyAnchorRef = useRef(null as LatLng | null);
+  const nearbyRequestSequenceRef = useRef(0);
+  const latestNearbyRequestRef = useRef(0);
+  const refreshCurrentLocationRef = useRef(
+    null as ((reason: LocationRefreshReason) => void) | null,
+  );
+  const mapRendererReadyRef = useRef(false);
+  const pendingCameraPositionRef = useRef(null as LatLng | null);
+  const cameraAnchorRef = useRef(null as LatLng | null);
+  const appStateRef = useRef(AppState.currentState);
   const permissionRequest = useRef(null as ReturnType<typeof Location.requestForegroundPermissionsAsync> | null);
 
   const locationDiag = useRef({
@@ -98,6 +115,63 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     locationSource: 'NONE',
   });
 
+  const applyDetectedLocation = (
+    coordinate: LatLng,
+    source: 'CACHE' | 'LAST_KNOWN' | 'CURRENT',
+    timestamp: number,
+    forceNearby = false,
+    moveCamera = false,
+  ) => {
+    const previous = latestPositionRef.current;
+    const nearbyAnchor = nearbyAnchorRef.current;
+    const movement = nearbyAnchor ? distanceInMeters(nearbyAnchor, coordinate) : Infinity;
+    const positionMovement = previous ? distanceInMeters(previous, coordinate) : Infinity;
+    const positionChanged = !previous || positionMovement >= SIGNIFICANT_MOVEMENT_METERS;
+    const cameraAnchor = cameraAnchorRef.current;
+    const cameraChanged = !cameraAnchor ||
+      distanceInMeters(cameraAnchor, coordinate) >= SIGNIFICANT_MOVEMENT_METERS;
+    const shouldRefetchNearby = forceNearby || !nearbyAnchor || movement >= SIGNIFICANT_MOVEMENT_METERS;
+
+    if (__DEV__ && (positionChanged || source !== 'CURRENT')) {
+      console.log(
+        `[LOCATION] New position: ${coordinate.latitude}, ${coordinate.longitude} ` +
+          `(source=${source}, timestamp=${timestamp})`,
+      );
+      console.log(
+        `[LOCATION] Previous position: ${previous ? `${previous.latitude}, ${previous.longitude}` : 'NONE'}`,
+      );
+      console.log(`[LOCATION] Position changed: ${positionChanged}`);
+    }
+
+    latestPositionRef.current = coordinate;
+    setPosition(coordinate);
+    setError(null);
+    setLocationState('ready');
+
+    if (shouldRefetchNearby) {
+      nearbyAnchorRef.current = coordinate;
+      // Invalidate the in-flight request immediately; do not wait for the next effect commit.
+      latestNearbyRequestRef.current = nearbyRequestSequenceRef.current + 1;
+      setNearbyPosition(coordinate);
+    }
+
+    if (!cameraAnchor) cameraAnchorRef.current = coordinate;
+
+    if (moveCamera && cameraAnchor && cameraChanged) {
+      cameraAnchorRef.current = coordinate;
+      pendingCameraPositionRef.current = coordinate;
+      if (mapRendererReadyRef.current && osmMapRef.current) {
+        osmMapRef.current.recenter(coordinate);
+        pendingCameraPositionRef.current = null;
+        if (__DEV__) {
+          console.log(
+            `[MAP] Moving camera to lat=${coordinate.latitude}, lng=${coordinate.longitude}`,
+          );
+        }
+      }
+    }
+  };
+
   // Flow: permission -> services -> last known -> map immediately -> current refresh in background.
   // Current position blocks the UI only when there is no usable cached location.
   useEffect(() => {
@@ -105,14 +179,20 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     isRequestingLocation.current = true;
     const requestId = ++locationRequestId.current;
     let active = true;
-    const startedAt = Date.now();
+    let locationSubscription: Location.LocationSubscription | null = null;
+    let refreshFromLifecycle: ((reason: LocationRefreshReason) => void) | null = null;
     setLocationState('loading');
     setError(null);
     setPosition(null);
+    setNearbyPosition(null);
+    mapRendererReadyRef.current = false;
+    pendingCameraPositionRef.current = null;
+    cameraAnchorRef.current = null;
+    latestPositionRef.current = null;
+    nearbyAnchorRef.current = null;
 
     void (async () => {
       let permissionStatus = 'not-requested';
-      let permissionCanAskAgain: boolean | string = 'unknown';
       let servicesEnabled = false;
       let providerStatus: Location.LocationProviderStatus | null = null;
       let currentPositionResult = 'NOT RUN';
@@ -126,97 +206,153 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
       const isActiveRequest = () => active && locationRequestId.current === requestId;
 
-      const logPerformance = (label: string, stepStartedAt: number) => {
-        console.log(`[C-06 PERFORMANCE] ${label}: ${Date.now() - stepStartedAt} ms`);
+      const startLocationWatch = async () => {
+        try {
+          const subscription = await Location.watchPositionAsync(
+            {
+              accuracy: LOCATION_ACCURACY,
+              timeInterval: 1000,
+              distanceInterval: 1,
+            },
+            (location) => {
+              if (!isActiveRequest()) return;
+              const coordinate = {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              };
+              if (!validCoordinate(coordinate.latitude, coordinate.longitude)) return;
+
+              locationDiag.current = {
+                ...locationDiag.current,
+                currentPositionResult: 'PASS',
+                currentError: 'none',
+                locationSource: 'CURRENT',
+              };
+              applyDetectedLocation(coordinate, 'CURRENT', location.timestamp);
+            },
+          );
+
+          if (!isActiveRequest()) {
+            subscription.remove();
+            return;
+          }
+          locationSubscription = subscription;
+          if (__DEV__) console.log('[LOCATION] Watch started');
+        } catch (watchError: unknown) {
+          if (__DEV__) console.log(`[LOCATION] Watch failed: ${errorMessage(watchError)}`);
+          // Keep the last usable position and current markers when a refresh fails.
+        }
       };
 
-      const refreshCurrentPositionInBackground = (cachedPosition: LatLng) => {
-        if (isRefreshingCurrentLocation.current) return;
+      const requestFreshCurrentPosition = async (
+        reason: LocationRefreshReason,
+        moveCamera: boolean,
+      ) => {
+        if (isRefreshingCurrentLocation.current || !isActiveRequest()) return;
         isRefreshingCurrentLocation.current = true;
         const refreshStartedAt = Date.now();
 
-        void Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-          mayShowUserSettingsDialog: true,
-        })
-          .then((currentPosition) => {
-            if (!isActiveRequest()) return;
-            currentPositionResult = 'PASS';
-            const currentCoordinate = {
-              latitude: currentPosition.coords.latitude,
-              longitude: currentPosition.coords.longitude,
-            };
+        if (__DEV__) console.log(`[LOCATION] Requesting fresh position (reason=${reason})`);
 
-            if (!validCoordinate(currentCoordinate.latitude, currentCoordinate.longitude)) {
-              throw new Error('Current position returned invalid coordinates');
-            }
-
-            const movement = distanceInMeters(cachedPosition, currentCoordinate);
-            locationDiag.current = {
-              ...locationDiag.current,
-              currentPositionResult: 'PASS',
-              currentError: 'none',
-              locationSource:
-                movement >= SIGNIFICANT_MOVEMENT_METERS ? 'CURRENT_BACKGROUND' : 'LAST_KNOWN',
-            };
-
-            console.log(`[C-06 GPS] Background movement: ${Math.round(movement)} m`);
-            if (movement >= SIGNIFICANT_MOVEMENT_METERS) {
-              setPosition(currentCoordinate);
-            }
-          })
-          .catch((currentError: unknown) => {
-            if (!isActiveRequest()) return;
-            currentPositionResult = 'FAIL';
-            locationDiag.current = {
-              ...locationDiag.current,
-              currentPositionResult: 'FAIL',
-              currentError: errorMessage(currentError),
-            };
-            console.log('[C-06 GPS] Background current refresh failed:', errorMessage(currentError));
-            // A background failure must never replace a usable cached location with an error state.
-          })
-          .finally(() => {
-            if (locationRequestId.current === requestId) {
-              isRefreshingCurrentLocation.current = false;
-            }
-            logPerformance('Current background refresh', refreshStartedAt);
+        try {
+          const currentPosition = await Location.getCurrentPositionAsync({
+            accuracy: LOCATION_ACCURACY,
+            mayShowUserSettingsDialog: true,
           });
+          if (!isActiveRequest()) return;
+
+          currentPositionResult = 'PASS';
+          const currentCoordinate = {
+            latitude: currentPosition.coords.latitude,
+            longitude: currentPosition.coords.longitude,
+          };
+          if (!validCoordinate(currentCoordinate.latitude, currentCoordinate.longitude)) {
+            throw new Error('Current position returned invalid coordinates');
+          }
+
+          const previous = latestPositionRef.current;
+          const changed = !previous ||
+            distanceInMeters(previous, currentCoordinate) >= SIGNIFICANT_MOVEMENT_METERS;
+          if (__DEV__) {
+            console.log(
+              `[LOCATION] Fresh position: ${currentCoordinate.latitude}, ${currentCoordinate.longitude}`,
+            );
+            console.log(
+              `[LOCATION] Previous position: ${previous ? `${previous.latitude}, ${previous.longitude}` : 'NONE'}`,
+            );
+            console.log(`[LOCATION] Position changed: ${changed}`);
+          }
+
+          locationDiag.current = {
+            ...locationDiag.current,
+            currentPositionResult: 'PASS',
+            currentError: 'none',
+            locationSource: 'CURRENT',
+          };
+          applyDetectedLocation(
+            currentCoordinate,
+            'CURRENT',
+            currentPosition.timestamp,
+            false,
+            moveCamera,
+          );
+        } catch (currentError: unknown) {
+          if (!isActiveRequest()) return;
+          currentPositionResult = 'FAIL';
+          locationDiag.current = {
+            ...locationDiag.current,
+            currentPositionResult: 'FAIL',
+            currentError: errorMessage(currentError),
+          };
+          if (__DEV__) {
+            console.log(`[LOCATION] Fresh position failed: ${errorMessage(currentError)}`);
+          }
+          // A refresh failure must never replace a usable position with a fatal error.
+        } finally {
+          if (locationRequestId.current === requestId) {
+            isRefreshingCurrentLocation.current = false;
+          }
+          if (__DEV__) {
+            console.log(`[LOCATION] Fresh position completed in ${Date.now() - refreshStartedAt} ms`);
+          }
+        }
       };
 
-      console.log('[LOCATION DEBUG] init');
       const permBefore = await Location.getForegroundPermissionsAsync().catch(() => null);
-      console.log('[LOCATION DEBUG] permission before request:', permBefore?.status ?? 'error');
+      if (__DEV__) console.log(`[LOCATION] Permission before request: ${permBefore?.status ?? 'error'}`);
 
       try {
-        const permissionStartedAt = Date.now();
         permissionRequest.current ??= Location.requestForegroundPermissionsAsync();
         const permission = await permissionRequest.current;
-        logPerformance('Permission completed', permissionStartedAt);
 
         if (!isActiveRequest()) return;
         permissionStatus = permission.status;
-        permissionCanAskAgain = permission.canAskAgain;
         setCanAskAgain(permission.canAskAgain);
-        console.log('[LOCATION DEBUG] permission after request:', permissionStatus);
+        if (__DEV__) console.log(`[LOCATION] Permission: ${permissionStatus}`);
 
         if (!permission.granted) {
           gpsError = new Error(`Foreground location permission is ${permission.status}`);
-          console.log('[LOCATION DEBUG] fatal error reason:', errorMessage(gpsError));
+          if (__DEV__) console.log(`[LOCATION] Permission unavailable: ${errorMessage(gpsError)}`);
           setLocationState('denied');
           setError('Location permission is required.');
           return;
         }
 
-        const serviceStartedAt = Date.now();
         servicesEnabled = await Location.hasServicesEnabledAsync();
-        logPerformance('Service check completed', serviceStartedAt);
-        console.log('[LOCATION DEBUG] services enabled:', servicesEnabled);
+        if (__DEV__) console.log(`[LOCATION] Services enabled: ${servicesEnabled}`);
 
         try {
           providerStatus = await Location.getProviderStatusAsync();
         } catch (providerError: unknown) {
-          console.log('[GPS PROVIDER STATUS] unavailable:', errorMessage(providerError));
+          if (__DEV__) console.log(`[LOCATION] Provider status unavailable: ${errorMessage(providerError)}`);
+        }
+
+        if (__DEV__) {
+          console.log(
+            `[LOCATION] Providers: gps=${providerStatus?.gpsAvailable ?? false}, ` +
+              `network=${providerStatus?.networkAvailable ?? false}, ` +
+              `passive=${providerStatus?.passiveAvailable ?? false}`,
+          );
         }
 
         if (!servicesEnabled) {
@@ -226,27 +362,19 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           return;
         }
 
+        refreshFromLifecycle = (reason: LocationRefreshReason) => {
+          void requestFreshCurrentPosition(reason, reason !== 'initial');
+        };
+        refreshCurrentLocationRef.current = refreshFromLifecycle;
+
         if (!isActiveRequest()) return;
 
-        // Log [GPS PROVIDER]
-        console.log('[GPS PROVIDER]');
-        console.log('Permission:', permissionStatus);
-        console.log('Can ask again:', permissionCanAskAgain);
-        console.log('Services enabled:', servicesEnabled);
-        console.log('gpsAvailable:', providerStatus?.gpsAvailable ?? false);
-        console.log('networkAvailable:', providerStatus?.networkAvailable ?? false);
-        console.log('passiveAvailable:', providerStatus?.passiveAvailable ?? false);
-
         let lastKnownPosition: Location.LocationObject | null = null;
-        const lastKnownStartedAt = Date.now();
-        console.log('[LOCATION DEBUG] lastKnown start');
         try {
           lastKnownPosition = await Location.getLastKnownPositionAsync();
         } catch (lastKnownError: unknown) {
-          console.log('[C-06 GPS] Last known lookup failed:', errorMessage(lastKnownError));
+          if (__DEV__) console.log(`[LOCATION] Last-known failed: ${errorMessage(lastKnownError)}`);
         }
-        logPerformance('Last Known completed', lastKnownStartedAt);
-        console.log('[LOCATION DEBUG] lastKnown result:', lastKnownPosition);
 
         if (!isActiveRequest()) return;
 
@@ -270,14 +398,14 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             ? `STALE (${Math.round(cacheAgeMs / 60000)} min)`
             : 'NULL';
 
-        console.log('[LOCATION DEBUG] cache result:', {
-          hasUsableCache,
-          cacheAgeMs,
-          cachedCoordinate,
-          maxAgeMs: MAX_LAST_KNOWN_AGE_MS,
-        });
-
-        console.log('[C-06 GPS] Last known:', lastKnownPositionResult);
+        if (__DEV__) {
+          console.log(
+            cachedCoordinate
+              ? `[LOCATION] Last-known: ${cachedCoordinate.latitude}, ${cachedCoordinate.longitude}; ` +
+                  `ageMs=${Math.round(cacheAgeMs)}; usable=${hasUsableCache}`
+              : '[LOCATION] Last-known: NONE',
+          );
+        }
         if (hasUsableCache && cachedCoordinate) {
           locationDiag.current = {
             permission: permissionStatus,
@@ -288,35 +416,32 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             locationSource: 'LAST_KNOWN',
           };
           setError(null);
-          setPosition(cachedCoordinate);
-          setLocationState('ready');
-          console.log('[LOCATION DEBUG] final location source: LAST_KNOWN');
-          console.log('[LOCATION DEBUG] final coordinates:', cachedCoordinate);
-          console.log(`[C-06 PERFORMANCE] Map ready after: ${Date.now() - startedAt} ms`);
-          refreshCurrentPositionInBackground(cachedCoordinate);
+          applyDetectedLocation(
+            cachedCoordinate,
+            'LAST_KNOWN',
+            lastKnownPosition?.timestamp ?? Date.now(),
+            true,
+          );
+          if (__DEV__) console.log('[LOCATION] Initial source: LAST_KNOWN');
+          refreshFromLifecycle?.('initial');
+          void startLocationWatch();
           return;
         }
 
         // No usable cache: current position is now the only request allowed to block loading.
         let currentPosition: Location.LocationObject;
-        console.log('[LOCATION DEBUG] current start');
+        if (__DEV__) console.log('[LOCATION] Requesting current position (no usable last-known)');
         try {
           currentPosition = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
+            accuracy: LOCATION_ACCURACY,
             mayShowUserSettingsDialog: true,
           });
           currentPositionResult = 'PASS';
-          console.log('[LOCATION DEBUG] current success:', currentPosition);
         } catch (currentError: any) {
           currentPositionResult = 'FAIL';
-          console.log('[LOCATION DEBUG] current error name:', currentError?.name ?? 'unknown');
-          console.log(
-            '[LOCATION DEBUG] current error message:',
-            currentError?.message ?? String(currentError),
-          );
+          if (__DEV__) console.log(`[LOCATION] Current position failed: ${errorMessage(currentError)}`);
 
           if (cachedCoordinate && validCoordinate(cachedCoordinate.latitude, cachedCoordinate.longitude)) {
-            console.log('[C-06 GPS] Current position failed, using available last-known position:', cachedCoordinate);
             locationDiag.current = {
               permission: permissionStatus,
               servicesEnabled,
@@ -326,10 +451,14 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
               locationSource: 'LAST_KNOWN_FALLBACK',
             };
             setError(null);
-            setPosition(cachedCoordinate);
-            setLocationState('ready');
-            console.log('[LOCATION DEBUG] final location source: LAST_KNOWN_FALLBACK');
-            console.log('[LOCATION DEBUG] final coordinates:', cachedCoordinate);
+            applyDetectedLocation(
+              cachedCoordinate,
+              'CACHE',
+              lastKnownPosition?.timestamp ?? Date.now(),
+              true,
+            );
+            void startLocationWatch();
+            if (__DEV__) console.log('[LOCATION] Initial source: LAST_KNOWN_FALLBACK');
             return;
           }
 
@@ -354,11 +483,9 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           locationSource: 'CURRENT',
         };
         setError(null);
-        setPosition(currentCoordinate);
-        setLocationState('ready');
-        console.log('[LOCATION DEBUG] final location source: CURRENT');
-        console.log('[LOCATION DEBUG] final coordinates:', currentCoordinate);
-        console.log(`[C-06 PERFORMANCE] Map ready after: ${Date.now() - startedAt} ms`);
+        applyDetectedLocation(currentCoordinate, 'CURRENT', currentPosition.timestamp, true);
+        void startLocationWatch();
+        if (__DEV__) console.log('[LOCATION] Initial source: CURRENT');
       } catch (error: unknown) {
         if (!gpsError) gpsError = error;
         locationDiag.current = {
@@ -369,8 +496,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           lastKnownResult: lastKnownPositionResult,
           locationSource: 'NONE',
         };
-        console.log('[LOCATION DEBUG] fatal error reason:', errorMessage(gpsError));
-        console.log('[C-06 GPS] Initial location resolution failed:', errorMessage(gpsError));
+        if (__DEV__) console.log(`[LOCATION] Initial resolution failed: ${errorMessage(gpsError)}`);
 
         if (isActiveRequest()) {
           setError('Unable to determine your location.');
@@ -385,6 +511,11 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
 
     return () => {
       active = false;
+      locationSubscription?.remove();
+      if (__DEV__ && locationSubscription) console.log('[LOCATION] Watch removed');
+      if (refreshCurrentLocationRef.current === refreshFromLifecycle) {
+        refreshCurrentLocationRef.current = null;
+      }
       if (locationRequestId.current === requestId) {
         isRequestingLocation.current = false;
         isRefreshingCurrentLocation.current = false;
@@ -392,80 +523,86 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     };
   }, [locationAttempt]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) console.log('[LOCATION] Screen focused');
+      refreshCurrentLocationRef.current?.('focus');
+    }, []),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextState: typeof AppState.currentState) => {
+        const previousState = appStateRef.current;
+        appStateRef.current = nextState;
+        if (__DEV__ && previousState !== nextState) {
+          console.log(`[LIFECYCLE] AppState ${previousState} -> ${nextState}`);
+        }
+        if (
+          nextState === 'active' &&
+          (previousState === 'background' || previousState === 'inactive')
+        ) {
+          refreshCurrentLocationRef.current?.('foreground');
+        }
+      },
+    );
+
+    return () => subscription.remove();
+  }, []);
+
   // Flow: Location acquired -> Fetch nearby devices from backend API
   useEffect(() => {
-    if (!position) return;
+    if (!nearbyPosition) return;
     let active = true;
+    const nearbyRequestId = ++nearbyRequestSequenceRef.current;
+    latestNearbyRequestRef.current = nearbyRequestId;
     const nearbyStartedAt = Date.now();
     setNearbyState('loading');
     setDevices([]);
-    console.log('[GPS DEBUG] Nearby API reached: YES');
+    if (__DEV__) {
+      console.log(
+        `[NEARBY] Request started: id=${nearbyRequestId}, lat=${nearbyPosition.latitude}, ` +
+          `lng=${nearbyPosition.longitude}, radius=${MAX_DISTANCE}`,
+      );
+    }
 
     void deviceService
       .getNearbyDevices({
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: nearbyPosition.latitude,
+        longitude: nearbyPosition.longitude,
         maxDistance: MAX_DISTANCE,
       })
       .then((result: Device[]) => {
-        if (!active) return;
+        if (!active || latestNearbyRequestRef.current !== nearbyRequestId) {
+          if (__DEV__) console.log(`[NEARBY] Ignored stale response: id=${nearbyRequestId}`);
+          return;
+        }
         setDevices(result);
         setNearbyState('ready');
-
-        // Count valid markers
-        const validCount = result.filter((d: Device) => {
-          const coords = d.location?.coordinates;
-          return Array.isArray(coords) && coords.length >= 2 && validCoordinate(coords[1], coords[0]);
-        }).length;
-
-        // C-07 Debug log for rendered markers
-        result.forEach((d: Device) => {
-          const coords = d.location?.coordinates;
-          if (Array.isArray(coords) && coords.length >= 2 && validCoordinate(coords[1], coords[0])) {
-            const distance = distanceInMeters(position, { latitude: coords[1], longitude: coords[0] });
-            console.log('[C-07 MARKER]');
-            console.log('Device ID:', d._id);
-            console.log('Name:', d.title || (d as any).name);
-            console.log('Latitude:', coords[1]);
-            console.log('Longitude:', coords[0]);
-            console.log('Distance:', `${Math.round(distance)} m`);
-          }
-        });
-
-        console.log('[C-06 NEARBY]');
-        console.log('Latitude:', position.latitude);
-        console.log('Longitude:', position.longitude);
-        console.log('MaxDistance:', MAX_DISTANCE);
-        console.log('HTTP status:', 200);
-        console.log('Devices:', result.length);
-        console.log('Valid markers:', validCount);
-        console.log(`[C-06 PERFORMANCE] Nearby API completed: ${Date.now() - nearbyStartedAt} ms`);
-
-        console.log('[C-06 GPS FINAL]');
-        console.log('Permission:', locationDiag.current.permission);
-        console.log('Services enabled:', locationDiag.current.servicesEnabled);
-        console.log('CURRENT POSITION:', locationDiag.current.currentPositionResult);
-        console.log('Current error:', locationDiag.current.currentError);
-        console.log('LAST KNOWN:', locationDiag.current.lastKnownResult);
-        console.log('FINAL SOURCE:', locationDiag.current.locationSource);
-        console.log('Latitude:', position.latitude);
-        console.log('Longitude:', position.longitude);
-        console.log('UI ERROR STATE: CLEARED');
-        console.log('Nearby API reached: YES');
-        console.log('Nearby status: 200');
-        console.log('Nearby devices:', result.length);
-        console.log('Map rendered: YES');
+        if (__DEV__) {
+          console.log(
+            `[NEARBY] Received devices: ${result.length} ` +
+              `(id=${nearbyRequestId}, ${Date.now() - nearbyStartedAt} ms)`,
+          );
+          console.log(`[MAP] Marker data updated: ${result.length} devices`);
+        }
       })
       .catch((err: any) => {
-        console.log('[C-06 NEARBY] API error:', err?.message || err);
-        console.log(`[C-06 PERFORMANCE] Nearby API completed: ${Date.now() - nearbyStartedAt} ms (failed)`);
+        if (!active || latestNearbyRequestRef.current !== nearbyRequestId) {
+          if (__DEV__) console.log(`[NEARBY] Ignored stale error: id=${nearbyRequestId}`);
+          return;
+        }
+        if (__DEV__) {
+          console.log(`[NEARBY] Request failed: id=${nearbyRequestId}, error=${err?.message || err}`);
+        }
         if (active) setNearbyState('error');
       });
 
     return () => {
       active = false;
     };
-  }, [position, nearbyAttempt]);
+  }, [nearbyPosition, nearbyAttempt]);
 
   // GeoJSON coordinate mapping: MongoDB [longitude, latitude] -> renderer { latitude, longitude }
   const markers = useMemo((): DeviceMarkerData[] => {
@@ -497,14 +634,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
   );
 
   const handleSelectMarker = (deviceId: string) => {
-    console.log('[C-07 SELECT]');
-    console.log('Selected device:', deviceId);
     setSelectedDeviceId(deviceId);
   };
 
   const openDeviceDetails = (deviceId: string) => {
-    console.log('[C-07 DETAIL]');
-    console.log('Device ID:', deviceId);
     onNavigateToDeviceDetail?.(deviceId);
   };
 
@@ -514,20 +647,6 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
     permissionRequest.current = null;
     setLocationAttempt((attempt: number) => attempt + 1);
   };
-
-  console.log('[C-06 RENDER DEBUG]');
-  console.log('loading:', locationState === 'loading');
-  console.log(
-    'error:',
-    error !== null ||
-      locationState === 'error' ||
-      locationState === 'denied' ||
-      locationState === 'disabled',
-  );
-  console.log('location:', position ? 'AVAILABLE' : 'NULL');
-  console.log('latitude:', position?.latitude ?? 'unavailable');
-  console.log('longitude:', position?.longitude ?? 'unavailable');
-  console.log('nearbyDevices:', devices.length);
 
   const isMapReady = Boolean(position && !error && locationState === 'ready');
 
@@ -578,7 +697,20 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
               initialFitReady={nearbyState !== 'loading'}
               onSelectDevice={handleSelectMarker}
               onMapPress={() => setSelectedDeviceId(null)}
-              onReady={() => console.log('[OSM MAP RUNTIME] Map ready: YES')}
+              onReady={() => {
+                mapRendererReadyRef.current = true;
+                if (__DEV__) console.log('[MAP] Renderer ready');
+                const pendingPosition = pendingCameraPositionRef.current;
+                if (pendingPosition && osmMapRef.current) {
+                  osmMapRef.current.recenter(pendingPosition);
+                  pendingCameraPositionRef.current = null;
+                  if (__DEV__) {
+                    console.log(
+                      `[MAP] Moving camera to lat=${pendingPosition.latitude}, lng=${pendingPosition.longitude}`,
+                    );
+                  }
+                }
+              }}
             />
           </View>
 
@@ -592,7 +724,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
               accessibilityRole="button"
               accessibilityLabel="My Location"
               activeOpacity={0.85}
-              onPress={() => osmMapRef.current?.recenter(position)}
+              onPress={() => {
+                cameraAnchorRef.current = position;
+                osmMapRef.current?.recenter(position);
+              }}
             >
               <Ionicons name="locate" size={20} color={colors.light.primary} />
             </TouchableOpacity>
