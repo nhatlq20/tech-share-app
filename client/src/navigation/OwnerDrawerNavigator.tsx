@@ -5,6 +5,8 @@ import { OwnerSidebarContent } from './OwnerSidebarContent';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { OwnerAnalyticsScreen } from '../screens/owner/OwnerAnalyticsScreen';
 import { BookingManageScreen } from '../screens/booking/BookingManageScreen';
+import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
+import { NotificationScreen } from '../screens/notification/NotificationScreen';
 
 export type OwnerDrawerParamList = {
   OwnerDashboard:
@@ -15,6 +17,8 @@ export type OwnerDrawerParamList = {
     | undefined;
   OwnerAnalytics: undefined;
   BookingManage: { initialTab?: 'pending' | 'renting' | 'history' } | undefined;
+  PostDevice: undefined;
+  Notification: { from?: string } | undefined;
 };
 
 const Drawer = createDrawerNavigator<OwnerDrawerParamList>();
@@ -41,13 +45,13 @@ export function OwnerDrawerNavigator({ navigation }: any) {
         {(props: any) => (
           <OwnerDashboardScreen
             {...props}
-            onBackToHome={() => navigation.navigate('MainTabs')}
             onNavigateToDeviceDetail={(deviceId: string) =>
               navigation.navigate('DeviceDetail', { deviceId })
             }
             onNavigateToNotifications={() =>
-              navigation.navigate('Notification', { from: 'owner' })
+              props.navigation.navigate('Notification', { from: 'owner' })
             }
+            onNavigateToPostDevice={() => props.navigation.navigate('PostDevice')}
             onOpenDrawer={() => props.navigation.openDrawer()}
           />
         )}
@@ -59,19 +63,12 @@ export function OwnerDrawerNavigator({ navigation }: any) {
         {(props: any) => (
           <BookingManageScreen
             {...props}
-            onBack={() => {
-              if (props.navigation.canGoBack()) {
-                props.navigation.goBack();
-              } else {
-                props.navigation.navigate('OwnerDashboard');
-              }
-            }}
             onOpenDrawer={() => props.navigation.openDrawer()}
             onNavigateToBookingDetail={(bookingId: string) =>
               navigation.navigate('BookingDetail', { bookingId })
             }
             onNavigateToNotifications={() =>
-              navigation.navigate('Notification', { from: 'owner' })
+              props.navigation.navigate('Notification', { from: 'owner' })
             }
           />
         )}
@@ -82,11 +79,43 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       >
         {(props: any) => (
           <OwnerAnalyticsScreen
-            onBackToHome={() => {
-              if (props.navigation.canGoBack()) {
-                props.navigation.goBack();
+            {...props}
+            onOpenDrawer={() => props.navigation.openDrawer()}
+          />
+        )}
+      </Drawer.Screen>
+      <Drawer.Screen
+        name="PostDevice"
+        options={{ title: 'Post Device', drawerLabel: 'Đăng thiết bị mới' }}
+      >
+        {(props: any) => (
+          <PostDeviceScreen
+            {...props}
+            onOpenDrawer={() => props.navigation.openDrawer()}
+            onPublished={() => {
+              props.navigation.navigate('OwnerDashboard', { initialSection: 'fleet' });
+            }}
+          />
+        )}
+      </Drawer.Screen>
+      <Drawer.Screen
+        name="Notification"
+        options={{ title: 'Notification', drawerLabel: 'Thông báo hệ thống' }}
+      >
+        {(props: any) => (
+          <NotificationScreen
+            {...props}
+            onOpenDrawer={() => props.navigation.openDrawer()}
+            onNavigateToBooking={(bookingId?: string) => {
+              if (bookingId) {
+                navigation.navigate('BookingDetail', { bookingId });
               } else {
-                props.navigation.navigate('OwnerDashboard');
+                props.navigation.navigate('BookingManage');
+              }
+            }}
+            onNavigateToDevice={(deviceId?: string) => {
+              if (deviceId) {
+                navigation.navigate('DeviceDetail', { deviceId });
               }
             }}
           />

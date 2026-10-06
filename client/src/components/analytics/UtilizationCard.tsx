@@ -1,6 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { theme } from '../../constants/theme';
+
+const PRIMARY_TEAL = '#67BEC3'; // brand-500
+const TEXT_SECONDARY = '#64748B'; // Slate-500
+const BORDER_SUBTLE = '#F1F5F9';
 
 type UtilizationCardProps = {
   utilizationRate: number;
@@ -18,9 +21,12 @@ export function UtilizationCard({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <Text style={styles.rate}>{utilizationRate}%</Text>
+        <View style={styles.rateCol}>
+          <Text style={styles.rate}>{utilizationRate}%</Text>
+          <Text style={styles.rateSub}>Tỷ lệ lấp đầy kho</Text>
+        </View>
         <Text style={styles.description}>
-          {rentedDevices} / {totalDevices} devices are currently rented
+          {rentedDevices} / {totalDevices} máy đang cho thuê
         </Text>
       </View>
       <View
@@ -36,36 +42,52 @@ export function UtilizationCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: BORDER_SUBTLE,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  rateCol: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
   },
   rate: {
-    ...theme.typography.kpi,
-    color: theme.colors.success[600],
+    fontSize: 24,
+    fontWeight: '800',
+    color: PRIMARY_TEAL,
+  },
+  rateSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
   },
   description: {
-    ...theme.typography.caption,
-    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
   },
   progressBackground: {
-    height: 9,
+    height: 10,
     overflow: 'hidden',
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.slate[100],
+    borderRadius: 9999,
+    backgroundColor: '#F1F5F9',
   },
   progress: {
     height: '100%',
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.success[500],
+    borderRadius: 9999,
+    backgroundColor: PRIMARY_TEAL,
   },
 });

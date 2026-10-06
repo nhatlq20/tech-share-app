@@ -1,30 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useSelector } from "react-redux";
-import { theme } from "../../constants/theme";
-import { RootState } from "../../store";
-import { RevenueChart } from "../../components/analytics/RevenueChart";
-import { RevenueSummary } from "../../components/analytics/RevenueSummary";
-import { UtilizationCard } from "../../components/analytics/UtilizationCard";
-import { DeviceStats } from "../../components/analytics/DeviceStats";
-import { RentalPaymentItem } from "../../components/analytics/RentalPaymentItem";
+  StatusBar,
+  Platform,
+  RefreshControl,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { RevenueChart } from '../../components/analytics/RevenueChart';
+import { RevenueSummary } from '../../components/analytics/RevenueSummary';
+import { UtilizationCard } from '../../components/analytics/UtilizationCard';
+import { DeviceStats } from '../../components/analytics/DeviceStats';
+import { RentalPaymentItem } from '../../components/analytics/RentalPaymentItem';
 import {
   OwnerAnalyticsBooking,
   OwnerAnalyticsData,
   OwnerAnalyticsDevice,
   OwnerRevenueByDay,
   ownerAnalyticsService,
-} from "../../services/ownerAnalyticsService";
-import type { Period, RentalPayment, RevenueData } from "../../data/ownerAnalyticsMock";
+} from '../../services/ownerAnalyticsService';
+import type { Period, RentalPayment, RevenueData } from '../../data/ownerAnalyticsMock';
+
+// ── DESIGN TOKENS (theme-skill.md) ──
+const PRIMARY_TEAL = '#67BEC3'; // brand-500
+const PASTEL_TEAL = '#E8F6F7'; // brand-100
+const BRAND_DARK = '#286E74'; // brand-800
+const BG_SLATE = '#F8FAFC'; // background Slate-50
+const CARD_BG = '#FFFFFF'; // surface / card
+const BORDER_SUBTLE = '#F1F5F9'; // border Slate-100
+const BORDER_COLOR = '#E2E8F0'; // border Slate-200
+const TEXT_PRIMARY = '#0F172A'; // Slate-900
+const TEXT_SECONDARY = '#64748B'; // Slate-500
+const TEXT_MUTED = '#94A3B8'; // Slate-400
+const DANGER_RED = '#EF4444';
+
+const VN_WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 const getBookingDate = (booking: OwnerAnalyticsBooking) =>
   new Date(booking.updatedAt || booking.endDate || booking.startDate);
@@ -36,7 +53,7 @@ const getChartData = (
 ): RevenueData[] => {
   const today = new Date();
 
-  if (period === "week") {
+  if (period === 'week') {
     if (revenueByDay.length > 0) {
       return revenueByDay.map((item) => ({ label: item.day, revenue: item.revenue }));
     }
@@ -49,7 +66,7 @@ const getChartData = (
       nextDay.setDate(day.getDate() + 1);
 
       return {
-        label: day.toLocaleDateString("en-US", { weekday: "short" }),
+        label: VN_WEEKDAYS[day.getDay()],
         revenue: bookings.reduce((sum, booking) => {
           const bookingDate = getBookingDate(booking);
           return bookingDate >= day && bookingDate < nextDay
@@ -61,7 +78,7 @@ const getChartData = (
   }
 
   return Array.from({ length: 5 }, (_, index) => ({
-    label: `Week ${index + 1}`,
+    label: `Tuần ${index + 1}`,
     revenue: bookings.reduce((sum, booking) => {
       const bookingDate = getBookingDate(booking);
       const isCurrentMonth =
@@ -77,348 +94,458 @@ const getChartData = (
 };
 
 const formatDate = (dateValue?: string | null) => {
-  if (!dateValue) return "-";
+  if (!dateValue) return '-';
   const date = new Date(dateValue);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("vi-VN");
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('vi-VN');
 };
 
 interface OwnerAnalyticsScreenProps {
   onBackToHome?: () => void;
+  onOpenDrawer?: () => void;
+  navigation?: any;
   onNavigateToDeviceDetail?: (deviceId: string) => void;
 }
 
 export function OwnerAnalyticsScreen({
   onBackToHome,
+  onOpenDrawer,
+  navigation,
 }: OwnerAnalyticsScreenProps) {
+  const insets = useSafeAreaInsets();
   const token = useSelector((state: RootState) => state.auth.token);
   const role = useSelector((state: RootState) => state.auth.user?.role);
-  const [period, setPeriod] = useState("week" as Period);
+  const [period, setPeriod] = useState('week' as Period);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [analytics, setAnalytics] = useState(null as OwnerAnalyticsData | null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [reloadCount, setReloadCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    let isMounted = true;
+  // Tính toán Safe Area Insets chính xác cho iOS notch & Android status bar
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
+  const bottomInset = Math.max(insets.bottom, 16) + 32;
 
-    if (!token || role !== "owner") {
+  const fetchAnalytics = useCallback(async () => {
+    if (!token || role !== 'owner') {
       setAnalytics(null);
-      setErrorMessage(token ? "Owner access is required." : "Please sign in again.");
+      setErrorMessage(token ? 'Yêu cầu quyền truy cập Chủ máy.' : 'Vui lòng đăng nhập lại.');
       setIsLoading(false);
-      return () => {
-        isMounted = false;
-      };
+      return;
     }
 
+    try {
+      const data = await ownerAnalyticsService.getOwnerAnalytics(token);
+      setAnalytics(data);
+      setErrorMessage('');
+    } catch (error: any) {
+      setErrorMessage(
+        error?.response?.data?.message || error?.message || 'Không thể tải dữ liệu phân tích.',
+      );
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [token, role]);
+
+  useEffect(() => {
     setIsLoading(true);
-    setErrorMessage("");
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
-    ownerAnalyticsService
-      .getOwnerAnalytics(token)
-      .then((data) => {
-        if (isMounted) setAnalytics(data);
-      })
-      .catch((error: any) => {
-        if (isMounted) {
-          setErrorMessage(
-            error?.response?.data?.message || error?.message || "Unable to load analytics.",
-          );
-        }
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token, role, reloadCount]);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchAnalytics();
+  };
 
   const devices: OwnerAnalyticsDevice[] = analytics?.devices || [];
   const bookings: OwnerAnalyticsBooking[] = analytics?.bookings || [];
   const totalDevices = analytics?.totalDevices ?? devices.length;
   const rentedDevices = analytics?.rentedDevices ?? 0;
-  const availableDevices = devices.filter((device) => device.status === "available").length;
+  const availableDevices = devices.filter((device) => device.status === 'available').length;
   const utilizationRate = totalDevices
     ? Math.round((rentedDevices / totalDevices) * 100)
     : 0;
   const chartData = getChartData(bookings, analytics?.revenueByDay || [], period);
   const deviceById = new Map(devices.map((device) => [device._id, device]));
   const rentalPayments: RentalPayment[] = bookings.map((booking) => {
-    const deviceReference = typeof booking.deviceId === "string" ? null : booking.deviceId;
-    const renterReference = typeof booking.renterId === "string" ? null : booking.renterId;
+    const deviceReference = typeof booking.deviceId === 'string' ? null : booking.deviceId;
+    const renterReference = typeof booking.renterId === 'string' ? null : booking.renterId;
     const deviceId =
-      typeof booking.deviceId === "string" ? booking.deviceId : booking.deviceId._id;
+      typeof booking.deviceId === 'string' ? booking.deviceId : booking.deviceId._id;
     const bookingDate = booking.updatedAt || booking.endDate || booking.startDate;
 
     return {
       id: booking._id,
-      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || "Rental device",
-      renterName: renterReference?.name || "Renter",
+      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || 'Thiết bị công nghệ',
+      renterName: renterReference?.name || 'Khách thuê',
       amount: Number(booking.rentalFee || 0),
       date: formatDate(bookingDate),
-      status: "completed",
+      status: 'completed',
     };
   });
 
-  if (role !== "owner") {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Owner access is required.</Text>
-      </View>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={theme.colors.primary[600]} />
-        <Text style={styles.loadingText}>Loading analytics...</Text>
-      </View>
-    );
-  }
-
-  if (errorMessage && !analytics) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>{errorMessage}</Text>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={() => setReloadCount(reloadCount + 1)}
-          style={styles.retryButton}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={onBackToHome}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Revenue &amp; Analytics</Text>
-          <Text style={styles.subtitle}>Track your rental performance</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <RevenueSummary
-        totalRevenue={analytics?.totalRevenue || 0}
-      />
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Revenue overview</Text>
-          <View style={styles.periodControl}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityState={{ selected: period === "week" }}
-              onPress={() => setPeriod("week")}
-              style={[
-                styles.periodButton,
-                period === "week" && styles.periodButtonSelected,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.periodText,
-                  period === "week" && styles.periodTextSelected,
-                ]}
-              >
-                Week
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityState={{ selected: period === "month" }}
-              onPress={() => setPeriod("month")}
-              style={[
-                styles.periodButton,
-                period === "month" && styles.periodButtonSelected,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.periodText,
-                  period === "month" && styles.periodTextSelected,
-                ]}
-              >
-                Month
-              </Text>
-            </TouchableOpacity>
+      {/* ── TOP BAR CỐ ĐỊNH: NÚT MENU BÊN TRÁI, BỎ NÚT BACK ── */}
+      <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
+        <View style={styles.topBarLeft}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Mở menu quản lý chủ máy"
+            onPress={() => {
+              if (onOpenDrawer) {
+                onOpenDrawer();
+              } else if (navigation?.openDrawer) {
+                navigation.openDrawer();
+              }
+            }}
+            style={styles.hamburgerButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="menu-outline" size={24} color={TEXT_PRIMARY} />
+          </TouchableOpacity>
+          <View style={styles.topBarTitleCol}>
+            <Text style={styles.topBarTitle}>Doanh Thu & Phân Tích</Text>
+            <Text style={styles.topBarSubtitle}>Báo cáo dòng tiền & hiệu suất cho thuê</Text>
           </View>
         </View>
-        <RevenueChart data={chartData} period={period} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Device utilization</Text>
-        <UtilizationCard
-          utilizationRate={utilizationRate}
-          rentedDevices={rentedDevices}
-          totalDevices={totalDevices}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Device statistics</Text>
-        <DeviceStats statistics={{ totalDevices, rentedDevices, availableDevices }} />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rental Payment History</Text>
-        {rentalPayments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="receipt-outline"
-              size={28}
-              color={theme.textSecondary}
+      {/* ── NỘI DUNG CHÍNH ── */}
+      {role !== 'owner' ? (
+        <View style={styles.stateContainer}>
+          <View style={styles.stateIconCircle}>
+            <Ionicons name="lock-closed-outline" size={36} color={DANGER_RED} />
+          </View>
+          <Text style={styles.stateTitle}>Yêu cầu quyền Chủ máy</Text>
+          <Text style={styles.stateSubtitle}>Bạn cần đăng nhập tài khoản có quyền Chủ máy để xem trang này.</Text>
+        </View>
+      ) : isLoading ? (
+        <View style={styles.stateContainer}>
+          <ActivityIndicator size="large" color={PRIMARY_TEAL} />
+          <Text style={styles.loadingText}>Đang tải dữ liệu phân tích doanh thu...</Text>
+        </View>
+      ) : errorMessage && !analytics ? (
+        <View style={styles.stateContainer}>
+          <View style={styles.stateIconCircle}>
+            <Ionicons name="alert-circle-outline" size={36} color={DANGER_RED} />
+          </View>
+          <Text style={styles.stateTitle}>Không thể tải dữ liệu</Text>
+          <Text style={styles.stateSubtitle}>{errorMessage}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={fetchAnalytics}
+            style={styles.retryButton}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[PRIMARY_TEAL]}
+              tintColor={PRIMARY_TEAL}
             />
-            <Text style={styles.emptyText}>No rental payments yet</Text>
+          }
+        >
+          {/* 1. Tổng doanh thu tích lũy */}
+          <RevenueSummary totalRevenue={analytics?.totalRevenue || 0} />
+
+          {/* 2. Biến động doanh thu theo chu kỳ */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeading}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="bar-chart-outline" size={17} color={PRIMARY_TEAL} />
+                <Text style={styles.sectionTitle}>Biến Động Doanh Thu</Text>
+              </View>
+
+              {/* Pill-shaped Period Selector theo theme-skill.md */}
+              <View style={styles.periodControl}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: period === 'week' }}
+                  onPress={() => setPeriod('week')}
+                  style={[
+                    styles.periodButton,
+                    period === 'week' && styles.periodButtonSelected,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.periodText,
+                      period === 'week' && styles.periodTextSelected,
+                    ]}
+                  >
+                    Tuần
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: period === 'month' }}
+                  onPress={() => setPeriod('month')}
+                  style={[
+                    styles.periodButton,
+                    period === 'month' && styles.periodButtonSelected,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.periodText,
+                      period === 'month' && styles.periodTextSelected,
+                    ]}
+                  >
+                    Tháng
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <RevenueChart data={chartData} period={period} />
           </View>
-        ) : (
-          <FlatList
-            data={rentalPayments}
-            keyExtractor={(item: RentalPayment) => item.id}
-            renderItem={({ item }: { item: RentalPayment }) => (
-              <RentalPaymentItem payment={item} />
+
+          {/* 3. Hiệu suất khai thác kho máy */}
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="pie-chart-outline" size={17} color={PRIMARY_TEAL} />
+              <Text style={styles.sectionTitle}>Hiệu Suất Khai Thác Kho Máy</Text>
+            </View>
+            <UtilizationCard
+              utilizationRate={utilizationRate}
+              rentedDevices={rentedDevices}
+              totalDevices={totalDevices}
+            />
+          </View>
+
+          {/* 4. Thống kê tình trạng thiết bị */}
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="cube-outline" size={17} color={PRIMARY_TEAL} />
+              <Text style={styles.sectionTitle}>Thống Kê Tình Trạng Thiết Bị</Text>
+            </View>
+            <DeviceStats statistics={{ totalDevices, rentedDevices, availableDevices }} />
+          </View>
+
+          {/* 5. Lịch sử thanh toán & Sao kê dòng tiền */}
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="receipt-outline" size={17} color={PRIMARY_TEAL} />
+              <Text style={styles.sectionTitle}>Lịch Sử Thanh Toán & Sao Kê</Text>
+            </View>
+            {rentalPayments.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons
+                  name="receipt-outline"
+                  size={36}
+                  color={TEXT_MUTED}
+                />
+                <Text style={styles.emptyTitle}>Chưa có giao dịch thanh toán</Text>
+                <Text style={styles.emptyText}>Các khoản thu tiền từ đơn thuê sẽ xuất hiện tại đây.</Text>
+              </View>
+            ) : (
+              <View style={styles.paymentList}>
+                {rentalPayments.map((item: RentalPayment) => (
+                  <View key={item.id} style={{ marginBottom: 10 }}>
+                    <RentalPaymentItem payment={item} />
+                  </View>
+                ))}
+              </View>
             )}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => (
-              <View style={styles.paymentSeparator} />
-            )}
-          />
-        )}
-      </View>
-    </ScrollView>
+          </View>
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: BG_SLATE,
   },
-  content: {
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: CARD_BG,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_SUBTLE,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.lg,
+  topBarLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.card,
+  hamburgerButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: BG_SLATE,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.border,
-    marginRight: theme.spacing.sm,
+    borderColor: BORDER_SUBTLE,
   },
-  headerText: {
+  topBarTitleCol: {
     flex: 1,
   },
-  title: {
-    ...theme.typography.heading,
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
-  subtitle: {
-    ...theme.typography.caption,
-    marginTop: 3,
+  topBarSubtitle: {
+    fontSize: 11,
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
   },
   section: {
-    marginTop: theme.spacing.lg,
+    marginTop: 20,
   },
   sectionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
   },
   sectionTitle: {
-    ...theme.typography.subheading,
-    marginBottom: theme.spacing.sm,
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
+  // Pill Selector theo theme-skill.md Rule 2
   periodControl: {
-    flexDirection: "row",
+    flexDirection: 'row',
+    backgroundColor: BORDER_SUBTLE,
+    borderRadius: 9999,
     padding: 3,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.slate[100],
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
   },
   periodButton: {
-    minWidth: 58,
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 7,
-    borderRadius: theme.radii.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
   },
   periodButtonSelected: {
-    backgroundColor: theme.card,
-    ...theme.shadows.subtle,
+    backgroundColor: PASTEL_TEAL,
   },
   periodText: {
-    ...theme.typography.caption,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
   },
   periodTextSelected: {
-    color: theme.colors.primary[600],
+    color: BRAND_DARK,
+    fontWeight: '700',
   },
-  loadingContainer: {
+  stateContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: BG_SLATE,
+    padding: 24,
+  },
+  stateIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 9999,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  stateTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  stateSubtitle: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   loadingText: {
-    ...theme.typography.caption,
-  },
-  errorText: {
-    ...theme.typography.body,
-    color: theme.colors.danger[600],
-    textAlign: "center",
+    fontSize: 13,
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+    marginTop: 10,
   },
   retryButton: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.primary[600],
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    backgroundColor: PRIMARY_TEAL,
+    marginTop: 12,
   },
   retryButtonText: {
-    ...theme.typography.body,
-    color: theme.colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   emptyState: {
-    minHeight: 120,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
+    minHeight: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: BORDER_SUBTLE,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: 4,
   },
   emptyText: {
-    ...theme.typography.body,
-    color: theme.textSecondary,
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
   },
-  paymentSeparator: {
-    height: theme.spacing.sm,
+  paymentList: {
+    marginTop: 2,
   },
 });
+

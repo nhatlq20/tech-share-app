@@ -357,11 +357,17 @@ export function BookingManageScreen({
       {/* ── 1. HEADER CHÍNH ── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {onOpenDrawer ? (
+          {onOpenDrawer || (navigation as any)?.openDrawer ? (
             <TouchableOpacity
               style={styles.headerIconBtn}
-              onPress={onOpenDrawer}
-              accessibilityLabel="Mở menu"
+              onPress={() => {
+                if (onOpenDrawer) {
+                  onOpenDrawer();
+                } else if ((navigation as any)?.openDrawer) {
+                  (navigation as any).openDrawer();
+                }
+              }}
+              accessibilityLabel="Mở menu quản lý chủ máy"
             >
               <Ionicons name="menu-outline" size={24} color={colors.light.textPrimary} />
             </TouchableOpacity>

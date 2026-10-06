@@ -26,7 +26,9 @@ import {
 import { Notification, NotificationType } from '../../types';
 
 interface NotificationScreenProps {
-  onBack: () => void;
+  onBack?: () => void;
+  onOpenDrawer?: () => void;
+  navigation?: any;
   onNavigateToBooking?: (bookingId?: string) => void;
   onNavigateToDevice?: (deviceId?: string) => void;
 }
@@ -41,6 +43,8 @@ const FILTER_TABS: { key: NotificationFilter; label: string; icon: keyof typeof 
 
 export function NotificationScreen({
   onBack,
+  onOpenDrawer,
+  navigation,
   onNavigateToBooking,
   onNavigateToDevice,
 }: NotificationScreenProps) {
@@ -232,21 +236,41 @@ export function NotificationScreen({
     <View style={styles.container}>
       {/* ── Top Header ── */}
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBack}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Thông báo</Text>
-          {unreadCount > 0 && (
-            <View style={styles.unreadBadgePill}>
-              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-            </View>
+        <View style={styles.headerLeftGroup}>
+          {onOpenDrawer || (navigation as any)?.openDrawer ? (
+            <TouchableOpacity
+              style={styles.hamburgerButton}
+              onPress={() => {
+                if (onOpenDrawer) {
+                  onOpenDrawer();
+                } else if ((navigation as any)?.openDrawer) {
+                  (navigation as any).openDrawer();
+                }
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Mở menu quản lý chủ máy"
+            >
+              <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Quay lại"
+            >
+              <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
+            </TouchableOpacity>
           )}
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Thông báo</Text>
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadgePill}>
+                <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {unreadCount > 0 ? (
@@ -355,6 +379,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.card,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hamburgerButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   backButton: {
     width: 36,
