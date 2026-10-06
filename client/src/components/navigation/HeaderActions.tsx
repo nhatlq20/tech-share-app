@@ -15,6 +15,7 @@ interface HeaderActionsProps {
   unreadMessages?: number;
   /** Số thông báo chưa đọc — hiện số đếm nếu > 0 */
   unreadNotifications?: number;
+  onPressWishlist?: () => void;
   onPressChat?: () => void;
   onPressNotifications?: () => void;
 }
@@ -22,6 +23,7 @@ interface HeaderActionsProps {
 export function HeaderActions({
   unreadMessages = 0,
   unreadNotifications,
+  onPressWishlist,
   onPressChat,
   onPressNotifications,
 }: HeaderActionsProps) {
@@ -53,10 +55,28 @@ export function HeaderActions({
 
   return (
     <View style={styles.container}>
+      {/* Nút Yêu thích (Wishlist) */}
+      {onPressWishlist && (
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={onPressWishlist}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name="heart-outline"
+            size={22}
+            color={theme.textPrimary}
+          />
+        </TouchableOpacity>
+      )}
+
       {/* Nút Tin nhắn */}
       <TouchableOpacity
         style={styles.iconButton}
         onPress={onPressChat}
+        accessibilityRole="button"
+        accessibilityLabel="Chat"
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
@@ -72,6 +92,8 @@ export function HeaderActions({
       <TouchableOpacity
         style={styles.iconButton}
         onPress={onPressNotifications}
+        accessibilityRole="button"
+        accessibilityLabel="Notifications"
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >

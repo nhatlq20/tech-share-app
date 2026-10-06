@@ -3,6 +3,7 @@ import Device from '../models/Device.js';
 import Voucher from '../models/Voucher.js';
 import User from '../models/User.js';
 import WalletTransaction from '../models/WalletTransaction.js';
+import EkycRequest from '../models/EkycRequest.js';
 import { createAndSendNotification } from '../services/notificationService.js';
 
 // @desc    Create new booking
@@ -19,6 +20,22 @@ export const createBooking = async (req, res) => {
     const device = await Device.findById(deviceId);
     if (!device) {
       return res.status(404).json({ message: 'Không tìm thấy thiết bị' });
+    }
+
+    const renterId = req.auth.id || req.auth._id;
+    if (req.auth.role === 'renter') {
+      const isIdentityVerified = await EkycRequest.exists({
+        userId: renterId,
+        status: 'approved',
+        verificationPurpose: 'renter',
+      });
+      if (!isIdentityVerified) {
+        return res.status(403).json({
+          success: false,
+          code: 'RENTER_EKYC_REQUIRED',
+          message: 'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+        });
+      }
     }
 
     const start = new Date(startDate);
@@ -104,7 +121,7 @@ export const createBooking = async (req, res) => {
     const booking = await Booking.create({
       bookingCode,
       deviceId,
-      renterId: req.auth.id || req.auth._id,
+      renterId,
       ownerId: device.ownerId, // assuming device schema has ownerId
       startDate,
       endDate,
@@ -125,7 +142,7 @@ export const createBooking = async (req, res) => {
 
     // Tự động bắn thông báo tức thì đến chủ máy kèm tên khách thuê
     if (device.ownerId) {
-      const renter = await User.findById(req.auth.id || req.auth._id).select('name');
+      const renter = await User.findById(renterId).select('name');
       const renterName = renter?.name || 'Khách thuê';
       createAndSendNotification({
         userId: device.ownerId,
@@ -785,4 +802,3 @@ export const getDeviceBusyDates = async (req, res) => {
     });
   }
 };
-

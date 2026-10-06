@@ -23,8 +23,8 @@ function resolveImageUri(url?: string): string | null {
 }
 
 function formatDistance(distanceMeters: number): string {
-  if (distanceMeters < 1000) return `${Math.round(distanceMeters)} m`;
-  return `${(distanceMeters / 1000).toFixed(1)} km`;
+  if (distanceMeters < 1000) return `${Math.round(distanceMeters)} m away`;
+  return `${(distanceMeters / 1000).toFixed(1)} km away`;
 }
 
 export function DevicePreviewCard({
@@ -37,7 +37,7 @@ export function DevicePreviewCard({
   const translateY = useRef(new Animated.Value(18)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  const title = device.title || (device as any).name || 'Thiết bị';
+  const title = device.title || (device as any).name || 'Device';
   const dailyRate = device.dailyRate ?? (device as any).pricePerDay ?? 0;
   const rating = device.rating ?? (device as any).ratingAvg ?? 5;
   const brand = (device.brand || '').trim().toUpperCase();
@@ -112,7 +112,7 @@ export function DevicePreviewCard({
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Đóng"
+                accessibilityLabel="Close"
                 style={styles.closeBtn}
               >
                 <Ionicons name="close" size={16} color={colors.light.textSecondary} />
@@ -135,7 +135,7 @@ export function DevicePreviewCard({
           </View>
 
           {/* Row 3: Price */}
-          <Text style={styles.price}>{dailyRate.toLocaleString('vi-VN')} đ/ngày</Text>
+          <Text style={styles.price}>{dailyRate.toLocaleString('en-US')} ₫/day</Text>
 
           {/* Row 4: Distance & CTA */}
           <View style={styles.bottomRow}>
@@ -145,7 +145,7 @@ export function DevicePreviewCard({
             </View>
 
             <View style={styles.ctaRow}>
-              <Text style={styles.ctaText}>Chi tiết</Text>
+              <Text style={styles.ctaText}>View Details</Text>
               <Ionicons name="arrow-forward" size={12} color={colors.light.primary} />
             </View>
           </View>

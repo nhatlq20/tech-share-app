@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
-
+import { wishlistService } from '../../services/wishlistService';
 import { API_BASE_URL } from '../../config/api';
 
 interface DeviceCardProps {
@@ -19,7 +19,14 @@ interface DeviceCardProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ/day';
+  return `${price.toLocaleString('en-US')} ₫/day`;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  available: 'Available',
+  rented: 'Rented',
+  maintenance: 'Under Maintenance',
+  hidden: 'Unavailable',
 };
 
 const resolveImageUri = (url?: string): string => {
@@ -56,6 +63,23 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
 
   const isAvailable = device.status === 'available';
 
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    wishlistService.checkIsFavorite(device._id).then((fav) => {
+      if (isMounted) setIsFavorite(fav);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [device._id]);
+
+  const handleToggleFavorite = async () => {
+    const res = await wishlistService.toggleWishlist(device);
+    setIsFavorite(res.isInWishlist);
+  };
+
   return (
     <TouchableOpacity
       style={[styles.card, width ? { width } : styles.defaultWidth]}
@@ -74,6 +98,20 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
         <View style={styles.brandBadge}>
           <Text style={styles.brandText}>{device.brand}</Text>
         </View>
+
+        {/* Nút Thả tim */}
+        <TouchableOpacity
+          style={styles.cardHeartBtn}
+          onPress={handleToggleFavorite}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={16}
+            color={isFavorite ? '#EF4444' : '#64748B'}
+          />
+        </TouchableOpacity>
 
         {/* Badge trạng thái (Tuân thủ theme-skill.md) */}
         <View
@@ -94,7 +132,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
               isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
             ]}
           >
-            {isAvailable ? 'Available' : 'Rented'}
+            {STATUS_LABELS[device.status] ?? 'Unavailable'}
           </Text>
         </View>
       </View>
@@ -188,14 +226,30 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    bottom: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
+  },
+  cardHeartBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   statusAvailable: {
     backgroundColor: colors.light.primaryLight,

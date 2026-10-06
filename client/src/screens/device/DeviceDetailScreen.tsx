@@ -11,10 +11,12 @@ import {
   StatusBar,
   Platform,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
+import { wishlistService } from '../../services/wishlistService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
 import { ReviewListSection } from '../../components/device/ReviewListSection';
@@ -30,10 +32,48 @@ interface DeviceDetailScreenProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ';
+  return `${price.toLocaleString('en-US')} ₫`;
 };
 
+const CONDITION_LABELS: Record<string, string> = {
+  new: 'New',
+  new99: 'Like New',
+  used: 'Used',
+  used95: 'Gently Used',
+  good: 'Good',
+  fair: 'Fair',
+  scratched: 'Visible Wear',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  available: 'Available',
+  rented: 'Currently Rented',
+  maintenance: 'Under Maintenance',
+  hidden: 'Unavailable',
+};
+
+const SPEC_LABELS: Record<string, string> = {
+  'màn hình': 'Display',
+  pin: 'Battery',
+  'bộ nhớ': 'Storage',
+  'vi xử lý': 'Chip',
+  'hệ điều hành': 'Operating System',
+  'kích thước': 'Dimensions',
+  'trọng lượng': 'Weight',
+};
+
+const getConditionLabel = (condition?: string): string => {
+  if (!condition) return 'Not specified';
+  return CONDITION_LABELS[condition.toLowerCase()] ?? condition
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (character: string) => character.toUpperCase());
+};
+
+const getSpecLabel = (key: string): string =>
+  SPEC_LABELS[key.trim().toLowerCase()] ?? key;
+
 export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }: DeviceDetailScreenProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
     insets.top,
@@ -42,10 +82,21 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [aiReview, setAiReview] = useState<AIReview | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState({} as Record<number, boolean>);
+  const [loadingImages, setLoadingImages] = useState({} as Record<number, boolean>);
+  const [aiReview, setAiReview] = useState(null as AIReview | null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const aiRequestInProgress = useRef(false);
+
+  const handleToggleFavorite = async () => {
+    if (!device) return;
+    const res = await wishlistService.toggleWishlist(device);
+    setIsFavorite(res.isInWishlist);
+  };
 
   const handleAIReview = async () => {
     if (!device || aiRequestInProgress.current) return;
@@ -72,19 +123,26 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
 
   useEffect(() => {
     let isMounted = true;
+    wishlistService.checkIsFavorite(deviceId).then((fav) => {
+      if (isMounted) setIsFavorite(fav);
+    });
+
     (async () => {
       setLoading(true);
       setDevice(null);
       setError('');
+      setActiveImageIndex(0);
+      setFailedImages({});
+      setLoadingImages({});
       try {
         const data = await deviceService.getDeviceById(deviceId, { throwOnError: true });
         if (isMounted) setDevice(data);
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (isMounted) {
-          setError(status === 404 ? 'Không tìm thấy thiết bị'
-            : status === 400 ? 'ID thiết bị không hợp lệ'
-            : 'Không thể tải thiết bị. Vui lòng kiểm tra kết nối và thử lại.');
+          setError(status === 404 ? 'Device not found'
+            : status === 400 ? 'Invalid device ID'
+            : 'Unable to load device');
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -93,13 +151,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
     return () => {
       isMounted = false;
     };
-  }, [deviceId]);
+  }, [deviceId, retryCount]);
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.light.primary} />
-        <Text style={styles.loadingText}>Đang tải chi tiết thiết bị...</Text>
+        <Text style={styles.loadingText}>Loading device details...</Text>
       </View>
     );
   }
@@ -108,20 +166,28 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.light.error} />
-        <Text style={styles.errorTitle}>{error || 'Không tìm thấy thiết bị'}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Quay lại trang chủ</Text>
-        </TouchableOpacity>
+        <Text style={styles.errorTitle}>{error || 'Device not found'}</Text>
+        <View style={styles.errorActions}>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => setRetryCount((count: number) => count + 1)}
+          >
+            <Text style={styles.retryBtnText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+            <Text style={styles.backBtnText}>Back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
-  const imageUrl =
-    device.images && device.images.length > 0
-      ? device.images[0]
-      : 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800';
-
   const isAvailable = device.status === 'available';
+  const imageUrls = (device.images ?? []).filter(
+    (uri: string) => typeof uri === 'string' && uri.trim().length > 0
+  );
+  const condition = (device as Device & { condition?: string }).condition;
+  const owner = typeof device.owner === 'object' ? device.owner : null;
 
   return (
     <View style={styles.root}>
@@ -135,19 +201,86 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
         <Text style={styles.headerTitle} numberOfLines={1}>
           {device.title}
         </Text>
-        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.7}>
-          <Ionicons name="heart-outline" size={20} color={colors.light.textPrimary} />
+        <TouchableOpacity style={styles.headerBtn} onPress={handleToggleFavorite} activeOpacity={0.7}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={22}
+            color={isFavorite ? '#EF4444' : colors.light.textPrimary}
+          />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: hideBookNow ? 24 : 120 + insets.bottom },
+        ]}
+      >
         {/* Device Image */}
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
+          {imageUrls.length > 0 ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              bounces={false}
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(event: { nativeEvent: { contentOffset: { x: number } } }) => {
+                const nextIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                setActiveImageIndex(Math.min(nextIndex, imageUrls.length - 1));
+              }}
+            >
+              {imageUrls.map((uri: string, index: number) => (
+                <View key={`${uri}-${index}`} style={[styles.imagePage, { width: screenWidth }]}>
+                  {!failedImages[index] && loadingImages[index] !== false && (
+                    <ActivityIndicator
+                      style={styles.imageLoading}
+                      size="small"
+                      color={colors.light.primary}
+                    />
+                  )}
+                  {failedImages[index] ? (
+                    <View style={styles.imageFallback}>
+                      <Ionicons name="image-outline" size={42} color={colors.light.textSecondary} />
+                      <Text style={styles.imageFallbackText}>Image unavailable</Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri }}
+                      style={styles.mainImage}
+                      resizeMode="cover"
+                      onLoadEnd={() =>
+                        setLoadingImages((current: Record<number, boolean>) => ({
+                          ...current,
+                          [index]: false,
+                        }))
+                      }
+                      onError={() =>
+                        setFailedImages((current: Record<number, boolean>) => ({
+                          ...current,
+                          [index]: true,
+                        }))
+                      }
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.imageFallback}>
+              <Ionicons name="image-outline" size={42} color={colors.light.textSecondary} />
+              <Text style={styles.imageFallbackText}>No image available</Text>
+            </View>
+          )}
+          {imageUrls.length > 1 && (
+            <View style={styles.paginationDots}>
+              {imageUrls.map((_: string, index: number) => (
+                <View
+                  key={index}
+                  style={[styles.paginationDot, index === activeImageIndex && styles.paginationDotActive]}
+                />
+              ))}
+            </View>
+          )}
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>
               {device.category.toUpperCase()}
@@ -171,13 +304,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
                   isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
                 ]}
               >
-                {isAvailable ? 'Sẵn sàng thuê' : 'Đang thuê'}
+                {STATUS_LABELS[device.status] ?? device.status}
               </Text>
             </View>
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{device.title}</Text>
+          <Text style={styles.title} numberOfLines={2}>{device.title}</Text>
 
           {/* Rating & Address */}
           <View style={styles.metaRow}>
@@ -209,22 +342,38 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
             </View>
             <View style={styles.depositDivider} />
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Tiền cọc đảm bảo (Ký quỹ)</Text>
+              <Text style={styles.priceSub}>Security deposit</Text>
               <Text style={styles.depositMain}>{formatPrice(device.depositValue)}</Text>
             </View>
           </View>
 
+          <Text style={styles.sectionHeading}>Device Information</Text>
+          <View style={styles.specRow}>
+            <Text style={styles.specKey}>Brand</Text>
+            <Text style={styles.specValue}>{device.brand}</Text>
+          </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specKey}>Condition</Text>
+            <Text style={styles.specValue}>{getConditionLabel(condition)}</Text>
+          </View>
+          {owner?.name && (
+            <View style={styles.specRow}>
+              <Text style={styles.specKey}>Owner</Text>
+              <Text style={styles.specValue}>{owner.name}</Text>
+            </View>
+          )}
+
           {/* Description */}
-          <Text style={styles.sectionHeading}>Device description</Text>
+          <Text style={styles.sectionHeading}>Description</Text>
           <Text style={styles.descriptionText}>{device.description}</Text>
 
           {/* Specs */}
           {device.specs && Object.keys(device.specs).length > 0 && (
             <View style={styles.specsContainer}>
-              <Text style={styles.sectionHeading}>Technical specs</Text>
+              <Text style={styles.sectionHeading}>Specifications</Text>
               {Object.entries(device.specs).map(([key, val]) => (
                 <View key={key} style={styles.specRow}>
-                  <Text style={styles.specKey}>{key}</Text>
+                  <Text style={styles.specKey}>{getSpecLabel(key)}</Text>
                   <Text style={styles.specValue}>{val}</Text>
                 </View>
               ))}
@@ -258,7 +407,12 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
 
       {/* Bottom Sticky Action Bar (CTA bo góc 12px theo theme-skill.md) */}
       {!hideBookNow && (
-        <View style={styles.bottomBar}>
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Math.max(insets.bottom, 12) },
+          ]}
+        >
           <View>
             <Text style={styles.bottomPriceSub}>Total rental fee</Text>
             <Text style={styles.bottomPriceMain}>
@@ -273,13 +427,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
               if (onBookNow) {
                 onBookNow(deviceId);
               } else {
-                alert(`Đặt thuê thiết bị: ${device.title}`);
+                alert(`Book device: ${device.title}`);
               }
             }}
             activeOpacity={0.85}
           >
             <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.bookBtnText}>Book now</Text>
+            <Text style={styles.bookBtnText}>Book Now</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -316,15 +470,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 12,
     marginBottom: 16,
+    textAlign: 'center',
   },
-  backBtn: {
+  errorActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  retryBtn: {
     backgroundColor: colors.light.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
   },
-  backBtnText: {
+  retryBtnText: {
     color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  backBtn: {
+    backgroundColor: colors.light.surface,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  backBtnText: {
+    color: colors.light.textPrimary,
     fontWeight: '600',
   },
   header: {
@@ -363,10 +534,51 @@ const styles = StyleSheet.create({
     height: 240,
     position: 'relative',
     backgroundColor: '#F1F5F9',
+    overflow: 'hidden',
+  },
+  imagePage: {
+    height: 240,
+    position: 'relative',
   },
   mainImage: {
     width: '100%',
     height: '100%',
+  },
+  imageLoading: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  imageFallback: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  imageFallbackText: {
+    color: colors.light.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  paginationDots: {
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+  },
+  paginationDotActive: {
+    width: 14,
+    backgroundColor: '#FFFFFF',
   },
   categoryBadge: {
     position: 'absolute',
@@ -394,10 +606,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   brandText: {
+    flex: 1,
     color: colors.light.primary,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
+    marginRight: 8,
   },
   statusBadge: {
     paddingHorizontal: 8,

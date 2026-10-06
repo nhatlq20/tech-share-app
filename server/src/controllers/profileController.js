@@ -1,5 +1,8 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
+import Device from '../models/Device.js';
 import EkycRequest from '../models/EkycRequest.js';
+import { calculateAndUpdateOwnerReputation } from '../services/trustScoreService.js';
 
 const profileFields = user => ({
   id: user._id,
@@ -10,11 +13,17 @@ const profileFields = user => ({
   avatar: user.avatar,
   role: user.role,
   isVerified: user.isVerified,
-  trustScore: user.trustScore,
+  // 4 trường uy tín được lưu trực tiếp trong collection 'users'
+  rating: user.rating !== undefined && user.rating !== null ? Number(user.rating) : 5.0,
+  ownerRating: user.ownerRating !== undefined && user.ownerRating !== null ? Number(user.ownerRating) : 5.0,
+  trustScore: user.trustScore !== undefined && user.trustScore !== null ? Number(user.trustScore) : 100,
+  totalReviews: user.totalReviews !== undefined && user.totalReviews !== null ? Number(user.totalReviews) : 0,
+  totalReview: user.totalReviews !== undefined && user.totalReviews !== null ? Number(user.totalReviews) : 0,
 });
 
 export const getMyProfile = async (req, res) => {
   try {
+    // Load trực tiếp thông tin người dùng từ collection 'users'
     const user = await User.findById(req.auth.id).select('-passwordHash');
 
     if (!user) {
@@ -48,6 +57,37 @@ export const getMyProfile = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * POST /api/profile/me/recalculate-trust-score
+ * Tính toán lại 4 trường uy tín từ collection reviews cho người dùng hiện tại
+ */
+export const recalculateMyTrustScore = async (req, res) => {
+  try {
+    const result = await calculateAndUpdateOwnerReputation(req.auth.id);
+    return res.json({
+      success: true,
+      message: 'Tính toán lại điểm uy tín thành công từ collection reviews',
+      data: {
+        rating: result.rating,
+        ownerRating: result.ownerRating,
+        trustScore: result.trustScore,
+        totalReviews: result.totalReviews,
+        totalReview: result.totalReview,
+      },
+      user: profileFields(result.user),
+    });
+  } catch (error) {
+    console.error('Recalculate trust score error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể tính toán lại điểm uy tín',
+      error: error.message,
+    });
+  }
+};
+
 
 export const updateMyProfile = async (req, res) => {
   try {
@@ -253,6 +293,7 @@ export const submitEkyc = async (req, res) => {
         message: 'Không tìm thấy thông tin tài khoản người dùng.',
       });
     }
+    const verificationPurpose = user.role === 'renter' ? 'renter' : 'owner';
 
     // 2. Validate số CCCD
     const trimmedCardNumber = String(idCardNumber || '').trim();
@@ -326,6 +367,7 @@ export const submitEkyc = async (req, res) => {
       ekyc.phone = user.phone || '';
       ekyc.idCardNumber = trimmedCardNumber;
       ekyc.address = trimmedAddress;
+      ekyc.verificationPurpose = verificationPurpose;
       ekyc.idCardFrontUrl = idCardFrontUrl;
       ekyc.idCardBackUrl = idCardBackUrl;
       ekyc.selfieUrl = selfieUrl || '';
@@ -342,6 +384,7 @@ export const submitEkyc = async (req, res) => {
         phone: user.phone || '',
         idCardNumber: trimmedCardNumber,
         address: trimmedAddress,
+        verificationPurpose,
         idCardFrontUrl,
         idCardBackUrl,
         selfieUrl: selfieUrl || '',
@@ -363,3 +406,92 @@ export const submitEkyc = async (req, res) => {
     });
   }
 };
+
+export const getMyWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.auth.id).populate({
+      path: 'wishlist',
+      populate: { path: 'ownerId', select: 'name avatar phone' },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const activeWishlist = (user.wishlist || []).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      wishlist: activeWishlist,
+    });
+  } catch (error) {
+    console.error('Get wishlist error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể tải danh sách yêu thích',
+      error: error.message,
+    });
+  }
+};
+
+export const toggleWishlist = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    if (!deviceId || !mongoose.Types.ObjectId.isValid(deviceId)) {
+      return res.status(400).json({ success: false, message: 'ID thiết bị không hợp lệ' });
+    }
+
+    const user = await User.findById(req.auth.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const currentWishlist = (user.wishlist || []).map((id) => id?.toString());
+    const isExisted = currentWishlist.includes(deviceId.toString());
+
+    let updatedUser;
+    let isInWishlist = false;
+
+    if (isExisted) {
+      updatedUser = await User.findByIdAndUpdate(
+        req.auth.id,
+        { $pull: { wishlist: deviceId } },
+        { new: true }
+      ).populate({
+        path: 'wishlist',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      });
+      isInWishlist = false;
+    } else {
+      updatedUser = await User.findByIdAndUpdate(
+        req.auth.id,
+        { $addToSet: { wishlist: deviceId } },
+        { new: true }
+      ).populate({
+        path: 'wishlist',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      });
+      isInWishlist = true;
+    }
+
+    const activeWishlist = (updatedUser?.wishlist || []).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      isInWishlist,
+      wishlist: activeWishlist,
+      message: isInWishlist
+        ? 'Đã thêm thiết bị vào danh sách yêu thích'
+        : 'Đã xóa thiết bị khỏi danh sách yêu thích',
+    });
+  } catch (error) {
+    console.error('Toggle wishlist error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể cập nhật danh sách yêu thích',
+      error: error.message,
+    });
+  }
+};
+

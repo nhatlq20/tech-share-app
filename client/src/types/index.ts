@@ -57,7 +57,9 @@ export interface User {
   location?: GeoPoint;
   favoriteDevices?: string[];
   rating?: number;
+  ownerRating?: number;
   totalReviews?: number;
+  totalReview?: number;
   trustScore?: number;
   walletBalance?: number;
   walletEscrowBalance?: number;
@@ -382,6 +384,7 @@ export interface EkycItem {
   phone?: string;
   idCardNumber?: string;
   address?: string;
+  verificationPurpose?: "owner" | "renter";
   idCardFrontUrl: string;
   idCardBackUrl: string;
   selfieUrl?: string;
@@ -423,6 +426,15 @@ export interface OwnerOverviewStats {
   activeRentals: number;
   escrowHolding: number;
   utilizationRate: number;
+  totalBookings?: number;
+  monthlyRevenue?: number;
+  monthlyGrowth?: number;
+  walletBalance?: number;
+  rating?: number;
+  ownerRating?: number;
+  trustScore?: number;
+  totalReviews?: number;
+  totalReview?: number;
 }
 
 export interface OwnerRevenueChartData {

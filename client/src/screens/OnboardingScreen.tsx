@@ -19,27 +19,27 @@ interface OnboardingScreenProps {
 
 const slides = [
   {
-    eyebrow: 'TÌM THIẾT BỊ',
-    title: 'Công nghệ bạn cần, ngay gần bạn',
-    description: 'Khám phá laptop, máy ảnh và thiết bị hữu ích từ cộng đồng quanh mình.',
+    eyebrow: 'FIND GEAR',
+    title: 'Tech you need, right near you',
+    description: 'Discover laptops, cameras, and useful equipment from your local community.',
     icon: 'search' as const,
     accent: '#2563EB',
     tint: '#DBEAFE',
     secondaryIcon: 'location' as const,
   },
   {
-    eyebrow: 'CHO THUÊ DỄ DÀNG',
-    title: 'Chia sẻ thiết bị, thêm thu nhập',
-    description: 'Đăng thiết bị của bạn và kết nối với người đang cần sử dụng.',
+    eyebrow: 'EASY EARNING',
+    title: 'Share your gear, earn extra income',
+    description: 'List your equipment and connect with verified users who need it.',
     icon: 'hardware-chip' as const,
     accent: '#059669',
     tint: '#D1FAE5',
     secondaryIcon: 'trending-up' as const,
   },
   {
-    eyebrow: 'ĐẶT THUÊ AN TÂM',
-    title: 'Theo dõi mọi lịch thuê dễ dàng',
-    description: 'Quản lý yêu cầu, lịch hẹn và thông báo trong cùng một nơi.',
+    eyebrow: 'RENT WITH CONFIDENCE',
+    title: 'Track every rental with ease',
+    description: 'Manage requests, schedules, and notifications all in one place.',
     icon: 'calendar' as const,
     accent: '#EA580C',
     tint: '#FFEDD5',
@@ -49,44 +49,44 @@ const slides = [
 
 const termsSections = [
   {
-    title: '1. Giới thiệu',
-    body: 'TechShare là nền tảng kết nối người có thiết bị công nghệ với người có nhu cầu thuê. Trừ khi có thông báo rõ ràng, TechShare cung cấp công cụ kết nối và không mặc nhiên là bên sở hữu, cho thuê hoặc nhận thuê thiết bị.',
+    title: '1. Introduction',
+    body: 'TechShare is a platform connecting tech equipment owners with individuals seeking short-term rentals. Unless explicitly stated otherwise, TechShare provides the matching and management platform and does not own, lease, or directly rent devices.',
   },
   {
-    title: '2. Tài khoản và thông tin',
-    body: 'Bạn cần cung cấp thông tin chính xác, cập nhật và bảo mật thông tin đăng nhập của mình. Bạn chịu trách nhiệm đối với hoạt động phát sinh từ tài khoản, trừ trường hợp do lỗi của nền tảng hoặc pháp luật có quy định khác. Hãy thông báo cho TechShare nếu nghi ngờ tài khoản bị truy cập trái phép.',
+    title: '2. Accounts and Information',
+    body: 'You must provide accurate, updated information and keep your login credentials secure. You are responsible for all activities under your account. Notify TechShare immediately if you suspect unauthorized access.',
   },
   {
-    title: '3. Đăng thiết bị',
-    body: 'Người đăng thiết bị phải có quyền cho thuê thiết bị đó, mô tả trung thực tình trạng, phụ kiện, giá thuê, thời gian sẵn có và các điều kiện liên quan. Không đăng thiết bị bất hợp pháp, hàng giả, hàng không được phép cho thuê hoặc nội dung xâm phạm quyền của người khác.',
+    title: '3. Listing Equipment',
+    body: 'Device owners must hold the legitimate right to rent out their listed equipment and honestly describe condition, accessories, pricing, and availability. Listing counterfeit, prohibited, or stolen items is strictly forbidden.',
   },
   {
-    title: '4. Đặt thuê và bàn giao',
-    body: 'Người thuê và người cho thuê cần xem kỹ thông tin, xác nhận yêu cầu trên ứng dụng và thống nhất việc nhận, trả thiết bị. Hai bên nên kiểm tra tình trạng thiết bị, phụ kiện và lưu lại xác nhận bàn giao. Các thỏa thuận thuê cụ thể được thực hiện giữa hai bên theo thông tin hiển thị tại thời điểm đặt.',
+    title: '4. Bookings and Handover',
+    body: 'Renters and owners must carefully inspect booking details, confirm requests within the app, and coordinate physical handover and returns. Both parties should verify device condition and keep handover confirmation records.',
   },
   {
-    title: '5. Giá thuê, thanh toán và hủy',
-    body: 'Giá, phí và phương thức thanh toán (nếu có) được hiển thị trong quy trình đặt thuê. Vui lòng kiểm tra tổng chi phí và điều kiện hủy trước khi xác nhận. Việc hoàn tiền, xử lý giao dịch hoặc tranh chấp được thực hiện theo chính sách đang hiển thị trên TechShare và quy định pháp luật áp dụng.',
+    title: '5. Rental Pricing, Payments and Cancellations',
+    body: 'Rental fees, security deposits, and payment methods are clearly shown during the booking process. Please review all costs and cancellation terms before confirming.',
   },
   {
-    title: '6. Ứng xử và an toàn',
-    body: 'Bạn đồng ý giao tiếp lịch sự, không gian lận, quấy rối, lừa đảo hoặc sử dụng nền tảng cho mục đích trái pháp luật. Không chia sẻ dữ liệu cá nhân, mật khẩu hay mã xác thực của mình hoặc người khác. Hãy chỉ giao nhận thiết bị tại địa điểm và theo cách mà các bên cảm thấy an toàn.',
+    title: '6. Conduct and Safety',
+    body: 'You agree to communicate respectfully and refrain from fraudulent, abusive, or unlawful actions. Never disclose sensitive passwords or verification OTPs to anyone. Always conduct item handovers in safe locations.',
   },
   {
-    title: '7. Trợ lý Gemini AI',
-    body: 'Trợ lý Gemini AI có thể hỗ trợ tìm kiếm và cung cấp gợi ý, nhưng câu trả lời có thể chưa đầy đủ, không chính xác hoặc đã lỗi thời. Nội dung AI chỉ nhằm mục đích tham khảo, không thay thế tư vấn chuyên môn hay thông tin xác nhận từ người cho thuê. Vui lòng kiểm tra thông tin quan trọng trước khi quyết định và không nhập dữ liệu nhạy cảm vào cuộc trò chuyện.',
+    title: '7. Gemini AI Assistant',
+    body: 'The integrated Gemini AI assistant provides rental guidance, recommendations, and search assistance. AI output is for informational purposes and should be verified before making rental commitments.',
   },
   {
-    title: '8. Nội dung, sự cố và giới hạn trách nhiệm',
-    body: 'Bạn chịu trách nhiệm về nội dung mình đăng và cần giải quyết thiện chí các vấn đề phát sinh từ giao dịch. TechShare có thể tiếp nhận phản ánh, hỗ trợ kết nối các bên và áp dụng biện pháp phù hợp với tài khoản hoặc nội dung vi phạm. Nền tảng không đảm bảo mọi thiết bị, người dùng hoặc giao dịch luôn sẵn có hay không có rủi ro; quyền của bạn theo pháp luật vẫn được bảo lưu.',
+    title: '8. Content and Dispute Resolution',
+    body: 'Users are responsible for content they publish and agree to resolve rental disputes in good faith. TechShare may review incident reports and take necessary moderation actions against violating accounts.',
   },
   {
-    title: '9. Dữ liệu và cập nhật điều khoản',
-    body: 'TechShare xử lý dữ liệu cần thiết để vận hành tài khoản, kết nối giao dịch và cải thiện dịch vụ theo thông báo quyền riêng tư của ứng dụng và pháp luật áp dụng. Điều khoản có thể được cập nhật khi dịch vụ thay đổi. Bản đang hiển thị trong ứng dụng là bản áp dụng; nếu thay đổi quan trọng, TechShare sẽ thông báo theo cách phù hợp.',
+    title: '9. Data Privacy and Terms Updates',
+    body: 'TechShare processes necessary account and transaction information in accordance with our privacy practices and applicable laws. Terms may be updated periodically to reflect service enhancements.',
   },
   {
-    title: '10. Liên hệ và hiệu lực',
-    body: 'Nếu có câu hỏi hoặc cần hỗ trợ, vui lòng sử dụng kênh hỗ trợ được cung cấp trong ứng dụng TechShare. Đây là bản dự thảo ban đầu cho dự án; các chính sách cụ thể về quyền riêng tư, thanh toán, hủy và giải quyết khiếu nại cần được hoàn thiện trước khi phát hành chính thức.',
+    title: '10. Contact and Support',
+    body: 'For questions or support inquiries, please contact our support team through the help channels provided in the TechShare app.',
   },
 ];
 
@@ -125,23 +125,23 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             onPress={() => setShowTerms(false)}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Quay lại onboarding"
+            accessibilityLabel="Back to onboarding"
           >
             <Ionicons name="arrow-back" size={23} color={colors.light.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.termsNavTitle}>Điều khoản sử dụng</Text>
+          <Text style={styles.termsNavTitle}>Terms of Service</Text>
           <View style={styles.backButtonSpacer} />
         </View>
         <ScrollView
           contentContainerStyle={styles.termsContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.termsTitle}>ĐIỀU KHOẢN SỬ DỤNG TECHSHARE</Text>
+          <Text style={styles.termsTitle}>TECHSHARE TERMS OF SERVICE</Text>
           <Text style={styles.termsSubtitle}>
-            Dự án TechShare - Nền tảng thuê thiết bị công nghệ & trợ lý Gemini AI
+            TechShare Project - Peer-to-Peer Tech Rental Platform & Gemini AI Assistant
           </Text>
           <Text style={styles.termsDraftNote}>
-            Bản dự thảo tạm thời. Vui lòng đọc kỹ trước khi sử dụng dịch vụ.
+            Draft agreement. Please review carefully before using the service.
           </Text>
           {termsSections.map((section) => (
             <View key={section.title} style={styles.termsSection}>
@@ -164,7 +164,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         <Text style={styles.brandName}>TechShare</Text>
         {activeIndex < slides.length - 1 ? (
           <TouchableOpacity onPress={skipToFinalSlide} hitSlop={12} accessibilityRole="button">
-            <Text style={styles.skipText}>Bỏ qua</Text>
+            <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.topBarSpacer} />
@@ -203,18 +203,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                   onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: hasAcceptedTerms }}
-                  accessibilityLabel="Đồng ý điều khoản sử dụng"
+                  accessibilityLabel="Agree to Terms of Service"
                 >
                   {hasAcceptedTerms ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}
                 </TouchableOpacity>
                 <Text style={styles.acceptTermsText}>
-                  Tôi đã đọc và đồng ý với{' '}
+                  I have read and agree to the{' '}
                   <Text
                     style={styles.termsLink}
                     onPress={() => setShowTerms(true)}
                     accessibilityRole="link"
                   >
-                    Điều khoản sử dụng
+                    Terms of Service
                   </Text>
                 </Text>
               </View>
@@ -224,7 +224,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       />
 
       <View style={styles.footer}>
-        <View style={styles.pagination} accessibilityLabel={`Trang ${activeIndex + 1} trên ${slides.length}`}>
+        <View style={styles.pagination} accessibilityLabel={`Slide ${activeIndex + 1} of ${slides.length}`}>
           {slides.map((slide, index) => (
             <View
               key={slide.eyebrow}
@@ -243,7 +243,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           accessibilityRole="button"
         >
           <Text style={styles.nextButtonText}>
-            {activeIndex === slides.length - 1 ? 'Bắt đầu' : 'Tiếp tục'}
+            {activeIndex === slides.length - 1 ? 'Get Started' : 'Next'}
           </Text>
           <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
         </TouchableOpacity>

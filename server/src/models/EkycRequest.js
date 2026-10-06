@@ -34,6 +34,11 @@ const ekycRequestSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    verificationPurpose: {
+      type: String,
+      enum: ['owner', 'renter'],
+      default: 'owner',
+    },
     idCardFrontUrl: {
       type: String,
       required: [true, 'ID card front image URL is required'],

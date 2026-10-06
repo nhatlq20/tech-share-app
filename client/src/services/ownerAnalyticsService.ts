@@ -33,9 +33,22 @@ export interface OwnerRevenueByDay {
 export interface OwnerAnalyticsData {
   ownerId: string;
   totalRevenue: number;
+  monthlyRevenue?: number;
+  monthlyGrowth?: number;
   totalDevices: number;
   totalBookings: number;
+  completedBookingsCount?: number;
+  activeRentals?: number;
   rentedDevices: number;
+  availableDevices?: number;
+  utilizationRate?: number;
+  walletBalance?: number;
+  escrowHolding?: number;
+  rating?: number;
+  ownerRating?: number;
+  trustScore?: number;
+  totalReviews?: number;
+  totalReview?: number;
   revenueByDay: OwnerRevenueByDay[];
   devices: OwnerAnalyticsDevice[];
   bookings: OwnerAnalyticsBooking[];

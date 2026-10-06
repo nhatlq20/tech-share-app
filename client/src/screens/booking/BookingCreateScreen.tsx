@@ -12,6 +12,7 @@ import {
   TextInput,
   FlatList,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,13 +29,40 @@ import { PriceBreakdownCard } from './components/PriceBreakdownCard';
 interface BookingCreateScreenProps {
   deviceId: string;
   onBack: () => void;
+  onSuccess?: () => void;
+  onNavigateToVerification?: () => void;
 }
 
 const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ';
 };
 
-export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenProps) {
+const formatDateTime = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const formatDateOnly = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
+
+const formatTimeOnly = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const getDayOfWeekName = (d: Date) => {
+  const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  return days[d.getDay()];
+};
+
+export function BookingCreateScreen({
+  deviceId,
+  onBack,
+  onSuccess,
+  onNavigateToVerification,
+}: BookingCreateScreenProps) {
   const currentUser = useAppSelector(state => state.auth.user);
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -204,10 +232,6 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
     return diffDays === 0 ? 1 : diffDays; // minimum 1 day
   };
 
-  const formatDateTime = (d: Date) => {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
 
   if (loading) {
     return (
@@ -258,6 +282,18 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
   const totalAmount = rentalFeeAfterLongTerm - voucherDiscountAmount + (device.depositValue || 0);
 
   const handleConfirm = async () => {
+    if (currentUser?.role === 'renter' && !currentUser.isVerified) {
+      Alert.alert(
+        'Cần xác thực danh tính',
+        'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+        ]
+      );
+      return;
+    }
+
     if (!startDate || !endDate) {
       Alert.alert('Thiếu thông tin', 'Vui lòng chọn thời gian nhận và trả máy.');
       return;
@@ -292,11 +328,37 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress.trim() : (device.addressText || ''),
       });
 
-      Alert.alert('Thành công', 'Yêu cầu thuê máy đã được gửi đi!', [
-        { text: 'OK', onPress: onBack }
-      ]);
+      Alert.alert(
+        'Thành công',
+        'Yêu cầu thuê máy đã được gửi đi!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (onSuccess) {
+                onSuccess();
+              } else {
+                onBack();
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tạo yêu cầu thuê máy.');
+      const responseData = error.response?.data;
+      if (responseData?.code === 'RENTER_EKYC_REQUIRED') {
+        Alert.alert(
+          'Cần xác thực danh tính',
+          responseData.message || 'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+          [
+            { text: 'Để sau', style: 'cancel' },
+            { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+          ]
+        );
+      } else {
+        Alert.alert('Lỗi', responseData?.message || 'Không thể tạo yêu cầu thuê máy.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -324,18 +386,46 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Device Summary */}
         <View style={styles.deviceCard}>
-          <Text style={styles.deviceTitle} numberOfLines={1}>{device.title}</Text>
-          <Text style={styles.deviceBrand}>{device.brand} • {device.category}</Text>
-          <Text style={styles.dailyRate}>{formatPrice(device.dailyRate)} / ngày</Text>
+          <Image
+            source={{ uri: device.images?.[0] || 'https://via.placeholder.com/150' }}
+            style={styles.deviceThumb}
+            resizeMode="cover"
+          />
+          <View style={styles.deviceInfo}>
+            <View style={styles.deviceBadgeRow}>
+              <Text style={styles.deviceBrand}>{device.brand}</Text>
+              <Text style={styles.deviceCategoryBadge}>{device.category}</Text>
+            </View>
+            <Text style={styles.deviceTitle} numberOfLines={1}>{device.title}</Text>
+            <Text style={styles.dailyRate}>
+              {formatPrice(device.dailyRate)} <Text style={styles.dailyRateUnit}>/ ngày</Text>
+            </Text>
+          </View>
         </View>
 
         {/* Date Picker Section */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Chọn thời gian thuê</Text>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <View style={styles.sectionHeaderIconBadge}>
+                <Ionicons name="calendar-outline" size={16} color={colors.light.primary} />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Thời gian thuê</Text>
+                <Text style={styles.sectionSubtitle}>Lịch nhận và hoàn trả thiết bị</Text>
+              </View>
+            </View>
+            {rentalDays > 0 && startDate && endDate && (
+              <View style={styles.durationPill}>
+                <Ionicons name="time-outline" size={12} color={colors.light.primary} />
+                <Text style={styles.durationPillText}>{rentalDays} ngày</Text>
+              </View>
+            )}
+          </View>
 
           {currentActiveBooking && (
             <View style={styles.activeBusyAlertBox}>
-              <Ionicons name="time" size={16} color="#DC2626" />
+              <Ionicons name="warning" size={16} color="#DC2626" />
               <Text style={styles.activeBusyAlertText}>
                 Thiết bị đang có người thuê đến ngày{' '}
                 <Text style={{ fontWeight: '700' }}>
@@ -346,17 +436,102 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
             </View>
           )}
 
-          <View style={styles.dateSummary}>
-            <TouchableOpacity style={styles.dateBox} onPress={() => openPicker('start')} activeOpacity={0.7}>
-              <Text style={styles.dateLabel}>Thời gian nhận máy</Text>
-              <Text style={styles.dateValue}>{startDate ? formatDateTime(startDate) : 'Chọn'}</Text>
+          <View style={styles.dateSelectionContainer}>
+            {/* Box 1: Start Date */}
+            <TouchableOpacity
+              style={[
+                styles.dateCard,
+                startDate ? styles.dateCardActive : undefined,
+              ]}
+              onPress={() => openPicker('start')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.dateCardHeader}>
+                <View style={[styles.dateCardIconWrap, startDate ? styles.dateCardIconWrapActive : undefined]}>
+                  <Ionicons
+                    name="log-in-outline"
+                    size={14}
+                    color={startDate ? colors.light.primary : colors.light.textSecondary}
+                  />
+                </View>
+                <Text style={[styles.dateCardLabel, startDate ? styles.dateCardLabelActive : undefined]}>
+                  Nhận máy
+                </Text>
+              </View>
+
+              {startDate ? (
+                <View style={styles.dateCardBody}>
+                  <Text style={styles.dateCardTime}>{formatTimeOnly(startDate)}</Text>
+                  <Text style={styles.dateCardDate}>{formatDateOnly(startDate)}</Text>
+                  <Text style={styles.dateCardSub}>{getDayOfWeekName(startDate)}</Text>
+                </View>
+              ) : (
+                <View style={styles.dateCardPlaceholder}>
+                  <Text style={styles.datePlaceholderPrompt}>Chưa chọn</Text>
+                  <View style={styles.dateCardActionBadge}>
+                    <Ionicons name="add" size={12} color={colors.light.primary} />
+                    <Text style={styles.dateCardActionText}>Chọn giờ</Text>
+                  </View>
+                </View>
+              )}
             </TouchableOpacity>
-            <Ionicons name="arrow-forward" size={18} color={colors.light.textSecondary} />
-            <TouchableOpacity style={styles.dateBox} onPress={() => openPicker('end')} activeOpacity={0.7}>
-              <Text style={styles.dateLabel}>Thời gian trả máy</Text>
-              <Text style={styles.dateValue}>{endDate ? formatDateTime(endDate) : 'Chọn'}</Text>
+
+            {/* Arrow connector */}
+            <View style={styles.dateArrowWrap}>
+              <View style={styles.dateArrowCircle}>
+                <Ionicons name="arrow-forward" size={13} color={colors.light.primary} />
+              </View>
+            </View>
+
+            {/* Box 2: End Date */}
+            <TouchableOpacity
+              style={[
+                styles.dateCard,
+                endDate ? styles.dateCardActive : undefined,
+              ]}
+              onPress={() => openPicker('end')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.dateCardHeader}>
+                <View style={[styles.dateCardIconWrap, endDate ? styles.dateCardIconWrapActive : undefined]}>
+                  <Ionicons
+                    name="log-out-outline"
+                    size={14}
+                    color={endDate ? colors.light.primary : colors.light.textSecondary}
+                  />
+                </View>
+                <Text style={[styles.dateCardLabel, endDate ? styles.dateCardLabelActive : undefined]}>
+                  Trả máy
+                </Text>
+              </View>
+
+              {endDate ? (
+                <View style={styles.dateCardBody}>
+                  <Text style={styles.dateCardTime}>{formatTimeOnly(endDate)}</Text>
+                  <Text style={styles.dateCardDate}>{formatDateOnly(endDate)}</Text>
+                  <Text style={styles.dateCardSub}>{getDayOfWeekName(endDate)}</Text>
+                </View>
+              ) : (
+                <View style={styles.dateCardPlaceholder}>
+                  <Text style={styles.datePlaceholderPrompt}>Chưa chọn</Text>
+                  <View style={styles.dateCardActionBadge}>
+                    <Ionicons name="add" size={12} color={colors.light.primary} />
+                    <Text style={styles.dateCardActionText}>Chọn giờ</Text>
+                  </View>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
+
+          {/* Duration Summary Pill */}
+          {startDate && endDate && rentalDays > 0 && (
+            <View style={styles.durationSummaryBar}>
+              <Ionicons name="checkmark-circle" size={15} color={colors.light.primary} />
+              <Text style={styles.durationSummaryText}>
+                Tổng thời gian thuê: <Text style={styles.durationSummaryBold}>{rentalDays} ngày</Text> ({rentalDays * 24} giờ)
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── Delivery Method Section (Phương thức nhận máy) ── */}
@@ -491,16 +666,6 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
           </View>
         </View>
 
-        <CustomDateTimePicker
-          visible={pickerConfig.visible}
-          type={pickerConfig.type}
-          initialDate={pickerConfig.type === 'start' ? startDate : endDate}
-          minDate={pickerConfig.type === 'end' ? startDate : new Date()}
-          busyRanges={busyRanges}
-          onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
-          onConfirm={handleConfirmPicker}
-        />
-
         {rentalDays > 0 && (
           <>
             <VoucherInput
@@ -541,6 +706,16 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
           )}
         </TouchableOpacity>
       </View>
+
+      <CustomDateTimePicker
+        visible={pickerConfig.visible}
+        type={pickerConfig.type}
+        initialDate={pickerConfig.type === 'start' ? startDate : endDate}
+        minDate={pickerConfig.type === 'end' ? startDate : new Date()}
+        busyRanges={busyRanges}
+        onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
+        onConfirm={handleConfirmPicker}
+      />
     </View>
   );
 }
@@ -555,38 +730,34 @@ const getLocalYMD = (d: Date) => {
 
 const hoursList = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const minutesList = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+const quickTimePresets = ['08:00', '10:00', '13:30', '17:30', '20:00'];
 
 const TimeScrollPicker = React.memo(({ items, selectedValue, onValueChange, visible }: any) => {
   const ITEM_HEIGHT = 44;
-  const flatListRef = React.useRef(null as any);
-
-  // Create a large list to simulate infinite scrolling (50 repetitions)
-  const REPEAT = 50;
-  const data = React.useMemo(() => Array(REPEAT).fill(items).flat(), [items]);
+  const scrollViewRef = React.useRef(null as any);
 
   React.useEffect(() => {
-    if (visible && flatListRef.current) {
-      const middleRepetition = Math.floor(REPEAT / 2);
-      const originalIndex = items.indexOf(selectedValue);
-      const targetIndex = middleRepetition * items.length + originalIndex;
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToOffset({ offset: targetIndex * ITEM_HEIGHT, animated: false });
-      }, 50);
+    if (visible && scrollViewRef.current) {
+      const targetIndex = items.indexOf(selectedValue);
+      if (targetIndex >= 0) {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: targetIndex * ITEM_HEIGHT, animated: false });
+        }, 50);
+      }
     }
   }, [visible, items, selectedValue]);
 
   const handleScroll = (e: any) => {
     const y = e.nativeEvent.contentOffset.y;
-    const index = Math.max(0, Math.min(data.length - 1, Math.round(y / ITEM_HEIGHT)));
-    const actualItem = data[index];
+    const index = Math.max(0, Math.min(items.length - 1, Math.round(y / ITEM_HEIGHT)));
+    const actualItem = items[index];
     if (actualItem && actualItem !== selectedValue) {
       onValueChange(actualItem);
     }
   };
 
   return (
-    <View style={{ height: ITEM_HEIGHT * 3, width: 60 }}>
+    <View style={{ height: ITEM_HEIGHT * 3, width: 70 }}>
       {/* Selection Highlight */}
       <View
         style={{
@@ -594,49 +765,43 @@ const TimeScrollPicker = React.memo(({ items, selectedValue, onValueChange, visi
           top: ITEM_HEIGHT,
           width: '100%',
           height: ITEM_HEIGHT,
-          backgroundColor: colors.light.primaryLight + '50',
+          backgroundColor: '#EFF6FF',
           borderRadius: 8,
-          borderWidth: 1,
+          borderWidth: 1.5,
           borderColor: colors.light.primary,
         }}
         pointerEvents="none"
       />
 
       <View style={{ flex: 1, overflow: 'hidden' }}>
-        <React.Fragment>
-          <FlatList
-            ref={flatListRef}
-            data={data}
-            keyExtractor={(_: any, index: number) => index.toString()}
-            showsVerticalScrollIndicator={false}
-            snapToInterval={ITEM_HEIGHT}
-            decelerationRate="fast"
-            onMomentumScrollEnd={handleScroll}
-            onScrollEndDrag={handleScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
-            getItemLayout={(data: any, index: number) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
-            initialNumToRender={8}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            renderItem={({ item }: { item: string }) => {
-              const isSelected = item === selectedValue;
-              return (
-                <View style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text
-                    style={{
-                      fontSize: isSelected ? 20 : 15,
-                      color: isSelected ? colors.light.primary : colors.light.textSecondary,
-                      fontWeight: isSelected ? '700' : '500',
-                    }}
-                  >
-                    {item}
-                  </Text>
-                </View>
-              );
-            }}
-          />
-        </React.Fragment>
+        <ScrollView
+          ref={scrollViewRef}
+          nestedScrollEnabled={true}
+          showsVerticalScrollIndicator={false}
+          snapToInterval={ITEM_HEIGHT}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleScroll}
+          onScrollEndDrag={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
+        >
+          {items.map((item: string) => {
+            const isSelected = item === selectedValue;
+            return (
+              <View key={item} style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+                <Text
+                  style={{
+                    fontSize: isSelected ? 22 : 15,
+                    color: isSelected ? colors.light.primary : colors.light.textSecondary,
+                    fontWeight: isSelected ? '800' : '500',
+                  }}
+                >
+                  {item}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
       </View>
     </View>
   );
@@ -724,69 +889,191 @@ const CustomDateTimePicker = ({
   }, [busyRanges, currentDateStr]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>
-            {type === 'start' ? 'Thời gian nhận máy' : 'Thời gian trả máy'}
-          </Text>
-
-          <Calendar
-            current={currentDateStr}
-            minDate={minDateStr}
-            onDayPress={(day: any) => {
-              if (markedDates[day.dateString]?.disabled) {
-                Alert.alert(
-                  'Không thể chọn ngày này',
-                  'Thiết bị đã có người thuê trong ngày này. Vui lòng chọn ngày khác!'
-                );
-                return;
-              }
-              const [y, m, d] = day.dateString.split('-').map(Number);
-              setDate(new Date(y, m - 1, d));
-            }}
-
-            markedDates={markedDates}
-            theme={{
-              backgroundColor: '#FFFFFF',
-              calendarBackground: '#FFFFFF',
-              textSectionTitleColor: colors.light.textSecondary,
-              selectedDayBackgroundColor: colors.light.primary,
-              selectedDayTextColor: '#FFFFFF',
-              todayTextColor: colors.light.primary,
-              dayTextColor: colors.light.textPrimary,
-              textDisabledColor: '#CBD5E1',
-              monthTextColor: colors.light.textPrimary,
-              arrowColor: colors.light.primary,
-            }}
-          />
-
-          {/* Chú thích màu sắc */}
-          <View style={styles.calendarLegendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.light.primary }]} />
-              <Text style={styles.legendText}>Ngày bạn chọn</Text>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderTitleRow}>
+              <View style={styles.modalHeaderIconBadge}>
+                <Ionicons
+                  name={type === 'start' ? 'log-in-outline' : 'log-out-outline'}
+                  size={18}
+                  color={colors.light.primary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>
+                  {type === 'start' ? 'Thời gian nhận máy' : 'Thời gian trả máy'}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {type === 'start'
+                    ? 'Chọn ngày & giờ bạn muốn nhận thiết bị'
+                    : 'Chọn ngày & giờ bạn sẽ trả thiết bị'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.light.error }]} />
-              <Text style={styles.legendText}>Đã có người thuê</Text>
-            </View>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose} activeOpacity={0.7}>
+              <Ionicons name="close" size={18} color={colors.light.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeLabel}>Giờ nhận:</Text>
-            <View style={styles.timeInputRow}>
-              <TimeScrollPicker items={hoursList} selectedValue={hours} onValueChange={setHours} visible={visible} />
-              <Text style={styles.timeColon}>:</Text>
-              <TimeScrollPicker items={minutesList} selectedValue={minutes} onValueChange={setMinutes} visible={visible} />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            style={styles.modalScrollBody}
+            contentContainerStyle={{ paddingBottom: 6 }}
+          >
+            {/* Live Selection Preview Bar */}
+            <View style={styles.modalPreviewBar}>
+              <View style={styles.modalPreviewCol}>
+                <Text style={styles.modalPreviewLabel}>Ngày đã chọn</Text>
+                <View style={styles.modalPreviewValRow}>
+                  <Ionicons name="calendar" size={14} color={colors.light.primary} />
+                  <Text style={styles.modalPreviewValText}>
+                    {getDayOfWeekName(date)}, {formatDateOnly(date)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.modalPreviewDivider} />
+              <View style={styles.modalPreviewCol}>
+                <Text style={styles.modalPreviewLabel}>Giờ hẹn</Text>
+                <View style={styles.modalPreviewValRow}>
+                  <Ionicons name="time" size={14} color={colors.light.primary} />
+                  <Text style={styles.modalPreviewValTime}>
+                    {hours}:{minutes}
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
 
+            {/* Calendar */}
+            <View style={styles.calendarContainer}>
+              <Calendar
+                current={currentDateStr}
+                minDate={minDateStr}
+                onDayPress={(day: any) => {
+                  if (markedDates[day.dateString]?.disabled) {
+                    Alert.alert(
+                      'Không thể chọn ngày này',
+                      'Thiết bị đã có người thuê trong ngày này. Vui lòng chọn ngày khác!'
+                    );
+                    return;
+                  }
+                  const [y, m, d] = day.dateString.split('-').map(Number);
+                  setDate(new Date(y, m - 1, d));
+                }}
+                markedDates={markedDates}
+                theme={{
+                  backgroundColor: '#FFFFFF',
+                  calendarBackground: '#FFFFFF',
+                  textSectionTitleColor: colors.light.textSecondary,
+                  selectedDayBackgroundColor: colors.light.primary,
+                  selectedDayTextColor: '#FFFFFF',
+                  todayTextColor: colors.light.primary,
+                  dayTextColor: colors.light.textPrimary,
+                  textDisabledColor: '#CBD5E1',
+                  monthTextColor: colors.light.textPrimary,
+                  arrowColor: colors.light.primary,
+                  textDayFontWeight: '600',
+                  textMonthFontWeight: '700',
+                  textDayHeaderFontWeight: '600',
+                  textDayFontSize: 14,
+                  textMonthFontSize: 15,
+                  textDayHeaderFontSize: 12,
+                }}
+              />
+            </View>
+
+            {/* Chú thích màu sắc */}
+            <View style={styles.calendarLegendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.light.primary }]} />
+                <Text style={styles.legendText}>Ngày bạn chọn</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#F87171' }]} />
+                <Text style={styles.legendText}>Đã có người thuê</Text>
+              </View>
+            </View>
+
+            {/* Time Picker Section */}
+            <View style={styles.timeSection}>
+              <View style={styles.timeSectionHeaderRow}>
+                <Ionicons name="time-outline" size={16} color={colors.light.primary} />
+                <Text style={styles.timeSectionTitle}>
+                  {type === 'start' ? 'Giờ nhận máy' : 'Giờ trả máy'}
+                </Text>
+              </View>
+
+              {/* Quick Preset Buttons */}
+              <View style={styles.presetContainer}>
+                <Text style={styles.presetLabel}>Gợi ý khung giờ:</Text>
+                <View style={styles.presetChipsRow}>
+                  {quickTimePresets.map((preset) => {
+                    const [h, m] = preset.split(':');
+                    const isSelected = hours === h && minutes === m;
+                    return (
+                      <TouchableOpacity
+                        key={preset}
+                        style={[
+                          styles.presetChip,
+                          isSelected ? styles.presetChipSelected : undefined,
+                        ]}
+                        onPress={() => {
+                          setHours(h);
+                          setMinutes(m);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.presetChipText,
+                            isSelected ? styles.presetChipTextSelected : undefined,
+                          ]}
+                        >
+                          {preset}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Scroll Picker with Column Titles */}
+              <View style={styles.timePickerCard}>
+                <View style={styles.timePickerCol}>
+                  <Text style={styles.timePickerColTitle}>Giờ</Text>
+                  <TimeScrollPicker
+                    items={hoursList}
+                    selectedValue={hours}
+                    onValueChange={setHours}
+                    visible={visible}
+                  />
+                </View>
+
+                <Text style={styles.timeColon}>:</Text>
+
+                <View style={styles.timePickerCol}>
+                  <Text style={styles.timePickerColTitle}>Phút</Text>
+                  <TimeScrollPicker
+                    items={minutesList}
+                    selectedValue={minutes}
+                    onValueChange={setMinutes}
+                    visible={visible}
+                  />
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Modal Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.modalBtnCancel} onPress={onClose}>
+            <TouchableOpacity style={styles.modalBtnCancel} onPress={onClose} activeOpacity={0.7}>
               <Text style={styles.modalBtnTextCancel}>Hủy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirm}>
+            <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirm} activeOpacity={0.8}>
+              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
               <Text style={styles.modalBtnTextConfirm}>Xác nhận</Text>
             </TouchableOpacity>
           </View>
@@ -863,33 +1150,67 @@ const styles = StyleSheet.create({
   deviceCard: {
     marginHorizontal: 16,
     marginBottom: 14,
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
   },
-  deviceTitle: {
-    color: colors.light.textPrimary,
-    fontSize: 16,
-    fontWeight: '700',
+  deviceThumb: {
+    width: 68,
+    height: 68,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+  },
+  deviceInfo: {
+    flex: 1,
+  },
+  deviceBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 4,
   },
   deviceBrand: {
-    color: colors.light.textSecondary,
-    fontSize: 13,
+    color: colors.light.primary,
+    fontSize: 11,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    marginBottom: 8,
+  },
+  deviceCategoryBadge: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    backgroundColor: colors.light.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    fontWeight: '500',
+  },
+  deviceTitle: {
+    color: colors.light.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   dailyRate: {
     color: colors.light.primary,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  dailyRateUnit: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.light.textSecondary,
   },
   sectionContainer: {
     marginHorizontal: 16,
@@ -905,11 +1226,51 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  sectionHeaderIconBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.light.textPrimary,
-    marginBottom: 14,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    marginTop: 1,
+  },
+  durationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  durationPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.light.primary,
   },
   activeBusyAlertBox: {
     flexDirection: 'row',
@@ -920,7 +1281,7 @@ const styles = StyleSheet.create({
     borderColor: '#FCA5A5',
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   activeBusyAlertText: {
     fontSize: 12,
@@ -928,56 +1289,140 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 16,
   },
-  calendarLegendRow: {
+  dateSelectionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.light.border,
+    gap: 8,
+    marginTop: 2,
   },
-  legendItem: {
+  dateCard: {
+    flex: 1,
+    backgroundColor: colors.light.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.light.border,
+    padding: 12,
+    minHeight: 90,
+  },
+  dateCardActive: {
+    borderColor: colors.light.primary,
+    backgroundColor: '#EFF6FF',
+  },
+  dateCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 6,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendText: {
-    fontSize: 12,
-    color: colors.light.textSecondary,
-    fontWeight: '500',
-  },
-  dateSummary: {
-    flexDirection: 'row',
+  dateCardIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    gap: 10,
-  },
-  dateBox: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: colors.light.surface,
-    borderRadius: 10,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.light.border,
   },
-  dateLabel: {
-    color: colors.light.textSecondary,
-    fontSize: 12,
-    marginBottom: 4,
+  dateCardIconWrapActive: {
+    backgroundColor: '#DBEAFE',
+    borderColor: colors.light.primary,
   },
-  dateValue: {
+  dateCardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.light.textSecondary,
+    textTransform: 'uppercase',
+  },
+  dateCardLabelActive: {
+    color: colors.light.primary,
+    fontWeight: '800',
+  },
+  dateCardBody: {
+    alignItems: 'flex-start',
+  },
+  dateCardTime: {
+    fontSize: 18,
+    fontWeight: '800',
     color: colors.light.textPrimary,
-    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  dateCardDate: {
+    fontSize: 12,
     fontWeight: '700',
+    color: colors.light.primary,
+    marginTop: 1,
+  },
+  dateCardSub: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    marginTop: 1,
+  },
+  dateCardPlaceholder: {
+    paddingVertical: 2,
+  },
+  datePlaceholderPrompt: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.light.textSecondary,
+    marginBottom: 6,
+  },
+  dateCardActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    alignSelf: 'flex-start',
+  },
+  dateCardActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+  dateArrowWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  durationSummaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  durationSummaryText: {
+    fontSize: 12,
+    color: colors.light.textPrimary,
+    flex: 1,
+  },
+  durationSummaryBold: {
+    fontWeight: '700',
+    color: colors.light.primary,
   },
   deliveryOptionsContainer: {
     gap: 12,
@@ -1148,59 +1593,226 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 16,
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.light.border,
+    borderRadius: 20,
+    padding: 16,
+    maxHeight: '90%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowRadius: 16,
     elevation: 10,
   },
-  modalTitle: {
-    color: colors.light.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 16,
-    textAlign: 'center',
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.light.border,
   },
-  timeContainer: {
+  modalHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  modalHeaderIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.light.textPrimary,
+  },
+  modalSubtitle: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  modalScrollBody: {
+    flexGrow: 0,
+  },
+  modalPreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  modalPreviewCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  modalPreviewLabel: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  modalPreviewValRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  modalPreviewValText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.textPrimary,
+  },
+  modalPreviewValTime: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.light.primary,
+  },
+  modalPreviewDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: '#BFDBFE',
+  },
+  calendarContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    marginBottom: 6,
+  },
+  calendarLegendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 16,
-    backgroundColor: colors.light.surface,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: 18,
+    paddingVertical: 6,
   },
-  timeLabel: {
-    color: colors.light.textSecondary,
-    fontSize: 15,
-    fontWeight: '600',
-    marginRight: 12,
-  },
-  timeInputRow: {
+  legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    fontWeight: '500',
+  },
+  timeSection: {
+    backgroundColor: colors.light.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  timeSectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  timeSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.textPrimary,
+  },
+  presetContainer: {
+    marginBottom: 10,
+  },
+  presetLabel: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  presetChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  presetChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  presetChipSelected: {
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primary,
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.light.textPrimary,
+  },
+  presetChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  timePickerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  timePickerCol: {
+    alignItems: 'center',
+  },
+  timePickerColTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.light.textSecondary,
+    marginBottom: 4,
   },
   timeColon: {
-    color: colors.light.textPrimary,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
+    color: colors.light.primary,
     marginHorizontal: 10,
+    marginTop: 16,
   },
   modalActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.light.border,
   },
   modalBtnCancel: {
     flex: 1,
@@ -1218,10 +1830,12 @@ const styles = StyleSheet.create({
   },
   modalBtnConfirm: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.light.primary,
     paddingVertical: 12,
     borderRadius: 10,
-    alignItems: 'center',
   },
   modalBtnTextConfirm: {
     color: '#FFFFFF',

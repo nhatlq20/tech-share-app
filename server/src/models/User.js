@@ -111,6 +111,12 @@ const userSchema = new mongoose.Schema(
       min: 1.0,
       max: 5.0,
     },
+    ownerRating: {
+      type: Number,
+      default: 5.0,
+      min: 1.0,
+      max: 5.0,
+    },
     totalReviews: {
       type: Number,
       default: 0,
@@ -148,6 +154,13 @@ userSchema.virtual('favoriteDevices').get(function () {
   return this.wishlist;
 }).set(function (val) {
   this.wishlist = val;
+});
+
+// Virtual alias for totalReviews / totalReview
+userSchema.virtual('totalReview').get(function () {
+  return this.totalReviews;
+}).set(function (val) {
+  this.totalReviews = val;
 });
 
 // Indexes

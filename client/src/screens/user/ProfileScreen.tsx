@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
 import { updateUser, UserRole } from '../../store/slices/authSlice';
 import { apiClient } from '../../config/api';
@@ -29,6 +30,7 @@ interface ProfileScreenProps {
   onNavigateToLogin?: () => void;
   onNavigateToPostDevice?: () => void;
   onNavigateToMyDevices: () => void;
+  onNavigateToWishlist?: () => void;
   onNavigateToOwnerDashboard?: () => void;
   onNavigateToAdminDashboard?: () => void;
 }
@@ -38,6 +40,7 @@ export function ProfileScreen({
   onNavigateToLogin,
   onNavigateToPostDevice,
   onNavigateToMyDevices,
+  onNavigateToWishlist,
   onNavigateToOwnerDashboard,
   onNavigateToAdminDashboard,
 }: ProfileScreenProps) {
@@ -45,7 +48,7 @@ export function ProfileScreen({
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('info' as 'info' | 'address' | 'activity');
+  const [activeTab, setActiveTab] = useState('info' as 'info' | 'address');
   const [toastMsg, setToastMsg] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [ekyc, setEkyc] = useState(null as EkycItem | null);
@@ -60,6 +63,7 @@ export function ProfileScreen({
   const isWide = width >= 768;
 
   const isEkycApproved = Boolean((user?.isVerified && ekyc?.status === 'approved') || (user?.role === 'admin' && user?.isVerified));
+  const verificationPurpose = user?.role === 'renter' ? 'renter' : 'owner';
 
   // User info
   const [name, setName] = useState(user?.name || 'John Nguyen');
@@ -69,10 +73,10 @@ export function ProfileScreen({
   const [role, setRole] = useState((user?.role || 'renter') as UserRole);
 
   // Address
-  const [street, setStreet] = useState('Landmark 81 Tower, 720A Dien Bien Phu');
-  const [ward, setWard] = useState('Ward 22');
-  const [district, setDistrict] = useState('Binh Thanh District');
-  const [city, setCity] = useState('Ho Chi Minh City');
+  const [street, setStreet] = useState('');
+  const [ward, setWard] = useState('');
+  const [district, setDistrict] = useState('');
+  const [city, setCity] = useState('');
 
   // Avatar
   const [avatarUri, setAvatarUri] = useState(
@@ -81,16 +85,21 @@ export function ProfileScreen({
 
   useEffect(() => {
     if (user) {
+      const addressParts = (user.address || '').split(',').map((part) => part.trim()).filter(Boolean);
       setName(user.name || '');
       setEmail(user.email || '');
       setPhone(user.phone || '');
-      setStreet(user.address || '');
+      setStreet(addressParts[0] || '');
+      setWard(addressParts[1] || '');
+      setDistrict(addressParts[2] || '');
+      setCity(addressParts[3] || '');
       setAvatarUri(user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
       setRole(user.role || 'renter');
     }
   }, [user]);
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     let isMounted = true;
 
     const loadProfile = async () => {
@@ -128,11 +137,24 @@ export function ProfileScreen({
     return () => {
       isMounted = false;
     };
-  }, [dispatch, token]);
+    }, [dispatch, token, onLogout])
+  );
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  const hasAddress = Boolean(street?.trim() && ward?.trim() && district?.trim() && city?.trim());
+
+  const handleEkycAction = () => {
+    if (!hasAddress) {
+      showToast('Please update your address before verifying eKYC.');
+      setActiveTab('address');
+      return;
+    }
+
+    setShowEkycModal(true);
   };
 
   const handleSaveInfo = async () => {
@@ -271,29 +293,46 @@ export function ProfileScreen({
                 <Ionicons name="shield-checkmark" size={16} color={colors.light.warning} />
                 <Text style={styles.trustScoreTitle}>Điểm Tín Nhiệm (Trust Score)</Text>
               </View>
-              <Text style={styles.trustScoreValue}>98/100</Text>
+              <Text style={styles.trustScoreValue}>{user?.trustScore ?? 100}/100</Text>
             </View>
             <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: '98%' }]} />
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${Math.min(100, Math.max(0, user?.trustScore ?? 100))}%` },
+                ]}
+              />
             </View>
-            <Text style={styles.trustBenefit}>⭐ Gold tier: 20% deposit discount on rentals</Text>
+            <Text style={styles.trustBenefit}>
+              {(user?.trustScore ?? 100) >= 90
+                ? '⭐ Gold tier: Giảm 20% tiền cọc khi thuê thiết bị'
+                : (user?.trustScore ?? 100) >= 70
+                ? '✨ Silver tier: Áp dụng mức cọc tiêu chuẩn'
+                : '⚠️ Standard tier: Yêu cầu đặt cọc 100%'}
+            </Text>
           </View>
 
-          {/* QUICK STATS */}
+          {/* QUICK STATS - HIỂN THỊ CÁC TRƯỜNG ĐIỂM UY TÍN TỪ DATABASE */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>18</Text>
-              <Text style={styles.statLabel}>Rented</Text>
+              <Text style={[styles.statNum, { color: colors.light.ratingStar }]}>
+                {user?.rating !== undefined ? Number(user.rating).toFixed(1) : '5.0'} ★
+              </Text>
+              <Text style={styles.statLabel}>Điểm sản phẩm</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>6</Text>
-              <Text style={styles.statLabel}>Listed</Text>
+              <Text style={[styles.statNum, { color: colors.light.primary }]}>
+                {user?.ownerRating !== undefined ? Number(user.ownerRating).toFixed(1) : '5.0'} ★
+              </Text>
+              <Text style={styles.statLabel}>Điểm chủ máy</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: colors.light.ratingStar }]}>4.9 ★</Text>
-              <Text style={styles.statLabel}>32 đánh giá</Text>
+              <Text style={styles.statNum}>
+                {user?.totalReviews ?? user?.totalReview ?? 0}
+              </Text>
+              <Text style={styles.statLabel}>Tổng đánh giá</Text>
             </View>
           </View>
 
@@ -319,11 +358,15 @@ export function ProfileScreen({
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.ekycSuccessTitleRow}>
-                  <Text style={styles.ekycSuccessTitle}>Đã Xác Thực eKYC Chính Chủ</Text>
+                  <Text style={styles.ekycSuccessTitle}>
+                    {verificationPurpose === 'renter' ? 'Đã Xác thực người dùng thực' : 'Đã Xác Thực eKYC Chính Chủ'}
+                  </Text>
                   <Ionicons name="checkmark-circle" size={16} color={colors.light.primary} />
                 </View>
                 <Text style={styles.ekycSuccessDesc}>
-                  Tài khoản đã được định danh CCCD và nâng cấp quyền Chủ máy (Owner). Bạn có thể đăng cho thuê thiết bị và có Tích Xanh Uy Tín.
+                  {verificationPurpose === 'renter'
+                    ? 'Danh tính của bạn đã được xác thực. Bạn có thể thuê thiết bị trên TechShare.'
+                    : 'Tài khoản đã được định danh CCCD và nâng cấp quyền Chủ máy (Owner). Bạn có thể đăng cho thuê thiết bị và có Tích Xanh Uy Tín.'}
                 </Text>
                 {ekyc?.idCardNumber ? (
                   <Text style={styles.ekycCardNumberText}>
@@ -361,7 +404,7 @@ export function ProfileScreen({
                 </Text>
                 <TouchableOpacity
                   style={styles.btnResubmitEkyc}
-                  onPress={() => setShowEkycModal(true)}
+                  onPress={handleEkycAction}
                   activeOpacity={0.8}
                 >
                   <Ionicons name="refresh-outline" size={15} color="#FFFFFF" />
@@ -372,7 +415,7 @@ export function ProfileScreen({
           ) : (
             <TouchableOpacity
               style={styles.ekycActionCard}
-              onPress={() => setShowEkycModal(true)}
+              onPress={handleEkycAction}
               activeOpacity={0.85}
             >
               <View style={styles.ekycActionIconWrap}>
@@ -380,13 +423,17 @@ export function ProfileScreen({
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.ekycActionHeaderRow}>
-                  <Text style={styles.ekycActionTitle}>Xác Thực Định Danh eKYC</Text>
+                  <Text style={styles.ekycActionTitle}>
+                    {verificationPurpose === 'renter' ? 'Xác thực người dùng thực' : 'Xác Thực Định Danh eKYC'}
+                  </Text>
                   <View style={styles.ekycBadgeNotVerified}>
                     <Text style={styles.ekycBadgeNotVerifiedText}>Chưa định danh</Text>
                   </View>
                 </View>
                 <Text style={styles.ekycActionDesc}>
-                  Nhập số CCCD & 2 mặt ảnh để nhận Tích Xanh Uy Tín và mở khóa quyền Chủ máy (Owner) cho thuê thiết bị.
+                  {verificationPurpose === 'renter'
+                    ? 'Xác thực CCCD để xác nhận danh tính và mở quyền thuê thiết bị.'
+                    : 'Nhập số CCCD & 2 mặt ảnh để nhận Tích Xanh Uy Tín và mở khóa quyền Chủ máy (Owner) cho thuê thiết bị.'}
                 </Text>
                 <View style={styles.ekycCtaRow}>
                   <Text style={styles.ekycCtaText}>Bấm để định danh ngay</Text>
@@ -414,6 +461,24 @@ export function ProfileScreen({
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
           </TouchableOpacity>
+
+          {onNavigateToWishlist && (
+            <TouchableOpacity
+              style={styles.dashboardShortcutCard}
+              onPress={onNavigateToWishlist}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Wishlist"
+            >
+              <View style={[styles.dashboardIconBoxOwner, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="heart" size={20} color="#EF4444" />
+              </View>
+              <View style={styles.dashboardCardContent}>
+                <Text style={styles.dashboardCardTitle}>Danh sách Yêu thích</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS DỰA TRÊN ROLE) */}
@@ -495,19 +560,6 @@ export function ProfileScreen({
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'activity' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('activity')}
-          >
-            <Ionicons
-              name="time-outline"
-              size={16}
-              color={activeTab === 'activity' ? '#38BDF8' : '#94A3B8'}
-            />
-            <Text style={[styles.tabBtnText, activeTab === 'activity' && styles.tabBtnTextActive]}>
-              Activity
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* TAB 1: PERSONAL INFO */}
@@ -583,40 +635,51 @@ export function ProfileScreen({
         {activeTab === 'address' && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Default pickup address</Text>
-              <View style={styles.activeTag}>
-                <Text style={styles.activeTagText}>Default</Text>
-              </View>
-            </View>
-
-            <View style={styles.addressDisplayBox}>
-              <Ionicons name="map" size={24} color="#38BDF8" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addressDisplayText}>
-                  {street}, {ward}, {district}, {city}
-                </Text>
-                <Text style={styles.addressGps}>GPS: 10.7951° N, 106.7218° E</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Pickup address</Text>
             </View>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Street address</Text>
-              <TextInput style={styles.fieldInput} value={street} onChangeText={setStreet} />
+              <TextInput
+                style={styles.fieldInput}
+                value={street}
+                onChangeText={setStreet}
+                placeholder="Enter street address"
+                placeholderTextColor={colors.light.textSecondary}
+              />
             </View>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Ward / Commune</Text>
-              <TextInput style={styles.fieldInput} value={ward} onChangeText={setWard} />
+              <TextInput
+                style={styles.fieldInput}
+                value={ward}
+                onChangeText={setWard}
+                placeholder="Enter ward/commune"
+                placeholderTextColor={colors.light.textSecondary}
+              />
             </View>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>District</Text>
-              <TextInput style={styles.fieldInput} value={district} onChangeText={setDistrict} />
+              <TextInput
+                style={styles.fieldInput}
+                value={district}
+                onChangeText={setDistrict}
+                placeholder="Enter district"
+                placeholderTextColor={colors.light.textSecondary}
+              />
             </View>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>City / Province</Text>
-              <TextInput style={styles.fieldInput} value={city} onChangeText={setCity} />
+              <TextInput
+                style={styles.fieldInput}
+                value={city}
+                onChangeText={setCity}
+                placeholder="Enter city/province"
+                placeholderTextColor={colors.light.textSecondary}
+              />
             </View>
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveAddress}>
@@ -625,44 +688,6 @@ export function ProfileScreen({
           </View>
         )}
 
-        {/* TAB 3: ACTIVITY & RECENT DEVICES */}
-        {activeTab === 'activity' && (
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Rentals & my devices</Text>
-
-            {/* Order 1 */}
-            <View style={styles.activityCard}>
-              <View style={styles.activityIconBox}>
-                <Ionicons name="camera" size={24} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.activityStatusRow}>
-                  <Text style={styles.activeStatusText}>Currently renting • 2 days left</Text>
-                  <Text style={styles.activityPrice}>450k/day</Text>
-                </View>
-                <Text style={styles.activityName}>Sony Alpha A7 Mark IV</Text>
-                <Text style={styles.activitySub}>Owner: Tran Hoang Vu • No deposit</Text>
-              </View>
-            </View>
-
-            {/* Order 2 */}
-            <View style={styles.activityCard}>
-              <View style={[styles.activityIconBox, { backgroundColor: '#1E3A8A' }]}>
-                <Ionicons name="laptop" size={24} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.activityStatusRow}>
-                  <Text style={[styles.activeStatusText, { color: '#38BDF8' }]}>
-                    My device • Available
-                  </Text>
-                  <Text style={styles.activityPrice}>650k/day</Text>
-                </View>
-                <Text style={styles.activityName}>MacBook Pro 16" M3 Max</Text>
-                <Text style={styles.activitySub}>12 rentals • Rating 5.0 ★</Text>
-              </View>
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* MODAL GỬI HỒ SƠ eKYC */}
@@ -671,6 +696,7 @@ export function ProfileScreen({
         onClose={() => setShowEkycModal(false)}
         currentEkyc={ekyc}
         user={user}
+        verificationPurpose={verificationPurpose}
         onSuccess={(updatedEkyc) => {
           setEkyc(updatedEkyc);
           showToast('Đã gửi đơn eKYC thành công! Quản trị viên sẽ sớm kiểm duyệt hồ sơ.');
@@ -1094,51 +1120,6 @@ const styles = StyleSheet.create({
   addressGps: {
     color: colors.light.primary,
     fontSize: 11,
-    marginTop: 2,
-  },
-  activityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-  },
-  activityIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: colors.light.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activityStatusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activeStatusText: {
-    fontSize: 11,
-    color: colors.light.success,
-    fontWeight: '700',
-  },
-  activityPrice: {
-    fontSize: 12,
-    color: colors.light.primary,
-    fontWeight: '700',
-  },
-  activityName: {
-    fontSize: 13,
-    color: colors.light.textPrimary,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  activitySub: {
-    fontSize: 11,
-    color: colors.light.textSecondary,
     marginTop: 2,
   },
   rolePillVerified: {

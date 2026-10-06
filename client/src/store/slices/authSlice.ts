@@ -5,6 +5,7 @@ export type UserRole = 'admin' | 'owner' | 'renter';
 
 export interface AuthUser {
   id: string;
+  _id?: string;
   name: string;
   email: string;
   phone?: string;
@@ -13,6 +14,12 @@ export interface AuthUser {
   role?: UserRole;
   isVerified?: boolean;
   trustScore?: number;
+  rating?: number;
+  ownerRating?: number;
+  totalReviews?: number;
+  totalReview?: number;
+  walletBalance?: number;
+  walletEscrowBalance?: number;
 }
 
 interface AuthState {
