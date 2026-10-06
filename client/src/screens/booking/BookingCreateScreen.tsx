@@ -57,10 +57,10 @@ const getDayOfWeekName = (d: Date) => {
   return days[d.getDay()];
 };
 
-export function BookingCreateScreen({ deviceId, onBack, onSuccess }: BookingCreateScreenProps) {
 export function BookingCreateScreen({
   deviceId,
   onBack,
+  onSuccess,
   onNavigateToVerification,
 }: BookingCreateScreenProps) {
   const currentUser = useAppSelector(state => state.auth.user);
