@@ -65,7 +65,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   const handleSearchAccount = async () => {
     const trimmed = identifier.trim();
     if (!trimmed) {
-      setErrorMsg('Vui lòng nhập tên tài khoản (username) hoặc email');
+      setErrorMsg('Please enter your username or email');
       return;
     }
 
@@ -84,13 +84,13 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setStep('otp');
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg(res.data.message || 'Mã OTP đã được gửi đến email của bạn');
+        setInfoMsg(res.data.message || 'An OTP verification code has been sent to your email');
         setTimeout(() => {
           otpInputRefs.current[0]?.focus();
         }, 400);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Không tìm thấy tài khoản hoặc không thể gửi mã OTP';
+      const msg = err?.response?.data?.message || 'Account not found or failed to send OTP code';
       setErrorMsg(msg);
       if (err?.response?.data?.remainingSeconds) {
         setCountdown(err.response.data.remainingSeconds);
@@ -121,11 +121,11 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
       if (res.data?.success) {
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg('Mã OTP mới đã được gửi đến email của bạn');
+        setInfoMsg('A new OTP code has been sent to your email');
         otpInputRefs.current[0]?.focus();
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+      setErrorMsg(err?.response?.data?.message || 'Unable to resend OTP code. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   const handleVerifyOtp = async () => {
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Vui lòng nhập đủ 6 chữ số mã OTP');
+      setErrorMsg('Please enter all 6 digits of the OTP code');
       return;
     }
 
@@ -187,7 +187,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setInfoMsg('');
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
+      setErrorMsg(err?.response?.data?.message || 'Incorrect OTP code or expired.');
     } finally {
       setLoading(false);
     }
@@ -196,23 +196,23 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   // Step 3: Reset Password
   const handleResetPassword = async () => {
     if (!newPassword) {
-      setErrorMsg('Vui lòng nhập mật khẩu mới');
+      setErrorMsg('Please enter your new password');
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự');
+      setErrorMsg('New password must be at least 6 characters');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMsg('Mật khẩu xác nhận không khớp');
+      setErrorMsg('Password confirmation does not match');
       return;
     }
 
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Mã OTP không hợp lệ, vui lòng quay lại bước trước');
+      setErrorMsg('Invalid OTP code, please return to the previous step');
       return;
     }
 
@@ -231,7 +231,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setStep('success');
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.');
+      setErrorMsg(err?.response?.data?.message || 'Password reset failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -281,16 +281,16 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
           )}
           <View style={[styles.headerTitles, step === 'success' && { paddingLeft: 0, alignItems: 'center' }]}>
             <Text style={styles.appTitle}>
-              {step === 'search' && 'Quên mật khẩu'}
-              {step === 'otp' && 'Xác thực OTP'}
-              {step === 'reset' && 'Đặt lại mật khẩu'}
-              {step === 'success' && 'Thành công!'}
+              {step === 'search' && 'Forgot Password'}
+              {step === 'otp' && 'OTP Verification'}
+              {step === 'reset' && 'Reset Password'}
+              {step === 'success' && 'Success!'}
             </Text>
             <Text style={styles.appSubtitle}>
-              {step === 'search' && 'Nhập thông tin tài khoản để nhận mã khôi phục'}
-              {step === 'otp' && 'Nhập mã 6 chữ số đã gửi đến email của bạn'}
-              {step === 'reset' && 'Thiết lập mật khẩu mới an toàn cho tài khoản'}
-              {step === 'success' && 'Tài khoản của bạn đã được cập nhật mật khẩu mới'}
+              {step === 'search' && 'Enter your account details to receive a recovery code'}
+              {step === 'otp' && 'Enter the 6-digit code sent to your email'}
+              {step === 'reset' && 'Create a secure new password for your account'}
+              {step === 'success' && 'Your account password has been updated successfully'}
             </Text>
           </View>
         </View>
@@ -308,7 +308,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 )}
               </View>
               <Text style={[styles.stepLabel, getStepIndex() === 1 ? styles.stepLabelActive : styles.stepLabelDone]}>
-                Tài khoản
+                Account
               </Text>
             </View>
 
@@ -324,7 +324,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 )}
               </View>
               <Text style={[styles.stepLabel, getStepIndex() === 2 ? styles.stepLabelActive : getStepIndex() > 2 ? styles.stepLabelDone : styles.stepLabelInactive]}>
-                Mã OTP
+                OTP Code
               </Text>
             </View>
 
@@ -336,7 +336,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 <Text style={[styles.stepNumber, getStepIndex() < 3 && styles.stepNumberInactive]}>3</Text>
               </View>
               <Text style={[styles.stepLabel, getStepIndex() === 3 ? styles.stepLabelActive : styles.stepLabelInactive]}>
-                Mật khẩu mới
+                New Password
               </Text>
             </View>
           </View>
@@ -364,20 +364,20 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="key-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Tìm tài khoản của bạn</Text>
+            <Text style={styles.cardSectionTitle}>Find Your Account</Text>
             <Text style={styles.cardSectionDesc}>
-              Nhập tên người dùng (username) hoặc email đã liên kết với tài khoản. Hệ thống sẽ tự động gửi mã OTP xác thực tới hộp thư của bạn.
+              Enter your username or email associated with your account. We will send an OTP verification code to your inbox.
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Tên tài khoản hoặc Email *</Text>
+              <Text style={styles.inputLabel}>Username or Email *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="person-circle-outline" size={20} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="VD: nhatle hoặc nhatle@gmail.com"
+                  placeholder="e.g. nhatle or nhatle@gmail.com"
                   placeholderTextColor={colors.light.textSecondary}
                   value={identifier}
                   onChangeText={(text: string) => {
@@ -400,7 +400,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.btnContentRow}>
-                  <Text style={styles.primaryBtnText}>TÌM TÀI KHOẢN & GỬI OTP</Text>
+                  <Text style={styles.primaryBtnText}>FIND ACCOUNT & SEND OTP</Text>
                   <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 </View>
               )}
@@ -408,7 +408,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
 
             <TouchableOpacity style={styles.secondaryLinkBtn} onPress={onNavigateToLogin}>
               <Ionicons name="arrow-back" size={16} color={colors.light.primary} />
-              <Text style={styles.secondaryLinkText}>Quay lại trang Đăng nhập</Text>
+              <Text style={styles.secondaryLinkText}>Back to Login</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -420,9 +420,9 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="mail-unread-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Kiểm tra hộp thư của bạn</Text>
+            <Text style={styles.cardSectionTitle}>Check Your Inbox</Text>
             <Text style={styles.cardSectionDesc}>
-              Mã xác thực 6 chữ số đã được gửi tới địa chỉ:
+              A 6-digit verification code has been sent to:
             </Text>
 
             {/* Masked Email Chip */}
@@ -437,7 +437,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 style={styles.changeEmailBtn}
                 onPress={() => setStep('search')}
               >
-                <Text style={styles.changeEmailText}>Thay đổi</Text>
+                <Text style={styles.changeEmailText}>Change</Text>
               </TouchableOpacity>
             </View>
 
@@ -467,14 +467,14 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
             </View>
 
             <Text style={styles.expiryNote}>
-              ⏱️ Mã có hiệu lực trong 5 phút. Vui lòng kiểm tra cả hộp thư rác (Spam).
+              ⏱️ Code expires in 5 minutes. Please check your Spam folder if needed.
             </Text>
 
             {/* Resend Cooldown Section */}
             <View style={styles.resendSection}>
               {countdown > 0 ? (
                 <Text style={styles.resendCountdownText}>
-                  Gửi lại mã OTP sau:{' '}
+                  Resend OTP code in:{' '}
                   <Text style={styles.countdownBold}>
                     00:{countdown < 10 ? `0${countdown}` : countdown}
                   </Text>
@@ -486,7 +486,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                   style={styles.resendBtn}
                 >
                   <Ionicons name="refresh-outline" size={15} color={colors.light.primary} />
-                  <Text style={styles.resendBtnText}>Gửi lại mã OTP mới</Text>
+                  <Text style={styles.resendBtnText}>Resend new OTP code</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -506,13 +506,13 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>XÁC THỰC MÃ OTP</Text>
+                  <Text style={styles.primaryBtnText}>VERIFY OTP CODE</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryLinkBtn} onPress={() => setStep('search')}>
-              <Text style={styles.secondaryLinkText}>Nhập lại tài khoản khác</Text>
+              <Text style={styles.secondaryLinkText}>Use a different account</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -524,21 +524,21 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="shield-checkmark-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Tạo mật khẩu mới</Text>
+            <Text style={styles.cardSectionTitle}>Create New Password</Text>
             <Text style={styles.cardSectionDesc}>
-              Đặt mật khẩu mạnh mới cho tài khoản <Text style={{ fontWeight: '700', color: colors.light.textPrimary }}>{foundEmail}</Text>
+              Set a new strong password for account <Text style={{ fontWeight: '700', color: colors.light.textPrimary }}>{foundEmail}</Text>
             </Text>
 
             {/* New Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Mật khẩu mới *</Text>
+              <Text style={styles.inputLabel}>New Password *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Tối thiểu 6 ký tự"
+                  placeholder="Minimum 6 characters"
                   placeholderTextColor={colors.light.textSecondary}
                   value={newPassword}
                   onChangeText={(text: string) => {
@@ -563,14 +563,14 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
 
             {/* Confirm Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Xác nhận mật khẩu mới *</Text>
+              <Text style={styles.inputLabel}>Confirm New Password *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="shield-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Nhập lại mật khẩu mới"
+                  placeholder="Re-enter your new password"
                   placeholderTextColor={colors.light.textSecondary}
                   value={confirmPassword}
                   onChangeText={(text: string) => {
@@ -605,7 +605,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="save-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>ĐỔI MẬT KHẨU</Text>
+                  <Text style={styles.primaryBtnText}>RESET PASSWORD</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -620,10 +620,10 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
             </View>
 
             <Text style={[styles.cardSectionTitle, { textAlign: 'center', marginTop: 16 }]}>
-              Đặt lại mật khẩu thành công!
+              Password Reset Successful!
             </Text>
             <Text style={[styles.cardSectionDesc, { textAlign: 'center', marginBottom: 28 }]}>
-              Mật khẩu mới của bạn đã được cập nhật thành công. Hãy sử dụng mật khẩu mới này để đăng nhập vào tài khoản TechShare.
+              Your new password has been successfully updated. Please use this new password to log in to TechShare.
             </Text>
 
             <TouchableOpacity
@@ -632,7 +632,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               activeOpacity={0.85}
             >
               <View style={styles.btnContentRow}>
-                <Text style={styles.primaryBtnText}>ĐĂNG NHẬP NGAY</Text>
+                <Text style={styles.primaryBtnText}>LOG IN NOW</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
               </View>
             </TouchableOpacity>
@@ -642,9 +642,9 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         {/* FOOTER */}
         {step !== 'success' && (
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Nhớ mật khẩu rồi? </Text>
+            <Text style={styles.footerText}>Remember your password? </Text>
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+              <Text style={styles.loginLink}>Log in now</Text>
             </TouchableOpacity>
           </View>
         )}

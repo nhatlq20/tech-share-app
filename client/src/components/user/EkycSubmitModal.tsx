@@ -79,7 +79,7 @@ export function EkycSubmitModal({
       const uploadedUrl = await ekycService.uploadImage(picked);
       setFrontUrl(uploadedUrl);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể tải lên ảnh mặt trước CCCD.');
+      setErrorMsg(err.message || 'Unable to upload front ID card photo.');
     } finally {
       setUploadingFront(false);
     }
@@ -95,7 +95,7 @@ export function EkycSubmitModal({
       const uploadedUrl = await ekycService.uploadImage(picked);
       setBackUrl(uploadedUrl);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể tải lên ảnh mặt sau CCCD.');
+      setErrorMsg(err.message || 'Unable to upload back ID card photo.');
     } finally {
       setUploadingBack(false);
     }
@@ -104,33 +104,33 @@ export function EkycSubmitModal({
   const handleSubmit = async () => {
     const trimmedNumber = idCardNumber.trim();
     if (!trimmedNumber) {
-      setErrorMsg('Vui lòng nhập số Căn cước công dân (CCCD).');
+      setErrorMsg('Please enter your Citizen ID Card (CCCD) number.');
       return;
     }
 
     if (trimmedNumber.length < 9 || trimmedNumber.length > 12) {
-      setErrorMsg('Số CCCD phải có từ 9 đến 12 chữ số.');
+      setErrorMsg('ID Card number must be between 9 and 12 digits.');
       return;
     }
 
     const trimmedAddress = address.trim();
     if (!trimmedAddress) {
-      setErrorMsg('Vui lòng nhập địa chỉ nhà của bạn.');
+      setErrorMsg('Please enter your residential address.');
       return;
     }
 
     if (trimmedAddress.length < 5) {
-      setErrorMsg('Địa chỉ nhà quá ngắn. Vui lòng ghi chi tiết số nhà, tên đường, phường/xã, quận/huyện.');
+      setErrorMsg('Address is too short. Please provide detailed street, ward, and district.');
       return;
     }
 
     if (!frontUrl) {
-      setErrorMsg('Vui lòng tải lên ảnh mặt trước CCCD.');
+      setErrorMsg('Please upload the front photo of your ID card.');
       return;
     }
 
     if (!backUrl) {
-      setErrorMsg('Vui lòng tải lên ảnh mặt sau CCCD.');
+      setErrorMsg('Please upload the back photo of your ID card.');
       return;
     }
 
@@ -147,17 +147,17 @@ export function EkycSubmitModal({
 
       if (res && res.success) {
         Alert.alert(
-          'Gửi đơn eKYC thành công! 🎉',
+          'eKYC Submitted Successfully! 🎉',
           verificationPurpose === 'renter'
-            ? 'Đơn Xác thực người dùng thực đã được gửi tới ban quản trị và sẽ được kiểm duyệt thủ công. Sau khi được duyệt, bạn có thể thuê thiết bị.'
-            : 'Đơn định danh của bạn đã được gửi tới ban quản trị. Hồ sơ sẽ được kiểm duyệt thủ công. Sau khi được duyệt, tài khoản sẽ được cấp Tích Xanh Uy Tín và mở quyền Chủ máy (Owner).'
+            ? 'Your identity verification request has been submitted to admins for manual review. Once approved, you will be able to rent devices.'
+            : 'Your identity verification request has been submitted for review. Once approved, your account will receive a Verified Badge and unlock Owner privileges.'
         );
         onSuccess(res.ekyc);
         onClose();
       }
     } catch (err: any) {
       setErrorMsg(
-        err?.response?.data?.message || err.message || 'Không thể gửi đơn eKYC. Vui lòng thử lại.'
+        err?.response?.data?.message || err.message || 'Failed to submit eKYC. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -184,11 +184,11 @@ export function EkycSubmitModal({
                 <Ionicons name="id-card" size={20} color={colors.light.primary} />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Định Danh Điện Tử (eKYC)</Text>
+                <Text style={styles.modalTitle}>Digital Identity Verification (eKYC)</Text>
                 <Text style={styles.modalSubtitle}>
                   {verificationPurpose === 'renter'
-                    ? 'Xác thực người dùng thực để thuê thiết bị'
-                    : 'Nâng cấp Chủ máy & Nhận Tích Xanh'}
+                    ? 'Verify real identity to rent equipment'
+                    : 'Upgrade to Owner & Get Verified Badge'}
                 </Text>
               </View>
             </View>
@@ -198,14 +198,14 @@ export function EkycSubmitModal({
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {/* Cảnh báo nếu trước đó bị từ chối */}
+            {/* Warning if previously rejected */}
             {currentEkyc?.status === 'rejected' && currentEkyc?.rejectReason ? (
               <View style={styles.rejectBanner}>
                 <Ionicons name="alert-circle" size={18} color={colors.light.error} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rejectBannerTitle}>Hồ sơ trước đó bị từ chối</Text>
+                  <Text style={styles.rejectBannerTitle}>Previous submission was rejected</Text>
                   <Text style={styles.rejectBannerReason}>
-                    Lý do: {currentEkyc.rejectReason}. Vui lòng chụp lại ảnh rõ nét và gửi lại.
+                    Reason: {currentEkyc.rejectReason}. Please retake clear photos and resubmit.
                   </Text>
                 </View>
               </View>
@@ -220,26 +220,26 @@ export function EkycSubmitModal({
             ) : null}
 
             {/* ======================================================== */}
-            {/* PHẦN 1: THÔNG TIN CÁ NHÂN TỰ ĐỘNG LẤY TỪ TÀI KHOẢN (READ-ONLY) */}
+            {/* PART 1: AUTO-SYNCED USER PROFILE DETAILS (READ-ONLY) */}
             {/* ======================================================== */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="lock-closed" size={14} color={colors.light.primary} />
                 <Text style={styles.sectionHeadingTitle}>
-                  THÔNG TIN TÀI KHOẢN (TỰ ĐỘNG ĐỒNG BỘ)
+                  ACCOUNT INFORMATION (AUTO-SYNCED)
                 </Text>
               </View>
               <Text style={styles.sectionSubDesc}>
-                Hệ thống tự động lấy thông tin từ tài khoản của bạn và không cho phép chỉnh sửa tại đây để đảm bảo tính xác thực.
+                System automatically syncs details from your account and prevents edits here for verification integrity.
               </Text>
 
-              {/* Họ tên */}
+              {/* Full name */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Họ và tên</Text>
+                  <Text style={styles.inputLabel}>Full Name</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -248,7 +248,7 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.name || 'Chưa cập nhật họ tên'}
+                    value={currentUser?.name || 'Name not updated'}
                     editable={false}
                   />
                 </View>
@@ -257,10 +257,10 @@ export function EkycSubmitModal({
               {/* Email */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Địa chỉ Email</Text>
+                  <Text style={styles.inputLabel}>Email Address</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -269,19 +269,19 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.email || 'Chưa cập nhật email'}
+                    value={currentUser?.email || 'Email not updated'}
                     editable={false}
                   />
                 </View>
               </View>
 
-              {/* Số điện thoại */}
+              {/* Phone number */}
               <View style={[styles.inputGroup, { marginBottom: 4 }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Số điện thoại</Text>
+                  <Text style={styles.inputLabel}>Phone Number</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Cố định</Text>
+                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -290,7 +290,7 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.phone || 'Chưa cập nhật số điện thoại'}
+                    value={currentUser?.phone || 'Phone not updated'}
                     editable={false}
                   />
                 </View>
@@ -298,27 +298,27 @@ export function EkycSubmitModal({
             </View>
 
             {/* ======================================================== */}
-            {/* PHẦN 2: THÔNG TIN ĐỊNH DANH NGƯỜI DÙNG CẦN NHẬP THÊM */}
+            {/* PART 2: ADDITIONAL IDENTIFICATION DETAILS */}
             {/* ======================================================== */}
             <View style={[styles.sectionCard, { marginTop: 14 }]}>
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="create-outline" size={15} color={colors.light.primary} />
-                <Text style={styles.sectionHeadingTitle}>THÔNG TIN ĐỊNH DANH BỔ SUNG</Text>
+                <Text style={styles.sectionHeadingTitle}>ADDITIONAL IDENTIFICATION DETAILS</Text>
               </View>
               <Text style={styles.sectionSubDesc}>
-                Vui lòng điền chính xác số Căn cước công dân và địa chỉ nhà nơi bạn đang sinh sống.
+                Please enter your ID card number and current residential address accurately.
               </Text>
 
-              {/* Input Số CCCD */}
+              {/* ID Card Number */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Số Căn cước công dân (CCCD) *</Text>
+                <Text style={styles.inputLabel}>National ID / CCCD Number *</Text>
                 <View style={styles.inputWrap}>
                   <View style={styles.inputIconBox}>
                     <Ionicons name="card-outline" size={18} color={colors.light.textSecondary} />
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Nhập 12 số CCCD (VD: 079204001234)"
+                    placeholder="Enter 9-12 digit ID number (e.g. 079204001234)"
                     placeholderTextColor={colors.light.textSecondary}
                     keyboardType="numeric"
                     maxLength={12}
@@ -331,16 +331,16 @@ export function EkycSubmitModal({
                 </View>
               </View>
 
-              {/* Input Địa chỉ nhà */}
+              {/* Residential Address */}
               <View style={[styles.inputGroup, { marginBottom: 4 }]}>
-                <Text style={styles.inputLabel}>Địa chỉ nhà (Thường trú / Hiện tại) *</Text>
+                <Text style={styles.inputLabel}>Residential Address (Permanent / Current) *</Text>
                 <View style={[styles.inputWrap, styles.inputWrapMultiline]}>
                   <View style={[styles.inputIconBox, { marginTop: 4 }]}>
                     <Ionicons name="home-outline" size={18} color={colors.light.textSecondary} />
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputMultiline]}
-                    placeholder="VD: Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                    placeholder="e.g. 123 Nguyen Hue St, Ben Nghe Ward, District 1, Ho Chi Minh City"
                     placeholderTextColor={colors.light.textSecondary}
                     value={address}
                     multiline
@@ -355,22 +355,22 @@ export function EkycSubmitModal({
             </View>
 
             {/* ======================================================== */}
-            {/* PHẦN 3: TẢI ẢNH CCCD 2 MẶT */}
+            {/* PART 3: ID CARD PHOTO UPLOAD */}
             {/* ======================================================== */}
             <View style={{ marginTop: 14 }}>
-              {/* Upload Ảnh Mặt Trước CCCD */}
+              {/* Upload Front Photo */}
               <View style={styles.uploadSection}>
                 <View style={styles.uploadHeaderRow}>
-                  <Text style={styles.uploadLabel}>1. Ảnh CCCD Mặt Trước *</Text>
+                  <Text style={styles.uploadLabel}>1. ID Card Front Photo *</Text>
                   {frontUrl ? (
                     <View style={styles.verifiedChip}>
                       <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                      <Text style={styles.verifiedChipText}>Đã tải lên</Text>
+                      <Text style={styles.verifiedChipText}>Uploaded</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={styles.uploadHelper}>
-                  Chụp rõ số CCCD, họ tên, ngày sinh, quốc huy và ảnh chân dung.
+                  Clearly capture ID number, full name, date of birth, emblem, and portrait photo.
                 </Text>
 
                 {frontUrl ? (
@@ -382,7 +382,7 @@ export function EkycSubmitModal({
                       disabled={uploadingFront}
                     >
                       <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                      <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
+                      <Text style={styles.btnChangeImageText}>Change photo</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -395,34 +395,34 @@ export function EkycSubmitModal({
                     {uploadingFront ? (
                       <View style={styles.uploadLoadingCol}>
                         <ActivityIndicator size="small" color={colors.light.primary} />
-                        <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
+                        <Text style={styles.uploadLoadingText}>Uploading photo...</Text>
                       </View>
                     ) : (
                       <View style={styles.uploadPlaceholderCol}>
                         <View style={styles.uploadIconCircle}>
                           <Ionicons name="camera" size={24} color={colors.light.primary} />
                         </View>
-                        <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Trước</Text>
-                        <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
+                        <Text style={styles.uploadBtnText}>Capture or select Front ID Photo</Text>
+                        <Text style={styles.uploadBtnSubText}>JPG, PNG format (max 10MB)</Text>
                       </View>
                     )}
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Upload Ảnh Mặt Sau CCCD */}
+              {/* Upload Back Photo */}
               <View style={styles.uploadSection}>
                 <View style={styles.uploadHeaderRow}>
-                  <Text style={styles.uploadLabel}>2. Ảnh CCCD Mặt Sau *</Text>
+                  <Text style={styles.uploadLabel}>2. ID Card Back Photo *</Text>
                   {backUrl ? (
                     <View style={styles.verifiedChip}>
                       <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                      <Text style={styles.verifiedChipText}>Đã tải lên</Text>
+                      <Text style={styles.verifiedChipText}>Uploaded</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={styles.uploadHelper}>
-                  Chụp rõ vân tay, đặc điểm nhân dạng, ngày cấp và mã vạch MRZ.
+                  Clearly capture fingerprints, identifying features, issue date, and MRZ code.
                 </Text>
 
                 {backUrl ? (
@@ -434,7 +434,7 @@ export function EkycSubmitModal({
                       disabled={uploadingBack}
                     >
                       <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                      <Text style={styles.btnChangeImageText}>Thay ảnh khác</Text>
+                      <Text style={styles.btnChangeImageText}>Change photo</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -447,15 +447,15 @@ export function EkycSubmitModal({
                     {uploadingBack ? (
                       <View style={styles.uploadLoadingCol}>
                         <ActivityIndicator size="small" color={colors.light.primary} />
-                        <Text style={styles.uploadLoadingText}>Đang tải ảnh lên...</Text>
+                        <Text style={styles.uploadLoadingText}>Uploading photo...</Text>
                       </View>
                     ) : (
                       <View style={styles.uploadPlaceholderCol}>
                         <View style={styles.uploadIconCircle}>
                           <Ionicons name="camera" size={24} color={colors.light.primary} />
                         </View>
-                        <Text style={styles.uploadBtnText}>Chụp hoặc chọn ảnh CCCD Mặt Sau</Text>
-                        <Text style={styles.uploadBtnSubText}>Định dạng JPG, PNG (tối đa 10MB)</Text>
+                        <Text style={styles.uploadBtnText}>Capture or select Back ID Photo</Text>
+                        <Text style={styles.uploadBtnSubText}>JPG, PNG format (max 10MB)</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -467,20 +467,20 @@ export function EkycSubmitModal({
             <View style={styles.policyNoticeBox}>
               <View style={styles.policyHeaderRow}>
                 <Ionicons name="shield-checkmark" size={16} color={colors.light.primary} />
-                <Text style={styles.policyTitle}>Quy trình Kiểm duyệt & Bảo mật:</Text>
+                <Text style={styles.policyTitle}>Review & Privacy Policy:</Text>
               </View>
               <Text style={styles.policyText}>
-                • Đơn eKYC sẽ được Ban quản trị TechShare kiểm tra và đối chiếu thủ công với giấy tờ tùy thân của bạn.
+                • Your eKYC submission will be manually reviewed and matched against official records by TechShare admins.
               </Text>
               <Text style={[styles.policyText, { marginTop: 4 }]}>
-                • Sau khi phê duyệt thành công, tài khoản sẽ được cấp{' '}
-                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Tích Xanh Uy Tín</Text>{' '}
-                và tự động mở quyền{' '}
-                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Chủ máy (Owner)</Text>{' '}
-                để đăng thiết bị cho thuê.
+                • Upon successful approval, your account receives a{' '}
+                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Verified Badge</Text>{' '}
+                and unlocks{' '}
+                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Owner</Text>{' '}
+                capabilities to list equipment.
               </Text>
               <Text style={[styles.policyText, { marginTop: 4 }]}>
-                • Thông tin số CCCD và ảnh chụp được bảo mật nghiêm ngặt và chỉ sử dụng cho mục đích xác minh danh tính.
+                • ID number and photos are strictly encrypted and used solely for identity verification.
               </Text>
             </View>
           </ScrollView>
@@ -498,7 +498,7 @@ export function EkycSubmitModal({
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="paper-plane" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnSubmitText}>GỬI ĐƠN XÁC MINH eKYC</Text>
+                  <Text style={styles.btnSubmitText}>SUBMIT eKYC VERIFICATION</Text>
                 </View>
               )}
             </TouchableOpacity>

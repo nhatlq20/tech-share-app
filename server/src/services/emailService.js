@@ -38,7 +38,7 @@ export const sendOtpEmail = async (to, otp, name = '') => {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã xác thực TechShare</title>
+    <title>TechShare Verification Code</title>
   </head>
   <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; color: #0F172A;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 30px 15px;">
@@ -53,7 +53,7 @@ export const sendOtpEmail = async (to, otp, name = '') => {
                   TechShare
                 </h1>
                 <p style="margin: 6px 0 0 0; color: #DBEAFE; font-size: 13px; font-weight: 500;">
-                  Nền tảng chia sẻ & cho thuê thiết bị công nghệ
+                  Peer-to-Peer Tech Sharing & Rental Platform
                 </p>
               </td>
             </tr>
@@ -62,35 +62,35 @@ export const sendOtpEmail = async (to, otp, name = '') => {
             <tr>
               <td style="padding: 32px 28px;">
                 <h2 style="margin: 0 0 12px 0; color: #0F172A; font-size: 18px; font-weight: 700;">
-                  Xác thực đăng ký tài khoản ${name ? `, ${name}` : ''}
+                  Account Registration Verification${name ? `, ${name}` : ''}
                 </h2>
                 <p style="margin: 0 0 20px 0; color: #64748B; font-size: 14px; line-height: 1.6;">
-                  Cảm ơn bạn đã lựa chọn TechShare. Vui lòng nhập mã OTP bên dưới vào ứng dụng để hoàn tất việc kích hoạt tài khoản của bạn.
+                  Thank you for joining TechShare. Please enter the OTP verification code below into the app to complete your account activation.
                 </p>
 
                 <!-- OTP BOX -->
                 <div style="background-color: #F0F7FF; border: 1.5px dashed #2563EB; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
                   <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #2563EB; letter-spacing: 1px; display: block; margin-bottom: 8px;">
-                    Mã xác thực của bạn
+                    Your Verification Code
                   </span>
                   <span style="font-size: 34px; font-weight: 800; color: #1D4ED8; letter-spacing: 8px; font-family: 'SF Mono', Consolas, Monaco, monospace; display: block;">
                     ${otp}
                   </span>
                   <span style="display: block; margin-top: 8px; font-size: 12px; color: #64748B;">
-                    (Mã này có hiệu lực trong vòng <b>5 phút</b>)
+                    (This code expires in <b>5 minutes</b>)
                   </span>
                 </div>
 
                 <!-- CAUTION NOTE -->
                 <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; border-radius: 6px; margin: 20px 0;">
                   <p style="margin: 0; font-size: 12px; color: #92400E; line-height: 1.5;">
-                    🔒 <b>Cảnh báo bảo mật:</b> Không chia sẻ mã OTP này với bất kỳ ai, kể cả nhân viên TechShare. Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email.
+                    🔒 <b>Security Notice:</b> Never share this verification code with anyone, including TechShare staff. If you did not make this request, please safely ignore this email.
                   </p>
                 </div>
 
                 <p style="margin: 24px 0 0 0; color: #64748B; font-size: 13px; line-height: 1.5;">
-                  Trân trọng,<br>
-                  <b>Đội ngũ TechShare</b>
+                  Best regards,<br>
+                  <b>The TechShare Team</b>
                 </p>
               </td>
             </tr>
@@ -99,7 +99,7 @@ export const sendOtpEmail = async (to, otp, name = '') => {
             <tr>
               <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 18px 24px; text-align: center;">
                 <p style="margin: 0; color: #94A3B8; font-size: 11px;">
-                  © 2026 TechShare MMA301 Project. Mọi quyền được bảo lưu.
+                  © 2026 TechShare MMA301 Project. All rights reserved.
                 </p>
               </td>
             </tr>
@@ -115,8 +115,8 @@ export const sendOtpEmail = async (to, otp, name = '') => {
   const mailOptions = {
     from: `"TechShare" <${senderEmail}>`,
     to,
-    subject: `[TechShare] ${otp} là mã xác thực OTP đăng ký tài khoản của bạn`,
-    text: `Mã xác thực TechShare của bạn là: ${otp}. Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.`,
+    subject: `[TechShare] ${otp} is your account verification code`,
+    text: `Your TechShare verification code is: ${otp}. This code is valid for 5 minutes. Please do not share this code with anyone.`,
     html: htmlContent,
   };
 
@@ -142,7 +142,7 @@ export const sendForgotPasswordOtpEmail = async (to, otp, name = '') => {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã xác thực đặt lại mật khẩu - TechShare</title>
+    <title>Password Reset Verification - TechShare</title>
   </head>
   <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; color: #0F172A;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 30px 15px;">
@@ -157,7 +157,7 @@ export const sendForgotPasswordOtpEmail = async (to, otp, name = '') => {
                   TechShare
                 </h1>
                 <p style="margin: 6px 0 0 0; color: #DBEAFE; font-size: 13px; font-weight: 500;">
-                  Nền tảng chia sẻ & cho thuê thiết bị công nghệ
+                  Peer-to-Peer Tech Sharing & Rental Platform
                 </p>
               </td>
             </tr>
@@ -166,35 +166,35 @@ export const sendForgotPasswordOtpEmail = async (to, otp, name = '') => {
             <tr>
               <td style="padding: 32px 28px;">
                 <h2 style="margin: 0 0 12px 0; color: #0F172A; font-size: 18px; font-weight: 700;">
-                  Yêu cầu đặt lại mật khẩu ${name ? `cho ${name}` : ''}
+                  Password Reset Request${name ? ` for ${name}` : ''}
                 </h2>
                 <p style="margin: 0 0 20px 0; color: #64748B; font-size: 14px; line-height: 1.6;">
-                  Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản TechShare của bạn. Vui lòng sử dụng mã OTP dưới đây để tiến hành thiết lập mật khẩu mới.
+                  We received a request to reset the password for your TechShare account. Please use the OTP code below to establish a new password.
                 </p>
 
                 <!-- OTP BOX -->
                 <div style="background-color: #EFF6FF; border: 1.5px dashed #2563EB; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
                   <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #2563EB; letter-spacing: 1px; display: block; margin-bottom: 8px;">
-                    Mã xác thực OTP của bạn
+                    Your OTP Reset Code
                   </span>
                   <span style="font-size: 34px; font-weight: 800; color: #1D4ED8; letter-spacing: 8px; font-family: 'SF Mono', Consolas, Monaco, monospace; display: block;">
                     ${otp}
                   </span>
                   <span style="display: block; margin-top: 8px; font-size: 12px; color: #64748B;">
-                    (Mã có hiệu lực trong vòng <b>5 phút</b>)
+                    (This code expires in <b>5 minutes</b>)
                   </span>
                 </div>
 
                 <!-- CAUTION NOTE -->
                 <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; border-radius: 6px; margin: 20px 0;">
                   <p style="margin: 0; font-size: 12px; color: #92400E; line-height: 1.5;">
-                    🔒 <b>Cảnh báo bảo mật:</b> Tuyệt đối không chia sẻ mã OTP này cho bất kỳ ai. Nếu bạn không yêu cầu đặt lại mật khẩu, tài khoản của bạn vẫn an toàn và bạn có thể yên tâm bỏ qua email này.
+                    🔒 <b>Security Notice:</b> Never share this OTP code with anyone. If you did not request a password reset, your account is secure and you can safely ignore this email.
                   </p>
                 </div>
 
                 <p style="margin: 24px 0 0 0; color: #64748B; font-size: 13px; line-height: 1.5;">
-                  Trân trọng,<br>
-                  <b>Đội ngũ hỗ trợ TechShare</b>
+                  Best regards,<br>
+                  <b>TechShare Security Team</b>
                 </p>
               </td>
             </tr>
@@ -203,7 +203,7 @@ export const sendForgotPasswordOtpEmail = async (to, otp, name = '') => {
             <tr>
               <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 18px 24px; text-align: center;">
                 <p style="margin: 0; color: #94A3B8; font-size: 11px;">
-                  © 2026 TechShare MMA301 Project. Mọi quyền được bảo lưu.
+                  © 2026 TechShare MMA301 Project. All rights reserved.
                 </p>
               </td>
             </tr>
@@ -219,8 +219,8 @@ export const sendForgotPasswordOtpEmail = async (to, otp, name = '') => {
   const mailOptions = {
     from: `"TechShare Security" <${senderEmail}>`,
     to,
-    subject: `[TechShare] ${otp} là mã xác thực OTP đặt lại mật khẩu của bạn`,
-    text: `Mã OTP đặt lại mật khẩu TechShare của bạn là: ${otp}. Mã này có hiệu lực trong 5 phút. Tuyệt đối không chia sẻ mã này cho bất kỳ ai.`,
+    subject: `[TechShare] ${otp} is your password reset verification code`,
+    text: `Your TechShare password reset code is: ${otp}. This code is valid for 5 minutes. Never share this code with anyone.`,
     html: htmlContent,
   };
 

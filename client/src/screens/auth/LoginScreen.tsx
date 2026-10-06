@@ -138,7 +138,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter password"
                 placeholderTextColor={colors.light.textSecondary}
                 value={password}
                 onChangeText={(text: string) => {
@@ -161,7 +161,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
             </View>
           </View>
 
-          {/* Nhớ tài khoản & Quên mật khẩu */}
+          {/* Remember me & Forgot password */}
           <View style={styles.optionsRow}>
             <TouchableOpacity
               style={styles.rememberRow}
@@ -178,11 +178,11 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
               activeOpacity={0.7}
               onPress={onNavigateToForgotPassword}
             >
-              <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
+              <Text style={styles.forgotPassText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Nút Đăng nhập (CTA 12px bo góc) */}
+          {/* Sign In Button */}
           <TouchableOpacity
             style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             onPress={handleLogin}
@@ -193,38 +193,18 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.loginBtnText}>ĐĂNG NHẬP</Text>
+                <Text style={styles.loginBtnText}>SIGN IN</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
           </TouchableOpacity>
-
-          {/* Đường phân cách Hoặc */}
-          <View style={styles.dividerBox}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Đăng nhập Mạng xã hội */}
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-              <Ionicons name="logo-google" size={18} color="#EA4335" />
-              <Text style={styles.socialBtnText}>Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-              <Ionicons name="logo-apple" size={18} color={colors.light.textPrimary} />
-              <Text style={styles.socialBtnText}>Apple</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* CHUYỂN QUA ĐĂNG KÝ */}
+        {/* SWITCH TO REGISTER */}
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+          <Text style={styles.footerText}>Don't have an account? </Text>
           <TouchableOpacity onPress={onNavigateToRegister} activeOpacity={0.7}>
-            <Text style={styles.registerLink}>Đăng ký ngay</Text>
+            <Text style={styles.registerLink}>Sign up now</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
