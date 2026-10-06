@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -33,6 +34,11 @@ type Specification = {
   value: string;
 };
 
+type DeviceLocation = {
+  latitude: number;
+  longitude: number;
+};
+
 const categories = [
   "Smartphone",
   "Laptop",
@@ -42,8 +48,6 @@ const categories = [
   "Gaming",
   "Accessory",
 ];
-
-const FIXED_DEVICE_LOCATION: [number, number] = [105.8342, 21.0278];
 
 function SectionTitle({
   title,
@@ -73,6 +77,10 @@ export function PostDeviceScreen({
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
+  const [deviceLocation, setDeviceLocation] =
+    useState<DeviceLocation | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const token = useSelector((state: RootState) => state.auth.token);
   const [deviceName, setDeviceName] = useState("");
   const [category, setCategory] = useState("Smartphone");
@@ -96,6 +104,10 @@ export function PostDeviceScreen({
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
 
+  const getCurrentLocation = async () => {
+    setIsGettingLocation(true);
+    setLocationError("");
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -117,7 +129,6 @@ export function PostDeviceScreen({
       const latitude = location.coords.latitude;
       const longitude = location.coords.longitude;
 
-      // QUAN TRỌNG: lưu tọa độ trước
       setDeviceLocation({
         latitude,
         longitude,
@@ -131,6 +142,7 @@ export function PostDeviceScreen({
       setIsGettingLocation(false);
     }
   };
+
   useEffect(() => {
     if (!token) return;
 
@@ -202,7 +214,9 @@ export function PostDeviceScreen({
       description.trim(),
     );
 
-    if (!isBasicInfoValid ||!specificationsValid ||
+    if (
+      !hasRequiredFields ||
+      !specificationsValid ||
       !Number.isFinite(Number(price)) ||
       !Number.isFinite(Number(depositAmount))
     ) {
@@ -252,7 +266,7 @@ export function PostDeviceScreen({
           depositAmount: Number(depositAmount),
           location: {
             type: "Point",
-            coordinates: FIXED_DEVICE_LOCATION,
+            coordinates: [deviceLocation.longitude, deviceLocation.latitude],
           },
           addressText: addressText.trim(),
         });
@@ -594,6 +608,41 @@ export function PostDeviceScreen({
           />
           {submitted && !addressText.trim() && (
             <Text style={styles.errorText}>Display address is required</Text>
+          )}
+
+          <Text style={styles.fieldLabel}>Location</Text>
+          <TouchableOpacity
+            onPress={getCurrentLocation}
+            disabled={isGettingLocation}
+            style={[
+              styles.locationButton,
+              isGettingLocation && styles.locationButtonDisabled,
+            ]}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={deviceLocation ? "checkmark-circle-outline" : "locate-outline"}
+              size={18}
+              color="#2563EB"
+            />
+            <Text style={styles.locationButtonText}>
+              {isGettingLocation
+                ? "Getting location..."
+                : deviceLocation
+                  ? "Location captured — update"
+                  : "Use Current Location"}
+            </Text>
+          </TouchableOpacity>
+          {locationError ? (
+            <Text style={styles.errorText}>{locationError}</Text>
+          ) : deviceLocation ? (
+            <Text style={styles.locationStatus}>
+              Location captured successfully.
+            </Text>
+          ) : (
+            <Text style={styles.helperText}>
+              Capture your location to set the device’s map position.
+            </Text>
           )}
         </View>
 

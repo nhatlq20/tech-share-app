@@ -101,49 +101,31 @@ export function ProfileScreen({
 
   useFocusEffect(
     useCallback(() => {
-    let isMounted = true;
+      let isMounted = true;
 
       const loadProfile = async () => {
-        if (!token) {
-          return;
-        }
+        if (!token) return;
 
-        // Tải thông tin đơn eKYC
         try {
           const ekycData = await ekycService.getMyEkyc();
-          if (isMounted) {
-            setEkyc(ekycData);
-          }
-        } catch (ekycErr) {
-          console.warn('Error fetching ekyc status:', ekycErr);
-        }
-      } catch (error: any) {
-        if (isMounted && error?.response?.status === 401) {
-          onLogout();
-        }
-      }
-    };
-
-          // Tải thông tin đơn eKYC
-          try {
-            const ekycData = await ekycService.getMyEkyc();
-            if (isMounted) {
-              setEkyc(ekycData);
-            }
-          } catch (ekycErr) {
-            console.warn("Error fetching ekyc status:", ekycErr);
-          }
-        } catch (error: any) {
-          if (isMounted && error?.response?.status === 401) {
+          if (isMounted) setEkyc(ekycData);
+        } catch (error: unknown) {
+          const status = (error as { response?: { status?: number } })?.response
+            ?.status;
+          if (isMounted && status === 401) {
             onLogout();
+          } else {
+            console.warn("Error fetching eKYC status:", error);
           }
         }
       };
 
-    return () => {
-      isMounted = false;
-    };
-    }, [dispatch, token, onLogout])
+      void loadProfile();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [token, onLogout]),
   );
 
   const showToast = (msg: string) => {
