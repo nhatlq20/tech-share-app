@@ -51,6 +51,7 @@ type WebMessage =
   | { type: 'DEVICE_SELECTED'; deviceId?: unknown }
   | { type: 'MAP_ERROR'; message?: unknown }
   | { type: 'TILE_ERROR'; url?: unknown }
+  | { type: 'OSM_DEBUG'; event?: unknown; detail?: unknown }
   | { type: 'RENDER_STATE'; deviceCount?: unknown; fitPointCount?: unknown };
 
 function validCoordinate(latitude: unknown, longitude: unknown): boolean {
@@ -109,7 +110,13 @@ function buildLeafletHtml(initialData: {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://unpkg.com; style-src 'unsafe-inline' https://unpkg.com; img-src https://tile.openstreetmap.org data: blob:;" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      id="leaflet-stylesheet"
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      onload="window.__leafletCssLoaded = true"
+      onerror="window.__leafletCssError = true"
+    />
     <style>
       html, body { position: fixed; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #e8edf2; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -161,12 +168,14 @@ function buildLeafletHtml(initialData: {
       var map = null;
       var tileLayer = null;
       var userMarker = null;
+      var currentUserPosition = initialData.userPosition;
       var deviceMarkers = Object.create(null);
       var currentDevices = initialData.devices || [];
       var selectedDeviceId = initialData.selectedDeviceId || null;
       var initialFitDone = false;
       var mapReadySent = false;
-      var tileErrorCount = 0;
+      var bootstrapTimeout = null;
+      var tileErrorReported = false;
 
       function send(payload) {
         if (window.ReactNativeWebView) {
@@ -176,6 +185,22 @@ function buildLeafletHtml(initialData: {
 
       function reportError(message) {
         send({ type: 'MAP_ERROR', message: String(message || 'Unable to load the map.') });
+      }
+
+      function debug(event, detail) {
+        send({ type: 'OSM_DEBUG', event: event, detail: detail == null ? '' : String(detail) });
+      }
+
+      var leafletStylesheet = document.getElementById('leaflet-stylesheet');
+      if (window.__leafletCssLoaded) {
+        debug('Leaflet CSS loaded');
+      } else if (window.__leafletCssError) {
+        debug('Leaflet CSS error', 'Unable to load Leaflet CSS.');
+      } else if (leafletStylesheet) {
+        leafletStylesheet.addEventListener('load', function () { debug('Leaflet CSS loaded'); });
+        leafletStylesheet.addEventListener('error', function () {
+          debug('Leaflet CSS error', 'Unable to load Leaflet CSS.');
+        });
       }
 
       function formatPrice(value) {
@@ -203,6 +228,7 @@ function buildLeafletHtml(initialData: {
 
       function updateUserLocation(position) {
         if (!map || !position || !Number.isFinite(position.latitude) || !Number.isFinite(position.longitude)) return;
+        currentUserPosition = { latitude: position.latitude, longitude: position.longitude };
         var latLng = [position.latitude, position.longitude];
         if (userMarker) {
           userMarker.setLatLng(latLng);
@@ -259,7 +285,7 @@ function buildLeafletHtml(initialData: {
 
       function fitInitialView() {
         if (!map || initialFitDone) return;
-        var points = [[initialData.userPosition.latitude, initialData.userPosition.longitude]];
+        var points = [[currentUserPosition.latitude, currentUserPosition.longitude]];
         currentDevices.forEach(function (device) {
           if (Number.isFinite(device.latitude) && Number.isFinite(device.longitude)) {
             points.push([device.latitude, device.longitude]);
@@ -302,6 +328,7 @@ function buildLeafletHtml(initialData: {
       function initializeMap() {
         try {
           if (!window.L || map) return;
+          debug('Leaflet init start');
           map = L.map('map', {
             attributionControl: false,
             zoomControl: true,
@@ -317,17 +344,11 @@ function buildLeafletHtml(initialData: {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
           });
-          tileLayer.on('tileload', function () {
-            if (!mapReadySent) {
-              mapReadySent = true;
-              send({ type: 'MAP_READY' });
-            }
-          });
           tileLayer.on('tileerror', function (event) {
-            tileErrorCount += 1;
-            console.log('[OSM TILE ERROR]', event && event.tile ? event.tile.src : 'unknown tile');
-            send({ type: 'TILE_ERROR', url: event && event.tile ? event.tile.src : '' });
-            if (!mapReadySent && tileErrorCount >= 4) reportError('Unable to load OpenStreetMap.');
+            if (tileErrorReported) return;
+            tileErrorReported = true;
+            var tileUrl = event && event.tile ? event.tile.src : 'unknown tile';
+            send({ type: 'TILE_ERROR', url: tileUrl });
           });
           tileLayer.addTo(map);
           map.on('click', function () { send({ type: 'MAP_PRESSED' }); });
@@ -335,6 +356,19 @@ function buildLeafletHtml(initialData: {
           map.setView([initialData.userPosition.latitude, initialData.userPosition.longitude], 14, { animate: false });
           renderDevices(currentDevices);
           if (initialData.initialFitReady) fitInitialView();
+          map.whenReady(function () {
+            map.invalidateSize(false);
+            if (bootstrapTimeout) {
+              window.clearTimeout(bootstrapTimeout);
+              bootstrapTimeout = null;
+            }
+            debug('Leaflet init success');
+            if (!mapReadySent) {
+              mapReadySent = true;
+              debug('MAP_READY sent');
+              send({ type: 'MAP_READY' });
+            }
+          });
         } catch (error) {
           reportError(error && error.message ? error.message : error);
         }
@@ -342,11 +376,20 @@ function buildLeafletHtml(initialData: {
 
       var leafletScript = document.createElement('script');
       leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      leafletScript.onload = initializeMap;
-      leafletScript.onerror = function () { reportError('Unable to load Leaflet.'); };
+      leafletScript.onload = function () {
+        debug('Leaflet script loaded');
+        initializeMap();
+      };
+      leafletScript.onerror = function () {
+        debug('Leaflet script error', leafletScript.src);
+        reportError('Unable to load Leaflet.');
+      };
       document.head.appendChild(leafletScript);
-      window.setTimeout(function () {
-        if (!map) reportError('Leaflet timed out.');
+      bootstrapTimeout = window.setTimeout(function () {
+        if (!mapReadySent) {
+          debug('Leaflet bootstrap timeout', '15000 ms');
+          reportError('Leaflet timed out.');
+        }
       }, 15000);
     </script>
   </body>
@@ -402,20 +445,20 @@ export function OpenStreetMap({
   useEffect(() => {
     if (!ready) return;
     sendToWeb({
-      type: 'UPDATE_DEVICES',
-      devices: toLeafletDevices(devices),
-      initialFitReady,
-    });
-  }, [devices, initialFitReady, ready]);
-
-  useEffect(() => {
-    if (!ready) return;
-    sendToWeb({
       type: 'UPDATE_USER_LOCATION',
       latitude: userPosition.latitude,
       longitude: userPosition.longitude,
     });
   }, [ready, userPosition.latitude, userPosition.longitude]);
+
+  useEffect(() => {
+    if (!ready) return;
+    sendToWeb({
+      type: 'UPDATE_DEVICES',
+      devices: toLeafletDevices(devices),
+      initialFitReady,
+    });
+  }, [devices, initialFitReady, ready]);
 
   useEffect(() => {
     if (!ready) return;
@@ -427,12 +470,13 @@ export function OpenStreetMap({
     try {
       message = JSON.parse(event.nativeEvent.data) as WebMessage;
     } catch {
-      if (__DEV__) console.log('[OSM MESSAGE ERROR] Invalid WebView message');
+      if (__DEV__) console.log('[MAP] Invalid WebView message');
       return;
     }
 
     switch (message.type) {
       case 'MAP_READY':
+        if (__DEV__) console.log('[MAP] MAP_READY received');
         setReady(true);
         setError(null);
         onReady?.();
@@ -444,18 +488,26 @@ export function OpenStreetMap({
         onMapPress();
         break;
       case 'TILE_ERROR':
-        if (__DEV__) console.log('[OSM TILE ERROR]', message.url ?? 'unknown tile');
+        if (__DEV__) console.log('[MAP] Tile error:', message.url ?? 'unknown tile');
         break;
+      case 'OSM_DEBUG': {
+        const eventName = typeof message.event === 'string' ? message.event : 'unknown event';
+        const detail = typeof message.detail === 'string' && message.detail
+          ? `: ${message.detail}`
+          : '';
+        if (__DEV__) console.log(`[MAP] ${eventName}${detail}`);
+        break;
+      }
       case 'MAP_ERROR':
         setError(typeof message.message === 'string' ? message.message : 'Unable to load the map.');
         break;
       case 'RENDER_STATE':
         if (__DEV__) {
           if (typeof message.deviceCount === 'number') {
-            console.log('[OSM RENDER] Device markers:', message.deviceCount);
+            console.log('[MAP] Device markers:', message.deviceCount);
           }
           if (typeof message.fitPointCount === 'number') {
-            console.log('[OSM RENDER] Initial fit points:', message.fitPointCount);
+            console.log('[MAP] Initial fit points:', message.fitPointCount);
           }
         }
         break;
@@ -463,6 +515,7 @@ export function OpenStreetMap({
   };
 
   const retry = () => {
+    if (__DEV__) console.log('[MAP] Renderer retry');
     setReady(false);
     setError(null);
     setRetryKey((value: number) => value + 1);
@@ -484,9 +537,31 @@ export function OpenStreetMap({
         androidLayerType="hardware"
         nestedScrollEnabled={true}
         onMessage={handleMessage}
-        onError={() => setError('Unable to load the map.')}
-        onHttpError={() => setError('Unable to load the map.')}
-        onRenderProcessGone={() => setError('The map renderer stopped unexpectedly.')}
+        onLoadStart={() => {
+          if (__DEV__) console.log('[MAP] WebView load start');
+        }}
+        onLoadEnd={() => {
+          if (__DEV__) console.log('[MAP] WebView load end');
+        }}
+        onError={(event: any) => {
+          const message = event.nativeEvent?.description || 'Unknown WebView error';
+          if (__DEV__) console.log('[MAP] WebView error:', message);
+          setError(`Unable to load the map. ${message}`);
+        }}
+        onHttpError={(event: any) => {
+          const statusCode = event.nativeEvent?.statusCode;
+          const url = event.nativeEvent?.url || 'unknown URL';
+          const message = `${statusCode ?? 'unknown status'} ${url}`;
+          if (__DEV__) console.log('[MAP] WebView HTTP error:', message);
+          if (url === 'https://techshare.local/' || url === 'https://techshare.local') {
+            setError(`Unable to load the map. HTTP ${statusCode ?? 'error'}`);
+          }
+        }}
+        onRenderProcessGone={(event: any) => {
+          const message = event.nativeEvent?.didCrash ? 'renderer crashed' : 'renderer was terminated';
+          if (__DEV__) console.log('[MAP] WebView error:', message);
+          setError('The map renderer stopped unexpectedly.');
+        }}
       />
 
       {!ready && !error && (
