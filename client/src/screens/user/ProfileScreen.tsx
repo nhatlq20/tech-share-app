@@ -29,6 +29,7 @@ interface ProfileScreenProps {
   onNavigateToLogin?: () => void;
   onNavigateToPostDevice?: () => void;
   onNavigateToMyDevices: () => void;
+  onNavigateToWishlist?: () => void;
   onNavigateToOwnerDashboard?: () => void;
   onNavigateToAdminDashboard?: () => void;
 }
@@ -38,6 +39,7 @@ export function ProfileScreen({
   onNavigateToLogin,
   onNavigateToPostDevice,
   onNavigateToMyDevices,
+  onNavigateToWishlist,
   onNavigateToOwnerDashboard,
   onNavigateToAdminDashboard,
 }: ProfileScreenProps) {
@@ -414,6 +416,24 @@ export function ProfileScreen({
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
           </TouchableOpacity>
+
+          {onNavigateToWishlist && (
+            <TouchableOpacity
+              style={styles.dashboardShortcutCard}
+              onPress={onNavigateToWishlist}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Wishlist"
+            >
+              <View style={[styles.dashboardIconBoxOwner, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="heart" size={20} color="#EF4444" />
+              </View>
+              <View style={styles.dashboardCardContent}>
+                <Text style={styles.dashboardCardTitle}>Danh sách Yêu thích</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.light.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* CỔNG QUẢN LÝ CHUYÊN DỤNG (DASHBOARDS DỰA TRÊN ROLE) */}

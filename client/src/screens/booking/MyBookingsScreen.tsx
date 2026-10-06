@@ -14,6 +14,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { BookingItemCard } from '../../components/booking/BookingItemCard';
@@ -95,9 +96,11 @@ export function MyBookingsScreen({
     }
   }, []);
 
-  useEffect(() => {
-    fetchBookings(activeTab);
-  }, [activeTab, fetchBookings]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings(activeTab);
+    }, [activeTab, fetchBookings])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -8,6 +8,8 @@ import {
   getMyEkyc,
   submitEkyc,
   uploadEkycImage,
+  getMyWishlist,
+  toggleWishlist,
 } from '../controllers/profileController.js';
 
 const router = express.Router();
@@ -16,6 +18,10 @@ router.use(requireAuth);
 router.get('/me', getMyProfile);
 router.post('/me/avatar', uploadAvatar, uploadMyAvatar);
 router.patch('/me', updateMyProfile);
+
+// Wishlist
+router.get('/wishlist', getMyWishlist);
+router.post('/wishlist/toggle/:deviceId', toggleWishlist);
 
 // eKYC routes for user
 router.get('/ekyc', getMyEkyc);

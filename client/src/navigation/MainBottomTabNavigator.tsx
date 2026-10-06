@@ -68,6 +68,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToDeviceDetail={(deviceId) =>
               navigation.navigate('DeviceDetail', { deviceId })
             }
+            onNavigateToWishlist={() => navigation.navigate('Wishlist')}
             onNavigateToSearch={() => console.log('[Nav] Search')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
             onNavigateToChat={() => console.log('[Nav] Chat')}
@@ -117,6 +118,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToLogin={() => navigation.navigate('Login')}
             onNavigateToPostDevice={() => navigation.navigate('PostDevice')}
             onNavigateToMyDevices={() => navigation.navigate('MyDevices')}
+            onNavigateToWishlist={() => navigation.navigate('Wishlist')}
             onNavigateToOwnerDashboard={() =>
               navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')
             }

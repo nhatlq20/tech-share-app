@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
+import { wishlistService } from '../../services/wishlistService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
 import { ReviewListSection } from '../../components/device/ReviewListSection';
@@ -42,10 +43,17 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [aiReview, setAiReview] = useState<AIReview | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [aiReview, setAiReview] = useState(null as AIReview | null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const aiRequestInProgress = useRef(false);
+
+  const handleToggleFavorite = async () => {
+    if (!device) return;
+    const res = await wishlistService.toggleWishlist(device);
+    setIsFavorite(res.isInWishlist);
+  };
 
   const handleAIReview = async () => {
     if (!device || aiRequestInProgress.current) return;
@@ -72,6 +80,10 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
 
   useEffect(() => {
     let isMounted = true;
+    wishlistService.checkIsFavorite(deviceId).then((fav) => {
+      if (isMounted) setIsFavorite(fav);
+    });
+
     (async () => {
       setLoading(true);
       setDevice(null);
@@ -135,8 +147,12 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
         <Text style={styles.headerTitle} numberOfLines={1}>
           {device.title}
         </Text>
-        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.7}>
-          <Ionicons name="heart-outline" size={20} color={colors.light.textPrimary} />
+        <TouchableOpacity style={styles.headerBtn} onPress={handleToggleFavorite} activeOpacity={0.7}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={22}
+            color={isFavorite ? '#EF4444' : colors.light.textPrimary}
+          />
         </TouchableOpacity>
       </View>
 

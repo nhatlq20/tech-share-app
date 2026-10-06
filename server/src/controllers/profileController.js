@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
+import Device from '../models/Device.js';
 import EkycRequest from '../models/EkycRequest.js';
 
 const profileFields = user => ({
@@ -363,3 +365,92 @@ export const submitEkyc = async (req, res) => {
     });
   }
 };
+
+export const getMyWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.auth.id).populate({
+      path: 'wishlist',
+      populate: { path: 'ownerId', select: 'name avatar phone' },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const activeWishlist = (user.wishlist || []).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      wishlist: activeWishlist,
+    });
+  } catch (error) {
+    console.error('Get wishlist error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể tải danh sách yêu thích',
+      error: error.message,
+    });
+  }
+};
+
+export const toggleWishlist = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    if (!deviceId || !mongoose.Types.ObjectId.isValid(deviceId)) {
+      return res.status(400).json({ success: false, message: 'ID thiết bị không hợp lệ' });
+    }
+
+    const user = await User.findById(req.auth.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const currentWishlist = (user.wishlist || []).map((id) => id?.toString());
+    const isExisted = currentWishlist.includes(deviceId.toString());
+
+    let updatedUser;
+    let isInWishlist = false;
+
+    if (isExisted) {
+      updatedUser = await User.findByIdAndUpdate(
+        req.auth.id,
+        { $pull: { wishlist: deviceId } },
+        { new: true }
+      ).populate({
+        path: 'wishlist',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      });
+      isInWishlist = false;
+    } else {
+      updatedUser = await User.findByIdAndUpdate(
+        req.auth.id,
+        { $addToSet: { wishlist: deviceId } },
+        { new: true }
+      ).populate({
+        path: 'wishlist',
+        populate: { path: 'ownerId', select: 'name avatar phone' },
+      });
+      isInWishlist = true;
+    }
+
+    const activeWishlist = (updatedUser?.wishlist || []).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      isInWishlist,
+      wishlist: activeWishlist,
+      message: isInWishlist
+        ? 'Đã thêm thiết bị vào danh sách yêu thích'
+        : 'Đã xóa thiết bị khỏi danh sách yêu thích',
+    });
+  } catch (error) {
+    console.error('Toggle wishlist error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể cập nhật danh sách yêu thích',
+      error: error.message,
+    });
+  }
+};
+
