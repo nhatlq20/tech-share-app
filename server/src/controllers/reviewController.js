@@ -3,6 +3,7 @@ import Booking from '../models/Booking.js';
 import Device from '../models/Device.js';
 import User from '../models/User.js';
 import { createAndSendNotification } from '../services/notificationService.js';
+import { calculateAndUpdateOwnerReputation } from '../services/trustScoreService.js';
 
 // @desc    Create a review for a completed booking
 // @route   POST /api/reviews
@@ -113,24 +114,13 @@ export const createReview = async (req, res) => {
       console.error('Lỗi tính lại rating cho Device:', err.message);
     }
 
-    // Tự động tính lại điểm trung bình cho Chủ máy (User)
+    // Tự động tính lại điểm uy tín cho Chủ máy (User) từ collection reviews
     try {
       if (booking.ownerId) {
-        const ownerReviews = await Review.find({
-          ownerId: booking.ownerId,
-          comment: { $exists: true, $ne: '' },
-        });
-        if (ownerReviews.length > 0) {
-          const totalRating = ownerReviews.reduce((sum, r) => sum + (r.ownerRating || r.rating), 0);
-          const ownerAvg = Number((totalRating / ownerReviews.length).toFixed(1));
-          await User.findByIdAndUpdate(booking.ownerId, {
-            rating: ownerAvg,
-            totalReviews: ownerReviews.length,
-          });
-        }
+        await calculateAndUpdateOwnerReputation(booking.ownerId);
       }
     } catch (err) {
-      console.error('Lỗi tính lại rating cho User:', err.message);
+      console.error('Lỗi tính lại điểm uy tín cho Chủ máy:', err.message);
     }
 
     // Bắn thông báo thời gian thực đến chủ máy
@@ -318,6 +308,24 @@ export const getMyOwnerReviews = async (req, res) => {
   } catch (error) {
     console.error('Error in getMyOwnerReviews:', error);
     res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+  }
+};
+
+// @desc    Recalculate reputation (rating, ownerRating, trustScore, totalReviews) for owner
+// @route   POST /api/reviews/recalculate-reputation/:ownerId?
+// @access  Private
+export const recalculateOwnerReputationController = async (req, res) => {
+  try {
+    const ownerId = req.params.ownerId || req.body.ownerId || req.auth.id || req.auth._id;
+    const result = await calculateAndUpdateOwnerReputation(ownerId);
+    res.status(200).json({
+      success: true,
+      message: 'Tính toán lại điểm uy tín thành công từ collection reviews',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Error recalculating owner reputation:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi máy chủ khi tính lại điểm uy tín' });
   }
 };
 

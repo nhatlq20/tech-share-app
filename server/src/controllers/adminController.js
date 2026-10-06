@@ -105,7 +105,7 @@ export const getUsers = async (req, res) => {
   try {
     const [users, bookingCounts] = await Promise.all([
       User.find({})
-      .select('name email phone role avatar isVerified trustScore isActive createdAt')
+      .select('name email phone role avatar isVerified trustScore rating ownerRating totalReviews isActive createdAt')
       .sort({ createdAt: -1 })
       .lean(),
       Booking.aggregate([
@@ -152,7 +152,11 @@ export const getUsers = async (req, res) => {
         role: user.role || 'renter',
         avatar: user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
         isVerified: Boolean(user.isVerified),
-        trustScore: Number(user.trustScore || 0),
+        trustScore: Number(user.trustScore ?? 100),
+        rating: Number(user.rating ?? 5.0),
+        ownerRating: Number(user.ownerRating ?? 5.0),
+        totalReviews: Number(user.totalReviews ?? 0),
+        totalReview: Number(user.totalReviews ?? 0),
         isActive: account ? account.isActive !== false : user.isActive !== false,
         lockReason: account?.lockReason || '',
         rentalCount: rentalCountsByUserId.get(user._id.toString()) || 0,

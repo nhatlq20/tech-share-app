@@ -216,6 +216,7 @@ export function OwnerAnalyticsScreen({
 
       <RevenueSummary
         totalRevenue={analytics?.totalRevenue || 0}
+        revenueChange={analytics?.monthlyGrowth}
       />
 
       <View style={styles.section}>
