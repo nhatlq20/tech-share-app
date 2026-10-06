@@ -291,29 +291,46 @@ export function ProfileScreen({
                 <Ionicons name="shield-checkmark" size={16} color={colors.light.warning} />
                 <Text style={styles.trustScoreTitle}>Điểm Tín Nhiệm (Trust Score)</Text>
               </View>
-              <Text style={styles.trustScoreValue}>98/100</Text>
+              <Text style={styles.trustScoreValue}>{user?.trustScore ?? 100}/100</Text>
             </View>
             <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: '98%' }]} />
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${Math.min(100, Math.max(0, user?.trustScore ?? 100))}%` },
+                ]}
+              />
             </View>
-            <Text style={styles.trustBenefit}>⭐ Gold tier: 20% deposit discount on rentals</Text>
+            <Text style={styles.trustBenefit}>
+              {(user?.trustScore ?? 100) >= 90
+                ? '⭐ Gold tier: Giảm 20% tiền cọc khi thuê thiết bị'
+                : (user?.trustScore ?? 100) >= 70
+                ? '✨ Silver tier: Áp dụng mức cọc tiêu chuẩn'
+                : '⚠️ Standard tier: Yêu cầu đặt cọc 100%'}
+            </Text>
           </View>
 
-          {/* QUICK STATS */}
+          {/* QUICK STATS - HIỂN THỊ CÁC TRƯỜNG ĐIỂM UY TÍN TỪ DATABASE */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>18</Text>
-              <Text style={styles.statLabel}>Rented</Text>
+              <Text style={[styles.statNum, { color: colors.light.ratingStar }]}>
+                {user?.rating !== undefined ? Number(user.rating).toFixed(1) : '5.0'} ★
+              </Text>
+              <Text style={styles.statLabel}>Điểm sản phẩm</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>6</Text>
-              <Text style={styles.statLabel}>Listed</Text>
+              <Text style={[styles.statNum, { color: colors.light.primary }]}>
+                {user?.ownerRating !== undefined ? Number(user.ownerRating).toFixed(1) : '5.0'} ★
+              </Text>
+              <Text style={styles.statLabel}>Điểm chủ máy</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: colors.light.ratingStar }]}>4.9 ★</Text>
-              <Text style={styles.statLabel}>32 đánh giá</Text>
+              <Text style={styles.statNum}>
+                {user?.totalReviews ?? user?.totalReview ?? 0}
+              </Text>
+              <Text style={styles.statLabel}>Tổng đánh giá</Text>
             </View>
           </View>
 

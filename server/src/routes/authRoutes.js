@@ -95,6 +95,9 @@ router.post('/login', async (req, res) => {
         role: accountRole,
         isVerified: false,
         trustScore: 100,
+        rating: 5.0,
+        ownerRating: 5.0,
+        totalReviews: 0,
       });
       user = user.toObject();
     }
@@ -139,7 +142,11 @@ router.post('/login', async (req, res) => {
         avatar: user.avatar,
         role: accountRole,
         isVerified: isEkycVerified,
-        trustScore: user.trustScore,
+        trustScore: user.trustScore ?? 100,
+        rating: user.rating ?? 5.0,
+        ownerRating: user.ownerRating ?? 5.0,
+        totalReviews: user.totalReviews ?? 0,
+        totalReview: user.totalReviews ?? 0,
       },
     });
   } catch (error) {
@@ -376,6 +383,9 @@ router.post('/register', async (req, res) => {
       role: 'renter',
       isVerified: false, // Chưa qua duyệt eKYC thì chưa có Tích xanh
       trustScore: 100,
+      rating: 5.0,
+      ownerRating: 5.0,
+      totalReviews: 0,
     });
 
     // Cập nhật ngược lại userId vào bảng Account
@@ -403,7 +413,11 @@ router.post('/register', async (req, res) => {
         avatar: user.avatar,
         role: user.role,
         isVerified: user.isVerified,
-        trustScore: user.trustScore,
+        trustScore: user.trustScore ?? 100,
+        rating: user.rating ?? 5.0,
+        ownerRating: user.ownerRating ?? 5.0,
+        totalReviews: user.totalReviews ?? 0,
+        totalReview: user.totalReviews ?? 0,
       },
     });
   } catch (error) {

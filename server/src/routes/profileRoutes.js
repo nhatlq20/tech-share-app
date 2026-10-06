@@ -8,6 +8,7 @@ import {
   getMyEkyc,
   submitEkyc,
   uploadEkycImage,
+  recalculateMyTrustScore,
 } from '../controllers/profileController.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.use(requireAuth);
 router.get('/me', getMyProfile);
 router.post('/me/avatar', uploadAvatar, uploadMyAvatar);
 router.patch('/me', updateMyProfile);
+router.post('/me/recalculate-trust-score', recalculateMyTrustScore);
 
 // eKYC routes for user
 router.get('/ekyc', getMyEkyc);
