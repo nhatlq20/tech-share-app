@@ -23,6 +23,8 @@ interface OwnerAvailabilityModalProps {
   ) => Promise<void>;
 }
 
+type AvailabilityMode = "single" | "range";
+
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const createDateKey = (year: number, month: number, day: number) => {
@@ -43,13 +45,14 @@ export function OwnerAvailabilityModal({
   deviceId,
   onUpdateBlockedDates,
 }: OwnerAvailabilityModalProps) {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const today = new Date();
   const [displayedMonth, setDisplayedMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
-
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [mode, setMode] = useState<AvailabilityMode>("single");
   const year = displayedMonth.getFullYear();
   const month = displayedMonth.getMonth();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -59,43 +62,79 @@ export function OwnerAvailabilityModal({
   const monthName = displayedMonth.toLocaleString("en-US", { month: "long" });
 
   const todayKey = createTodayKey();
-
+  //chọn ngày bắt đầu và ngày kết thúc
   const handleSelectDate = (date: string) => {
-    if (!startDate) {
-      setStartDate(date);
-      setEndDate(null);
-      return;
+    if (mode === "range") {
+      if (!startDate) {
+        setStartDate(date);
+        setEndDate(null);
+        return;
+      }
+
+      if (startDate && endDate) {
+        setStartDate(date);
+        setEndDate(null);
+        return;
+      }
+
+      // Không cho endDate nhỏ hơn startDate
+      if (new Date(date) < new Date(startDate)) {
+        setStartDate(date);
+        setEndDate(null);
+        return;
+      }
+
+      // Chọn endDate
+      setEndDate(date);
     }
 
-    if (startDate && endDate) {
-      setStartDate(date);
-      setEndDate(null);
+    if (mode === "single") {
+      setSelectedDates((prev: string[]) => {
+        // Nếu ngày đã được chọn -> bấm lại để bỏ
+        if (prev.includes(date)) {
+          return prev.filter((item) => item !== date);
+        }
+
+        // Chưa có -> thêm ngày
+        return [...prev, date];
+      });
+
       return;
     }
-
-    // Không cho endDate nhỏ hơn startDate
-    if (new Date(date) < new Date(startDate)) {
-      setStartDate(date);
-      setEndDate(null);
-      return;
-    }
-
-    // Chọn endDate
-    setEndDate(date);
   };
 
   const handleSave = async () => {
+    let blockedDates: BlockedDate[] = [];
     if (!startDate || !endDate) {
       Alert.alert("Error", "Please select start date and end date");
       return;
     }
 
-    const blockedDates: BlockedDate[] = [
-      {
-        startDate,
-        endDate,
-      },
-    ];
+    if (mode === "single") {
+      if (selectedDates.length === 0) {
+        Alert.alert("Error", "Please select at least one date");
+        return;
+      }
+
+      blockedDates = [...selectedDates].sort().map((date) => ({
+        startDate: date,
+        endDate: date,
+      }));
+    }
+
+    if (mode === "range") {
+      if (!startDate || !endDate) {
+        Alert.alert("Error", "Please select start date and end date");
+        return;
+      }
+
+      blockedDates = [
+        {
+          startDate,
+          endDate,
+        },
+      ];
+    }
 
     try {
       await onUpdateBlockedDates(deviceId, blockedDates);
@@ -148,6 +187,59 @@ export function OwnerAvailabilityModal({
               Block dates when you need to use this device.
             </Text>
 
+            <View style={styles.modeToggle}>
+              <Pressable
+                onPress={() => setMode("single")}
+                style={[
+                  styles.modeButton,
+                  mode === "single" && styles.modeButtonActive,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: mode === "single" }}
+              >
+                <Text
+                  style={[
+                    styles.modeButtonText,
+                    mode === "single" && styles.modeButtonTextActive,
+                  ]}
+                >
+                  Single dates
+                </Text>
+                {mode === "single" && (
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={colors.light.background}
+                  />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => setMode("range")}
+                style={[
+                  styles.modeButton,
+                  mode === "range" && styles.modeButtonActive,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: mode === "range" }}
+              >
+                <Text
+                  style={[
+                    styles.modeButtonText,
+                    mode === "range" && styles.modeButtonTextActive,
+                  ]}
+                >
+                  Date range
+                </Text>
+                {mode === "range" && (
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={colors.light.background}
+                  />
+                )}
+              </Pressable>
+            </View>
+
             <View style={styles.monthHeader}>
               <Pressable
                 onPress={() => changeMonth(-1)}
@@ -188,18 +280,20 @@ export function OwnerAvailabilityModal({
               {Array.from({ length: numberOfDays }).map((_, index) => {
                 const day = index + 1;
                 const date = createDateKey(year, month, day);
-         
+
                 const isPast = date < todayKey;
-            
+                const isSingleSelected = selectedDates.includes(date);
+
                 const isStartDate = date === startDate;
                 const isEndDate = date === endDate;
-
-                const isInRange =
+                const inRange =
                   startDate !== "" &&
                   endDate !== "" &&
-                  date >= startDate &&
-                  date <= endDate;
-                const isSelected = isStartDate || isEndDate || isInRange;
+                  date > startDate &&
+                  date < endDate;
+                const isRangeSelected = isStartDate || isEndDate || inRange;
+                const isSelected =
+                  mode === "single" ? isSingleSelected : isRangeSelected;
                 return (
                   <Pressable
                     key={date}
@@ -216,6 +310,9 @@ export function OwnerAvailabilityModal({
 
                         (isStartDate || isEndDate) && styles.selectedDate,
 
+                        mode === "range" &&
+                          (isStartDate || isEndDate) &&
+                          styles.selectedDate,
                         isPast && styles.pastDate,
                       ]}
                     >
@@ -225,7 +322,7 @@ export function OwnerAvailabilityModal({
 
                           isSelected && styles.blockedDateText,
 
-                          (isStartDate || isEndDate) && styles.selectedDateText,
+                          isSelected && styles.selectedDateText,
 
                           isPast && styles.pastDateText,
                         ]}
@@ -240,7 +337,21 @@ export function OwnerAvailabilityModal({
 
             <Text style={styles.selectedTitle}>Selected blocked dates</Text>
 
-            {!startDate ? (
+            {mode === "single" ? (
+              // SINGLE MODE
+              selectedDates.length === 0 ? (
+                <Text style={styles.emptyText}>No blocked dates selected.</Text>
+              ) : (
+                <>
+                  {selectedDates.sort().map((date) => (
+                    <Text key={date}>Blocked Date: {date}</Text>
+                  ))}
+
+                  <Text>Total: {selectedDates.length} days</Text>
+                </>
+              )
+            ) : // RANGE MODE
+            !startDate ? (
               <Text style={styles.emptyText}>No blocked dates selected.</Text>
             ) : (
               <>
@@ -296,6 +407,36 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     fontSize: 14,
     lineHeight: 21,
+  },
+  modeToggle: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: colors.light.surface,
+  },
+  modeButton: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    borderRadius: 9,
+    backgroundColor: colors.light.background,
+  },
+  modeButtonActive: {
+    backgroundColor: colors.light.primary,
+  },
+  modeButtonText: {
+    color: colors.light.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  modeButtonTextActive: {
+    color: colors.light.background,
   },
   monthHeader: {
     flexDirection: "row",
