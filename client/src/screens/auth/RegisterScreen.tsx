@@ -73,28 +73,28 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
     const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !trimmedName || !trimmedEmail || !trimmedPhone || !password) {
-      setErrorMsg('Vui lòng điền đầy đủ tất cả các trường thông tin');
+      setErrorMsg('Please fill in all required fields');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setErrorMsg('Địa chỉ email không đúng định dạng');
+      setErrorMsg('Invalid email address format');
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 6 ký tự');
+      setErrorMsg('Password must be at least 6 characters long');
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Mật khẩu xác nhận không khớp');
+      setErrorMsg('Passwords do not match');
       return;
     }
 
     if (!agreeTerms) {
-      setErrorMsg('Bạn cần đồng ý với Điều khoản dịch vụ của TechShare');
+      setErrorMsg('You must agree to TechShare Terms of Service');
       return;
     }
 
@@ -113,13 +113,13 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
         setStep('otp');
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg(res.data.message || 'Mã xác thực OTP đã được gửi đến email của bạn');
+        setInfoMsg(res.data.message || 'Verification OTP code has been sent to your email');
         setTimeout(() => {
           otpInputRefs.current[0]?.focus();
         }, 400);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.';
+      const msg = err?.response?.data?.message || 'Unable to send OTP code. Please try again later.';
       setErrorMsg(msg);
       if (err?.response?.data?.remainingSeconds) {
         setCountdown(err.response.data.remainingSeconds);
@@ -147,11 +147,11 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       if (res.data?.success) {
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg('Mã OTP mới đã được gửi đến email của bạn');
+        setInfoMsg('A new OTP code has been sent to your email');
         otpInputRefs.current[0]?.focus();
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+      setErrorMsg(err?.response?.data?.message || 'Unable to resend OTP. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -196,7 +196,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   const handleVerifyAndRegister = async () => {
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Vui lòng nhập đủ 6 chữ số mã OTP');
+      setErrorMsg('Please enter all 6 digits of the OTP code');
       return;
     }
 
@@ -216,13 +216,13 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
       const { token, user } = response.data;
       if (!token || !user) {
-        throw new Error('Dữ liệu phản hồi đăng ký không hợp lệ');
+        throw new Error('Registration response is invalid');
       }
 
       dispatch(setAuth({ token, user }));
       onRegisterSuccess?.(user?.role);
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Xác thực OTP hoặc đăng ký thất bại.');
+      setErrorMsg(err?.response?.data?.message || 'OTP verification or registration failed.');
     } finally {
       setLoading(false);
     }
@@ -253,12 +253,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           </TouchableOpacity>
           <View style={styles.headerTitles}>
             <Text style={styles.appTitle}>
-              {step === 'form' ? 'Tạo tài khoản' : 'Xác thực OTP'}
+              {step === 'form' ? 'Create Account' : 'Verify OTP'}
             </Text>
             <Text style={styles.appSubtitle}>
               {step === 'form'
-                ? 'Gia nhập cộng đồng cho thuê công nghệ TechShare'
-                : 'Bảo mật tài khoản với xác thực email'}
+                ? 'Join the TechShare gadget rental community'
+                : 'Secure your account with email verification'}
             </Text>
           </View>
         </View>
@@ -274,7 +274,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               )}
             </View>
             <Text style={[styles.stepLabel, step === 'form' ? styles.stepLabelActive : styles.stepLabelDone]}>
-              Thông tin
+              Details
             </Text>
           </View>
           <View style={[styles.stepConnector, step === 'otp' && styles.stepConnectorActive]} />
@@ -283,7 +283,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               <Text style={[styles.stepNumber, step !== 'otp' && styles.stepNumberInactive]}>2</Text>
             </View>
             <Text style={[styles.stepLabel, step === 'otp' ? styles.stepLabelActive : styles.stepLabelInactive]}>
-              Xác thực OTP
+              Verify OTP
             </Text>
           </View>
         </View>
@@ -308,14 +308,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           <View style={styles.card}>
             {/* Username input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Tên tài khoản (Username) *</Text>
+              <Text style={styles.inputLabel}>Username *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="at-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="VD: nhatle20"
+                  placeholder="e.g. johndoe20"
                   placeholderTextColor={colors.light.textSecondary}
                   autoCapitalize="none"
                   value={username}
@@ -329,14 +329,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Full name input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Họ và tên *</Text>
+              <Text style={styles.inputLabel}>Full Name *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="VD: Nguyễn Văn An"
+                  placeholder="e.g. John Doe"
                   placeholderTextColor={colors.light.textSecondary}
                   value={name}
                   onChangeText={(text: string) => {
@@ -349,14 +349,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Email input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email (Nhận mã xác thực OTP) *</Text>
+              <Text style={styles.inputLabel}>Email (to receive OTP) *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="VD: an.nguyen@email.com"
+                  placeholder="e.g. john.doe@email.com"
                   placeholderTextColor={colors.light.textSecondary}
                   value={email}
                   onChangeText={(text: string) => {
@@ -371,14 +371,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Phone input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Số điện thoại liên hệ *</Text>
+              <Text style={styles.inputLabel}>Phone Number *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="VD: 0912 345 678"
+                  placeholder="e.g. 0912 345 678"
                   placeholderTextColor={colors.light.textSecondary}
                   value={phone}
                   onChangeText={(text: string) => {
@@ -392,14 +392,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Mật khẩu * (Tối thiểu 6 ký tự)</Text>
+              <Text style={styles.inputLabel}>Password * (Min. 6 characters)</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Nhập mật khẩu an toàn"
+                  placeholder="Enter a secure password"
                   placeholderTextColor={colors.light.textSecondary}
                   value={password}
                   onChangeText={(text: string) => {
@@ -424,14 +424,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Confirm Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Xác nhận mật khẩu *</Text>
+              <Text style={styles.inputLabel}>Confirm Password *</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="shield-checkmark-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Nhập lại mật khẩu"
+                  placeholder="Re-enter password"
                   placeholderTextColor={colors.light.textSecondary}
                   value={confirmPassword}
                   onChangeText={(text: string) => {
@@ -453,8 +453,8 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 {agreeTerms && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
               </View>
               <Text style={styles.termsText}>
-                Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
-                <Text style={styles.termsLink}>Chính sách bảo mật ký quỹ</Text> của TechShare.
+                I agree to TechShare's <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+                <Text style={styles.termsLink}>Escrow Privacy Policy</Text>.
               </Text>
             </TouchableOpacity>
 
@@ -469,7 +469,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.btnContentRow}>
-                  <Text style={styles.primaryBtnText}>TIẾP TỤC (NHẬN MÃ OTP)</Text>
+                  <Text style={styles.primaryBtnText}>CONTINUE (GET OTP)</Text>
                   <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 </View>
               )}
@@ -477,9 +477,9 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Switch to Login */}
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Đã có tài khoản? </Text>
+              <Text style={styles.footerText}>Already have an account? </Text>
               <TouchableOpacity onPress={onNavigateToLogin}>
-                <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+                <Text style={styles.loginLink}>Sign in now</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -493,9 +493,9 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               </View>
             </View>
 
-            <Text style={styles.otpCardTitle}>Kiểm tra hộp thư của bạn</Text>
+            <Text style={styles.otpCardTitle}>Check Your Inbox</Text>
             <Text style={styles.otpCardSubtitle}>
-              Mã xác thực 6 chữ số đã được gửi tới địa chỉ:
+              A 6-digit verification code has been sent to:
             </Text>
 
             {/* Email display chip with change email action */}
@@ -510,7 +510,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 style={styles.changeEmailBtn}
                 onPress={() => setStep('form')}
               >
-                <Text style={styles.changeEmailText}>Thay đổi</Text>
+                <Text style={styles.changeEmailText}>Change</Text>
               </TouchableOpacity>
             </View>
 
@@ -541,14 +541,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Expiry note */}
             <Text style={styles.expiryNote}>
-              ⏱️ Mã có hiệu lực trong 5 phút. Vui lòng kiểm tra cả thư rác (Spam).
+              ⏱️ Code expires in 5 minutes. Please check your spam folder as well.
             </Text>
 
             {/* Resend Cooldown Section */}
             <View style={styles.resendSection}>
               {countdown > 0 ? (
                 <Text style={styles.resendCountdownText}>
-                  Gửi lại mã xác thực sau:{' '}
+                  Resend verification code in:{' '}
                   <Text style={styles.countdownBold}>
                     00:{countdown < 10 ? `0${countdown}` : countdown}
                   </Text>
@@ -560,7 +560,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                   style={styles.resendBtn}
                 >
                   <Ionicons name="refresh-outline" size={15} color={colors.light.primary} />
-                  <Text style={styles.resendBtnText}>Gửi lại mã OTP mới</Text>
+                  <Text style={styles.resendBtnText}>Resend new OTP code</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -580,7 +580,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>XÁC THỰC & ĐĂNG KÝ</Text>
+                  <Text style={styles.primaryBtnText}>VERIFY & SIGN UP</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -590,7 +590,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               style={styles.secondaryBtn}
               onPress={() => setStep('form')}
             >
-              <Text style={styles.secondaryBtnText}>Quay lại chỉnh sửa thông tin</Text>
+              <Text style={styles.secondaryBtnText}>Back to edit info</Text>
             </TouchableOpacity>
           </View>
         )}
