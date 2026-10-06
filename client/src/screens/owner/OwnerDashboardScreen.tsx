@@ -53,6 +53,7 @@ const mapAnalyticsToDashboard = (
     data.activeRentals ??
     data.rentedDevices ??
     devices.filter((device) => device.status === 'rented').length;
+  const totalDevices = data.totalDevices ?? devices.length;
   const utilizationRate =
     data.utilizationRate ??
     (totalDevices ? Number(((rentedDevices / totalDevices) * 100).toFixed(1)) : 0);

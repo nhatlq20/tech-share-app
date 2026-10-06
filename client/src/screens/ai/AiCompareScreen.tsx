@@ -23,15 +23,15 @@ type DeviceSlot = 'device1' | 'device2';
 const formatPrice = (price: number) => `${price.toLocaleString('en-US')} ₫/day`;
 
 export function AiCompareScreen() {
-  const [devices, setDevices] = React.useState<Device[]>([]);
-  const [device1, setDevice1] = React.useState<Device | null>(null);
-  const [device2, setDevice2] = React.useState<Device | null>(null);
-  const [comparison, setComparison] = React.useState<AIComparison | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [devicesLoading, setDevicesLoading] = React.useState(true);
-  const [error, setError] = React.useState('');
-  const [pickerVisible, setPickerVisible] = React.useState(false);
-  const [activeSlot, setActiveSlot] = React.useState<DeviceSlot | null>(null);
+  const [devices, setDevices] = useState([] as Device[]);
+  const [device1, setDevice1] = useState(null as Device | null);
+  const [device2, setDevice2] = useState(null as Device | null);
+  const [comparison, setComparison] = useState(null as AIComparison | null);
+  const [loading, setLoading] = useState(false);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null as DeviceSlot | null);
 
   useEffect(() => {
     let isMounted = true;

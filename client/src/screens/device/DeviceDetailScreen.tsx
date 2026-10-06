@@ -207,9 +207,6 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
             size={22}
             color={isFavorite ? '#EF4444' : colors.light.textPrimary}
           />
-        <Text style={styles.headerTitle}>Device Details</Text>
-        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.7}>
-          <Ionicons name="heart-outline" size={20} color={colors.light.textPrimary} />
         </TouchableOpacity>
       </View>
 

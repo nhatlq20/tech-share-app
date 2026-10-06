@@ -98,6 +98,7 @@ const BookingCreateRoute = ({ route, navigation }: any) => (
     deviceId={route.params.deviceId}
     onBack={() => navigation.goBack()}
     onSuccess={() => navigation.navigate('MainTabs', { screen: 'Bookings' })}
+    onNavigateToVerification={() => navigation.navigate('MainTabs', { screen: 'Profile' })}
   />
 );
 
