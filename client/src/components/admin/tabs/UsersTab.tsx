@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,90 +7,66 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import { theme } from '../../../constants/theme';
+import { adminService } from '../../../services/adminService';
+import type { AdminUser } from '../../../services/adminService';
 
-export interface UserItem {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: 'renter' | 'owner' | 'admin';
-  trustScore: number;
-  avatar: string;
-  isVerified: boolean;
-  isActive: boolean;
-  rentalCount: number;
-}
-
-export const DEMO_USERS: UserItem[] = [
-  {
-    id: 'u1',
-    name: 'Hoang Nam Creator',
-    email: 'renter1@techshare.vn',
-    phone: '0901234567',
-    role: 'renter',
-    trustScore: 98,
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
-    isVerified: true,
-    isActive: true,
-    rentalCount: 12,
-  },
-  {
-    id: 'u2',
-    name: 'Minh Tuan Tech Review',
-    email: 'owner1@techshare.vn',
-    phone: '0912345678',
-    role: 'owner',
-    trustScore: 100,
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400',
-    isVerified: true,
-    isActive: true,
-    rentalCount: 45,
-  },
-  {
-    id: 'u3',
-    name: 'Thanh Thao Vlogger',
-    email: 'renter2@techshare.vn',
-    phone: '0923456789',
-    role: 'renter',
-    trustScore: 88,
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    isVerified: false,
-    isActive: true,
-    rentalCount: 4,
-  },
-  {
-    id: 'u4',
-    name: 'Quoc Bao Studio',
-    email: 'owner2@techshare.vn',
-    phone: '0934567890',
-    role: 'owner',
-    trustScore: 95,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    isVerified: true,
-    isActive: false,
-    rentalCount: 28,
-  },
-  {
-    id: 'u5',
-    name: 'TechShare System Admin',
-    email: 'admin@techshare.vn',
-    phone: '0999888777',
-    role: 'admin',
-    trustScore: 100,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-    isVerified: true,
-    isActive: true,
-    rentalCount: 0,
-  },
-];
+type UserItem = AdminUser;
+type UserRoleFilter = 'all' | 'renter' | 'owner' | 'admin';
 
 export function UsersTab() {
-  const [usersList, setUsersList] = useState(DEMO_USERS as UserItem[]);
+  const token = useSelector((state: RootState) => state.auth.token);
+  const [usersList, setUsersList] = useState([] as UserItem[]);
   const [userSearch, setUserSearch] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all' as 'all' | 'renter' | 'owner' | 'admin');
+  const [selectedRole, setSelectedRole] = useState('all' as UserRoleFilter);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [usersError, setUsersError] = useState('');
+  const [lockingUser, setLockingUser] = useState(null as UserItem | null);
+  const [lockReason, setLockReason] = useState('');
+
+  const loadUsers = useCallback(async () => {
+    if (!token) {
+      setUsersError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      setLoadingUsers(false);
+      return;
+    }
+
+    setLoadingUsers(true);
+    setUsersError('');
+    try {
+      const data = await adminService.getUsers(token);
+      setUsersList(data);
+    } catch (error) {
+      console.warn('Failed to load admin users:', error);
+      const responseMessage =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'data' in error.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        'message' in error.response.data &&
+        typeof error.response.data.message === 'string'
+          ? error.response.data.message
+          : '';
+      const message = responseMessage || (error instanceof Error ? error.message : '');
+      setUsersError(message || 'Không thể tải danh sách người dùng. Vui lòng thử lại.');
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
 
   const filteredUsers = usersList.filter((user: UserItem) => {
     const matchesSearch =
@@ -102,18 +78,60 @@ export function UsersTab() {
     return matchesSearch && matchesRole;
   });
 
+  const confirmLockUser = async () => {
+    const reason = lockReason.trim();
+    if (!lockingUser || !reason) {
+      Alert.alert('Thiếu lý do', 'Vui lòng nhập lý do khóa tài khoản.');
+      return;
+    }
+    if (!token) {
+      Alert.alert('Lỗi', 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      return;
+    }
+
+    try {
+      await adminService.toggleUserStatus(lockingUser.id, false, token, reason);
+      setUsersList((prev: UserItem[]) =>
+        prev.map((user: UserItem) =>
+          user.id === lockingUser.id ? { ...user, isActive: false, lockReason: reason } : user
+        )
+      );
+      setLockingUser(null);
+      setLockReason('');
+      Alert.alert('Thành công', 'Đã khóa tài khoản và lưu lý do.');
+    } catch (error) {
+      console.warn('Lock user failed:', error);
+      Alert.alert('Lỗi', 'Không thể khóa tài khoản. Vui lòng thử lại.');
+    }
+  };
+
   const handleToggleLockUser = (user: UserItem) => {
-    const action = user.isActive ? 'khóa' : 'mở khóa';
-    Alert.alert(`Xác nhận ${action} tài khoản`, `Bạn có chắc muốn ${action} tài khoản "${user.name}"?`, [
+    if (user.isActive) {
+      setLockReason('');
+      setLockingUser(user);
+      return;
+    }
+
+    Alert.alert('Xác nhận mở khóa tài khoản', `Bạn có chắc muốn mở khóa tài khoản "${user.name}"?`, [
       { text: 'Hủy', style: 'cancel' },
       {
-        text: user.isActive ? 'Khóa tài khoản' : 'Mở khóa',
-        style: user.isActive ? 'destructive' : 'default',
-        onPress: () => {
-          setUsersList((prev: UserItem[]) =>
-            prev.map((u: UserItem) => (u.id === user.id ? { ...u, isActive: !u.isActive } : u))
-          );
-          Alert.alert('Thành công', `Đã ${action} tài khoản thành công.`);
+        text: 'Mở khóa',
+        onPress: async () => {
+          try {
+            if (!token) {
+              throw new Error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+            }
+            await adminService.toggleUserStatus(user.id, true, token);
+            setUsersList((prev: UserItem[]) =>
+              prev.map((item: UserItem) =>
+                item.id === user.id ? { ...item, isActive: true, lockReason: '' } : item
+              )
+            );
+            Alert.alert('Thành công', 'Đã mở khóa tài khoản thành công.');
+          } catch (error) {
+            console.warn('Unlock user failed:', error);
+            Alert.alert('Lỗi', 'Không thể mở khóa tài khoản. Vui lòng thử lại.');
+          }
         },
       },
     ]);
@@ -158,7 +176,7 @@ export function UsersTab() {
             <TouchableOpacity
               key={chip.id}
               style={[styles.roleChip, isActive && styles.roleChipActive]}
-              onPress={() => setSelectedRole(chip.id as any)}
+              onPress={() => setSelectedRole(chip.id as UserRoleFilter)}
               activeOpacity={0.8}
             >
               <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]}>
@@ -170,7 +188,21 @@ export function UsersTab() {
       </View>
 
       {/* Danh sách người dùng */}
-      {filteredUsers.length === 0 ? (
+      {loadingUsers ? (
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+          <Text style={styles.loadingText}>Đang tải dữ liệu người dùng...</Text>
+        </View>
+      ) : usersError ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="cloud-offline-outline" size={44} color={theme.colors.danger[600]} />
+          <Text style={styles.emptyTitle}>Không tải được dữ liệu</Text>
+          <Text style={styles.emptyDesc}>{usersError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => void loadUsers()}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      ) : filteredUsers.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="people-outline" size={44} color={theme.textSecondary} />
           <Text style={styles.emptyTitle}>Không tìm thấy thành viên</Text>
@@ -235,6 +267,9 @@ export function UsersTab() {
                   </Text>
                 </View>
               </View>
+              {!u.isActive && u.lockReason ? (
+                <Text style={styles.lockReasonText}>Lý do khóa: {u.lockReason}</Text>
+              ) : null}
 
               {/* Actions */}
               {u.role !== 'admin' && (
@@ -275,6 +310,45 @@ export function UsersTab() {
           );
         })
       )}
+      <Modal
+        visible={Boolean(lockingUser)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLockingUser(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.lockModal}>
+            <Text style={styles.lockModalTitle}>Khóa tài khoản</Text>
+            <Text style={styles.lockModalDescription}>
+              Nhập lý do khóa tài khoản của {lockingUser?.name || 'người dùng'}.
+            </Text>
+            <TextInput
+              style={styles.lockReasonInput}
+              value={lockReason}
+              onChangeText={setLockReason}
+              placeholder="Nhập lý do..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+            />
+            <View style={styles.lockModalActions}>
+              <TouchableOpacity
+                style={[styles.lockModalButton, styles.lockModalCancel]}
+                onPress={() => setLockingUser(null)}
+              >
+                <Text style={styles.lockModalCancelText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.lockModalButton, styles.lockModalConfirm]}
+                onPress={() => void confirmLockUser()}
+              >
+                <Text style={styles.lockModalConfirmText}>Khóa tài khoản</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -332,6 +406,21 @@ const styles = StyleSheet.create({
   roleChipTextActive: {
     color: theme.colors.white,
   },
+  loadingCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    ...theme.shadows.card,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: theme.textSecondary,
+    fontWeight: '600',
+  },
   emptyCard: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.radii.lg,
@@ -351,6 +440,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.textSecondary,
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primary[600],
+  },
+  retryButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
   userCard: {
     backgroundColor: theme.colors.white,
@@ -451,5 +552,71 @@ const styles = StyleSheet.create({
   btnLockText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  lockReasonText: {
+    marginBottom: 8,
+    fontSize: 11,
+    lineHeight: 16,
+    color: theme.colors.danger[600],
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+  },
+  lockModal: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radii.lg,
+    padding: 20,
+    ...theme.shadows.card,
+  },
+  lockModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  lockModalDescription: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.textSecondary,
+  },
+  lockReasonInput: {
+    minHeight: 110,
+    marginTop: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.slate[200],
+    borderRadius: theme.radii.md,
+    fontSize: 14,
+    color: theme.textPrimary,
+  },
+  lockModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 16,
+  },
+  lockModalButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: theme.radii.md,
+  },
+  lockModalCancel: {
+    backgroundColor: theme.colors.slate[100],
+  },
+  lockModalConfirm: {
+    backgroundColor: theme.colors.danger[600],
+  },
+  lockModalCancelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.textPrimary,
+  },
+  lockModalConfirmText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
 });

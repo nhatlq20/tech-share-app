@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,10 +31,10 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
     (state: RootState) => state.notifications?.unreadCount ?? 0
   );
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     socketService.disconnect();
     dispatch(clearAuth());
-  };
+  }, [dispatch]);
 
   return (
     <Tab.Navigator
