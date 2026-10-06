@@ -32,28 +32,28 @@ interface AdminMenuItem {
 const MENU_ITEMS: AdminMenuItem[] = [
   {
     id: 'overview',
-    label: 'Bảng điều khiển & KPI',
+    label: 'Dashboard & KPIs',
     icon: 'stats-chart-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'overview',
   },
   {
     id: 'users',
-    label: 'Quản lý Người dùng',
+    label: 'User Management',
     icon: 'people-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'users',
   },
   {
     id: 'devices',
-    label: 'Kiểm duyệt Thiết bị',
+    label: 'Device Moderation',
     icon: 'hardware-chip-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'devices',
   },
   {
     id: 'disputes',
-    label: 'Phân xử Tranh chấp Cọc',
+    label: 'Deposit Disputes',
     icon: 'scale-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'disputes',
@@ -61,7 +61,7 @@ const MENU_ITEMS: AdminMenuItem[] = [
   },
   {
     id: 'ekyc',
-    label: 'Xét duyệt eKYC',
+    label: 'eKYC Reviews',
     icon: 'finger-print-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'ekyc',
@@ -69,7 +69,7 @@ const MENU_ITEMS: AdminMenuItem[] = [
   },
   {
     id: 'vouchers',
-    label: 'Voucher & Khuyến mãi',
+    label: 'Vouchers & Promotions',
     icon: 'pricetags-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'vouchers',
@@ -163,7 +163,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
           />
           <View style={styles.profileInfo}>
             <Text style={styles.adminName} numberOfLines={1}>
-              {user?.name || 'Quản trị viên'}
+              {user?.name || 'Administrator'}
             </Text>
             <Text style={styles.adminEmail} numberOfLines={1}>
               {user?.email || 'admin@techshare.vn'}
@@ -183,7 +183,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.menuSectionHeader}>MENU QUẢN TRỊ HỆ THỐNG</Text>
+        <Text style={styles.menuSectionHeader}>SYSTEM ADMINISTRATION</Text>
 
         {MENU_ITEMS.map(item => {
           // Xác định active state dựa vào targetScreen và tabParam
@@ -260,7 +260,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
-          <Text style={styles.logoutButtonText}>Đăng xuất phiên Admin</Text>
+          <Text style={styles.logoutButtonText}>Sign Out of Admin Session</Text>
         </TouchableOpacity>
       </View>
 
@@ -269,7 +269,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
-        subtitle="Bạn có chắc chắn muốn kết thúc phiên làm việc và đăng xuất khỏi TechShare Admin?"
+        subtitle="Are you sure you want to end this session and sign out of TechShare Admin?"
       />
     </View>
   );

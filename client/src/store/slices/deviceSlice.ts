@@ -126,7 +126,7 @@ export const deviceSlice = createSlice({
         }
         state.isLoading = false;
         state.isInitialLoading = false;
-        state.error = (action.payload as string) || 'Lỗi khi tải dữ liệu';
+        state.error = (action.payload as string) || 'Unable to load devices';
       });
 
     // refreshDevices
@@ -164,7 +164,7 @@ export const deviceSlice = createSlice({
         }
         state.isRefreshing = false;
         state.isInitialLoading = false;
-        state.error = (action.payload as string) || 'Lỗi khi làm mới dữ liệu';
+        state.error = (action.payload as string) || 'Unable to refresh devices';
       });
   },
 });

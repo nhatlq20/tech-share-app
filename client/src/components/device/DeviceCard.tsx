@@ -19,7 +19,14 @@ interface DeviceCardProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ/day';
+  return `${price.toLocaleString('en-US')} ₫/day`;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  available: 'Available',
+  rented: 'Rented',
+  maintenance: 'Under Maintenance',
+  hidden: 'Unavailable',
 };
 
 const resolveImageUri = (url?: string): string => {
@@ -94,7 +101,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
               isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
             ]}
           >
-            {isAvailable ? 'Available' : 'Rented'}
+            {STATUS_LABELS[device.status] ?? 'Unavailable'}
           </Text>
         </View>
       </View>

@@ -32,20 +32,20 @@ export interface OwnerMenuItem {
 const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
   {
     id: 'overview',
-    label: 'Bảng điều khiển & KPI',
+    label: 'Dashboard & KPIs',
     icon: 'stats-chart-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'overview',
   },
   {
     id: 'analytics',
-    label: 'Doanh thu & Phân tích',
+    label: 'Revenue & Analytics',
     icon: 'analytics-outline',
     targetScreen: 'OwnerAnalytics',
   },
   {
     id: 'orders',
-    label: 'Đơn thuê cần xử lý',
+    label: 'Pending Bookings',
     icon: 'receipt-outline',
     targetScreen: 'BookingManage',
     badgeCount: 2,
@@ -53,40 +53,40 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
   },
   {
     id: 'fleet',
-    label: 'Kho thiết bị của tôi',
+    label: 'My Device Inventory',
     icon: 'cube-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'fleet',
   },
   {
     id: 'post_device',
-    label: 'Đăng thiết bị mới',
+    label: 'List a New Device',
     icon: 'add-circle-outline',
     targetScreen: 'PostDevice',
   },
   {
     id: 'wallet',
-    label: 'Ví Doanh thu & Ký quỹ',
+    label: 'Revenue & Deposit Wallet',
     icon: 'wallet-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'wallet',
   },
   {
     id: 'ai_tools',
-    label: 'Trợ lý Thông minh AI',
+    label: 'AI Assistant',
     icon: 'sparkles-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'ai_tools',
   },
   {
     id: 'renter_mode',
-    label: 'Chuyển sang "Đi thuê"',
+    label: 'Switch to Renter Mode',
     icon: 'swap-horizontal-outline',
     targetScreen: 'MainTabs',
   },
   {
     id: 'notifications',
-    label: 'Thông báo hệ thống',
+    label: 'System Notifications',
     icon: 'notifications-outline',
     targetScreen: 'Notification',
   },
@@ -150,7 +150,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
           </View>
           <View>
             <Text style={styles.brandTitle}>TechShare Owner</Text>
-            <Text style={styles.brandSubtitle}>Cổng Chủ máy & Vận hành</Text>
+            <Text style={styles.brandSubtitle}>Owner Operations Portal</Text>
           </View>
         </View>
 
@@ -167,7 +167,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.ownerName} numberOfLines={1}>
-                {user?.name || 'Chủ máy'}
+                {user?.name || 'Owner'}
               </Text>
               <Ionicons
                 name="checkmark-circle"
@@ -191,7 +191,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                   color={theme.colors.success[600]}
                 />
                 <Text style={styles.trustBadgeText}>
-                  Uy tín: {user?.trustScore || 100}
+                  Trust: {user?.trustScore || 100}
                 </Text>
               </View>
             </View>
@@ -205,7 +205,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.menuSectionHeader}>MENU QUẢN LÝ CHỦ MÁY</Text>
+        <Text style={styles.menuSectionHeader}>OWNER MENU</Text>
 
         {OWNER_MENU_ITEMS.map((item) => {
           let isActive = false;
@@ -249,7 +249,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
               {item.id === 'notifications' && unreadNotifications > 0 ? (
                 <View style={[styles.menuBadge, styles.menuBadgeRed]}>
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications} mới
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications} new
                   </Text>
                 </View>
               ) : item.badgeCount && item.badgeCount > 0 ? (
@@ -267,7 +267,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                         : styles.menuBadgeTextBlue,
                     ]}
                   >
-                    {item.badgeCount} việc
+                    {item.badgeCount} tasks
                   </Text>
                 </View>
               ) : null}
@@ -284,7 +284,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
-          <Text style={styles.logoutButtonText}>Đăng xuất phiên Chủ máy</Text>
+          <Text style={styles.logoutButtonText}>Sign Out of Owner Session</Text>
         </TouchableOpacity>
       </View>
 
@@ -293,8 +293,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
-        title="Xác nhận đăng xuất"
-        subtitle="Bạn có chắc chắn muốn kết thúc phiên làm việc và đăng xuất khỏi TechShare Owner?"
+        title="Confirm Sign Out"
+        subtitle="Are you sure you want to end this session and sign out of TechShare Owner?"
       />
     </View>
   );
