@@ -98,7 +98,161 @@ export const getAnalytics = async (req, res) => {
 };
 
 /**
- * 2. GET /api/admin/disputes
+ * 2. GET /api/admin/users
+ * Lấy danh sách người dùng cho trang quản lý người dùng
+ */
+export const getUsers = async (req, res) => {
+  try {
+    const [users, bookingCounts] = await Promise.all([
+      User.find({})
+      .select('name email phone role avatar isVerified trustScore isActive createdAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+      Booking.aggregate([
+        {
+          $project: {
+            userIds: [
+              { $ifNull: ['$renterId', null] },
+              { $ifNull: ['$ownerId', null] },
+            ],
+          },
+        },
+        { $unwind: '$userIds' },
+        { $match: { userIds: { $ne: null } } },
+        { $group: { _id: '$userIds', rentalCount: { $sum: 1 } } },
+      ]),
+    ]);
+    const accounts = await Account.find({
+      $or: [
+        { userId: { $in: users.map(user => user._id) } },
+        { email: { $in: users.map(user => user.email).filter(Boolean) } },
+      ],
+    })
+      .select('userId email isActive lockReason')
+      .lean();
+    const accountByUserId = new Map();
+    const accountByEmail = new Map();
+    accounts.forEach(account => {
+      if (account.userId) accountByUserId.set(account.userId.toString(), account);
+      if (account.email) accountByEmail.set(account.email.toLowerCase(), account);
+    });
+    const rentalCountsByUserId = new Map(
+      bookingCounts.map(item => [item._id.toString(), item.rentalCount])
+    );
+
+    const usersWithStats = users.map(user => {
+      const account =
+        accountByUserId.get(user._id.toString()) ||
+        accountByEmail.get((user.email || '').toLowerCase());
+      return {
+        id: user._id.toString(),
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        role: user.role || 'renter',
+        avatar: user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
+        isVerified: Boolean(user.isVerified),
+        trustScore: Number(user.trustScore || 0),
+        isActive: account ? account.isActive !== false : user.isActive !== false,
+        lockReason: account?.lockReason || '',
+        rentalCount: rentalCountsByUserId.get(user._id.toString()) || 0,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: usersWithStats.length,
+      data: usersWithStats,
+    });
+  } catch (error) {
+    console.error('❌ [Admin getUsers] Lỗi:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể tải danh sách người dùng.',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * 3. PATCH /api/admin/users/:id/toggle-status
+ * Khóa hoặc mở khóa tài khoản người dùng
+ */
+export const toggleUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive, lockReason } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng.',
+      });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Không thể khóa hoặc mở khóa tài khoản quản trị viên.',
+      });
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Trạng thái tài khoản không hợp lệ.',
+      });
+    }
+
+    const normalizedReason = typeof lockReason === 'string' ? lockReason.trim() : '';
+    if (!isActive && !normalizedReason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập lý do khóa tài khoản.',
+      });
+    }
+
+    const accountConditions = [{ userId: user._id }];
+    if (user.email) accountConditions.push({ email: user.email.toLowerCase() });
+    const accountUpdate = await Account.updateMany({ $or: accountConditions }, {
+      $set: {
+        isActive,
+        lockReason: isActive ? '' : normalizedReason,
+      },
+    });
+
+    if (accountUpdate.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản đăng nhập tương ứng trong collection accounts.',
+      });
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: user.isActive ? 'Tài khoản đã được mở khóa.' : 'Tài khoản đã bị khóa.',
+      data: {
+        id: user._id.toString(),
+        isActive: user.isActive,
+        lockReason: isActive ? '' : normalizedReason,
+      },
+    });
+  } catch (error) {
+    console.error('❌ [Admin toggleUserStatus] Lỗi:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể cập nhật trạng thái tài khoản.',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * 4. GET /api/admin/disputes
  * Lấy danh sách tranh chấp cọc
  */
 export const getDisputes = async (req, res) => {
@@ -359,14 +513,15 @@ export const approveEkyc = async (req, res) => {
     request.reviewedAt = new Date();
     await request.save();
 
-    // Cập nhật User & nâng lên role owner
+    // Approving renter verification proves identity but does not change the user's role.
     const user = await User.findById(request.userId);
     if (user) {
       user.isVerified = true;
       if (request.address) {
         user.address = request.address;
       }
-      if (user.role !== 'admin') {
+      const isOwnerApplication = request.verificationPurpose !== 'renter';
+      if (isOwnerApplication && user.role !== 'admin') {
         user.role = 'owner';
       }
       if (!user.badges) user.badges = [];
@@ -376,27 +531,33 @@ export const approveEkyc = async (req, res) => {
       user.trustScore = Math.min(100, (user.trustScore || 100) + 10);
       await user.save();
 
-      // Cập nhật role trong Account tương ứng (tìm theo userId hoặc email)
-      const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
-      if (ownerRole) {
-        await Account.updateOne(
-          { $or: [{ userId: user._id }, { email: user.email }] },
-          { roleId: ownerRole._id }
-        );
+      if (isOwnerApplication) {
+        const ownerRole = await mongoose.connection.db.collection('roles').findOne({ code: 'owner' });
+        if (ownerRole) {
+          await Account.updateOne(
+            { $or: [{ userId: user._id }, { email: user.email }] },
+            { roleId: ownerRole._id }
+          );
+        }
       }
 
       // Bắn thông báo chúc mừng
       await createAndSendNotification({
         userId: user._id,
         title: 'Hồ sơ eKYC đã được phê duyệt! 🎉',
-        body: 'Chúc mừng bạn! Hồ sơ CCCD đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín và được nâng cấp thành Chủ máy (Owner) có quyền đăng thiết bị cho thuê trên TechShare.',
+        body: isOwnerApplication
+          ? 'Chúc mừng bạn! Hồ sơ CCCD đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín và được nâng cấp thành Chủ máy (Owner) có quyền đăng thiết bị cho thuê trên TechShare.'
+          : 'Chúc mừng bạn! Danh tính của bạn đã được xác thực thành công. Bạn có thể thuê thiết bị trên TechShare.',
         type: 'system',
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Đã phê duyệt eKYC, cấp Tích xanh và nâng cấp thành Chủ máy (Owner) thành công!',
+      message:
+        request.verificationPurpose === 'renter'
+          ? 'Đã phê duyệt xác thực người dùng thực thành công.'
+          : 'Đã phê duyệt eKYC, cấp Tích xanh và nâng cấp thành Chủ máy (Owner) thành công!',
       data: request,
     });
   } catch (error) {

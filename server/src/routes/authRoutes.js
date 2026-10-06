@@ -45,7 +45,6 @@ router.post('/login', async (req, res) => {
         { username: loginIdentifier },
         { email: loginIdentifier.toLowerCase() },
       ],
-      isActive: { $ne: false },
     }).select('+passwordHash');
 
     if (!account || !account.passwordHash) {
@@ -60,6 +59,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
+      });
+    }
+
+    if (account.isActive === false) {
+      const reason = account.lockReason?.trim() || 'Không có lý do cụ thể.';
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản đã bị khóa. Lý do: ${reason} Liên hệ hỗ trợ: admin@techshare.vn`,
       });
     }
 
@@ -637,4 +644,3 @@ router.post('/reset-password', async (req, res) => {
 });
 
 export default router;
-

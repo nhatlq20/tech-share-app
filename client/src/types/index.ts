@@ -382,6 +382,7 @@ export interface EkycItem {
   phone?: string;
   idCardNumber?: string;
   address?: string;
+  verificationPurpose?: "owner" | "renter";
   idCardFrontUrl: string;
   idCardBackUrl: string;
   selfieUrl?: string;

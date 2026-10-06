@@ -51,7 +51,9 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                           size={14}
                           color={theme.colors.primary[600]}
                         />
-                        <Text style={styles.trustBadgeText}>Đã cấp Tích Xanh</Text>
+                        <Text style={styles.trustBadgeText}>
+                          {req.verificationPurpose === 'renter' ? 'Đã xác thực' : 'Đã cấp Tích Xanh'}
+                        </Text>
                       </View>
                     )}
                     {isRejected && (
@@ -62,6 +64,11 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                   </View>
                   <Text style={styles.ekycSubMeta}>
                     {req.email || req.userId?.email || 'Chưa có email'} • SĐT: {req.phone || req.userId?.phone || 'Chưa cập nhật'}
+                  </Text>
+                  <Text style={styles.ekycVerificationType}>
+                    {req.verificationPurpose === 'renter'
+                      ? 'Yêu cầu: Xác thực người dùng thực (quyền thuê)'
+                      : 'Yêu cầu: Xác thực eKYC chủ máy'}
                   </Text>
                   {req.idCardNumber ? (
                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary[600], marginTop: 2 }}>
@@ -115,7 +122,9 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                     color={theme.colors.primary[600]}
                   />
                   <Text style={styles.btnOpenEkycModalText}>
-                    Kiểm tra hồ sơ & Phê duyệt Tích xanh
+                    {req.verificationPurpose === 'renter'
+                      ? 'Kiểm tra & xác nhận danh tính'
+                      : 'Kiểm tra hồ sơ & Phê duyệt Tích xanh'}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -136,7 +145,9 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                     ]}
                   >
                     {isApproved
-                      ? 'Hồ sơ đã được duyệt và cấp Tích xanh uy tín thành công.'
+                      ? req.verificationPurpose === 'renter'
+                        ? 'Đã xác thực danh tính; tài khoản vẫn giữ role renter và được thuê thiết bị.'
+                        : 'Hồ sơ đã được duyệt và cấp Tích xanh uy tín thành công.'
                       : `Đã từ chối hồ sơ. Lý do: ${req.rejectReason || 'Không hợp lệ'}`}
                   </Text>
                 </View>
@@ -245,6 +256,12 @@ const styles = StyleSheet.create({
   ekycSubMeta: {
     fontSize: 11,
     color: theme.textSecondary,
+  },
+  ekycVerificationType: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary[600],
+    marginTop: 3,
   },
   ekycThumbnailsRow: {
     flexDirection: 'row',

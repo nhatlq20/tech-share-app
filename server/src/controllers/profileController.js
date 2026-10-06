@@ -253,6 +253,7 @@ export const submitEkyc = async (req, res) => {
         message: 'Không tìm thấy thông tin tài khoản người dùng.',
       });
     }
+    const verificationPurpose = user.role === 'renter' ? 'renter' : 'owner';
 
     // 2. Validate số CCCD
     const trimmedCardNumber = String(idCardNumber || '').trim();
@@ -326,6 +327,7 @@ export const submitEkyc = async (req, res) => {
       ekyc.phone = user.phone || '';
       ekyc.idCardNumber = trimmedCardNumber;
       ekyc.address = trimmedAddress;
+      ekyc.verificationPurpose = verificationPurpose;
       ekyc.idCardFrontUrl = idCardFrontUrl;
       ekyc.idCardBackUrl = idCardBackUrl;
       ekyc.selfieUrl = selfieUrl || '';
@@ -342,6 +344,7 @@ export const submitEkyc = async (req, res) => {
         phone: user.phone || '',
         idCardNumber: trimmedCardNumber,
         address: trimmedAddress,
+        verificationPurpose,
         idCardFrontUrl,
         idCardBackUrl,
         selfieUrl: selfieUrl || '',

@@ -28,13 +28,18 @@ import { PriceBreakdownCard } from './components/PriceBreakdownCard';
 interface BookingCreateScreenProps {
   deviceId: string;
   onBack: () => void;
+  onNavigateToVerification?: () => void;
 }
 
 const formatPrice = (price: number): string => {
   return price.toLocaleString('vi-VN') + ' đ';
 };
 
-export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenProps) {
+export function BookingCreateScreen({
+  deviceId,
+  onBack,
+  onNavigateToVerification,
+}: BookingCreateScreenProps) {
   const currentUser = useAppSelector(state => state.auth.user);
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -258,6 +263,18 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
   const totalAmount = rentalFeeAfterLongTerm - voucherDiscountAmount + (device.depositValue || 0);
 
   const handleConfirm = async () => {
+    if (currentUser?.role === 'renter' && !currentUser.isVerified) {
+      Alert.alert(
+        'Cần xác thực danh tính',
+        'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+        ]
+      );
+      return;
+    }
+
     if (!startDate || !endDate) {
       Alert.alert('Thiếu thông tin', 'Vui lòng chọn thời gian nhận và trả máy.');
       return;
@@ -296,7 +313,19 @@ export function BookingCreateScreen({ deviceId, onBack }: BookingCreateScreenPro
         { text: 'OK', onPress: onBack }
       ]);
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tạo yêu cầu thuê máy.');
+      const responseData = error.response?.data;
+      if (responseData?.code === 'RENTER_EKYC_REQUIRED') {
+        Alert.alert(
+          'Cần xác thực danh tính',
+          responseData.message || 'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+          [
+            { text: 'Để sau', style: 'cancel' },
+            { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+          ]
+        );
+      } else {
+        Alert.alert('Lỗi', responseData?.message || 'Không thể tạo yêu cầu thuê máy.');
+      }
     } finally {
       setIsSubmitting(false);
     }

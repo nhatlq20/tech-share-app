@@ -7,6 +7,20 @@ import {
   ResolveDisputePayload,
 } from '../types';
 
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'renter' | 'owner' | 'admin';
+  trustScore: number;
+  avatar: string;
+  isVerified: boolean;
+  isActive: boolean;
+  lockReason: string;
+  rentalCount: number;
+}
+
 // ==========================================
 // Dữ liệu Fallback dự phòng khi Offline / Server chưa bật
 // ==========================================
@@ -219,6 +233,43 @@ export const adminService = {
   },
 
   /**
+   * Lấy danh sách người dùng từ database
+   */
+   getUsers: async (token: string): Promise<AdminUser[]> => {
+     const response = await apiClient.get<{
+       success: boolean;
+       message?: string;
+       data: AdminUser[];
+     }>('/admin/users', {
+       headers: { Authorization: `Bearer ${token}` },
+     });
+     if (!response.data?.success || !Array.isArray(response.data.data)) {
+       throw new Error(response.data?.message || 'Không thể tải danh sách người dùng.');
+     }
+     return response.data.data;
+   },
+
+  /**
+   * Khóa hoặc mở khóa tài khoản
+   */
+  toggleUserStatus: async (
+    userId: string,
+    isActive: boolean,
+    token: string,
+    lockReason?: string
+  ) => {
+    const response = await apiClient.patch(
+      `/admin/users/${userId}/toggle-status`,
+      { isActive, lockReason },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Không thể cập nhật trạng thái tài khoản.');
+    }
+    return response.data;
+  },
+
+  /**
    * Lấy danh sách tranh chấp cọc
    */
   getDisputes: async (status?: string): Promise<DisputeItem[]> => {
@@ -279,32 +330,22 @@ export const adminService = {
    * Phê duyệt hồ sơ eKYC và cấp Tích xanh
    */
   approveEkyc: async (requestId: string): Promise<any> => {
-    try {
-      const response = await apiClient.patch(`/admin/ekyc/${requestId}/approve`);
-      return response.data;
-    } catch (error: any) {
-      console.warn('⚠️ [adminService.approveEkyc] Dùng giả lập:', error);
-      return {
-        success: true,
-        message: 'Đã phê duyệt eKYC thành công (mô phỏng)!',
-      };
+    const response = await apiClient.patch(`/admin/ekyc/${requestId}/approve`);
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Không thể phê duyệt hồ sơ eKYC.');
     }
+    return response.data;
   },
 
   /**
    * Từ chối hồ sơ eKYC
    */
   rejectEkyc: async (requestId: string, rejectReason: string): Promise<any> => {
-    try {
-      const response = await apiClient.patch(`/admin/ekyc/${requestId}/reject`, { rejectReason });
-      return response.data;
-    } catch (error: any) {
-      console.warn('⚠️ [adminService.rejectEkyc] Dùng giả lập:', error);
-      return {
-        success: true,
-        message: 'Đã từ chối eKYC thành công (mô phỏng)!',
-      };
+    const response = await apiClient.patch(`/admin/ekyc/${requestId}/reject`, { rejectReason });
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Không thể từ chối hồ sơ eKYC.');
     }
+    return response.data;
   },
 
   /**

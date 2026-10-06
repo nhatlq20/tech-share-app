@@ -24,6 +24,7 @@ interface EkycSubmitModalProps {
   onSuccess: (ekyc: EkycItem) => void;
   currentEkyc?: EkycItem | null;
   user?: any;
+  verificationPurpose?: 'owner' | 'renter';
 }
 
 export function EkycSubmitModal({
@@ -32,6 +33,7 @@ export function EkycSubmitModal({
   onSuccess,
   currentEkyc,
   user: userProp,
+  verificationPurpose = 'owner',
 }: EkycSubmitModalProps) {
   const authUser = useSelector((state: RootState) => state.auth.user);
   const currentUser = userProp || authUser;
@@ -146,7 +148,9 @@ export function EkycSubmitModal({
       if (res && res.success) {
         Alert.alert(
           'Gửi đơn eKYC thành công! 🎉',
-          'Đơn định danh của bạn đã được gửi tới ban quản trị. Hồ sơ sẽ được kiểm duyệt thủ công. Sau khi được duyệt, tài khoản sẽ được cấp Tích Xanh Uy Tín và mở quyền Chủ máy (Owner).'
+          verificationPurpose === 'renter'
+            ? 'Đơn Xác thực người dùng thực đã được gửi tới ban quản trị và sẽ được kiểm duyệt thủ công. Sau khi được duyệt, bạn có thể thuê thiết bị.'
+            : 'Đơn định danh của bạn đã được gửi tới ban quản trị. Hồ sơ sẽ được kiểm duyệt thủ công. Sau khi được duyệt, tài khoản sẽ được cấp Tích Xanh Uy Tín và mở quyền Chủ máy (Owner).'
         );
         onSuccess(res.ekyc);
         onClose();
@@ -181,7 +185,11 @@ export function EkycSubmitModal({
               </View>
               <View>
                 <Text style={styles.modalTitle}>Định Danh Điện Tử (eKYC)</Text>
-                <Text style={styles.modalSubtitle}>Nâng cấp Chủ máy & Nhận Tích Xanh</Text>
+                <Text style={styles.modalSubtitle}>
+                  {verificationPurpose === 'renter'
+                    ? 'Xác thực người dùng thực để thuê thiết bị'
+                    : 'Nâng cấp Chủ máy & Nhận Tích Xanh'}
+                </Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
