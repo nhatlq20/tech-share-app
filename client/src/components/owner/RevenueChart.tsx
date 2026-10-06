@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { theme } from '../../constants/theme';
+import { theme, STRINGS, CONFIG } from '../../constants';
 import { OwnerRevenueChartData } from '../../types';
 
 const LineChartComponent = LineChart as any;
@@ -10,65 +10,66 @@ interface RevenueChartProps {
   chartData: OwnerRevenueChartData;
 }
 
-const PRIMARY_TEAL = '#67BEC3';
-
 export function RevenueChart({ chartData }: RevenueChartProps) {
-  const screenWidth = Dimensions.get('window').width - theme.spacing.md * 2 - theme.spacing.md * 2;
+  const horizontalPadding = theme.spacing.md * 4;
+  const screenWidth = Dimensions.get('window').width - horizontalPadding;
 
-  // Format nhãn trục Y thành triệu (M) hoặc nghìn (k)
+  // Format nhãn trục Y thành triệu (M) hoặc nghìn (k) - Không hardcode logic & chuỗi
   const formatYLabel = (yValue: string) => {
     const val = Number(yValue);
     if (isNaN(val)) return yValue;
-    if (val >= 1000000) {
-      const millions = val / 1000000;
-      return millions % 1 === 0 ? `${millions}M` : `${millions.toFixed(1)}M`;
+    if (val >= CONFIG.CURRENCY.MILLION_THRESHOLD) {
+      const millions = val / CONFIG.CURRENCY.MILLION_THRESHOLD;
+      return millions % 1 === 0
+        ? `${millions}${STRINGS.COMMON.MILLION_SUFFIX}`
+        : `${millions.toFixed(CONFIG.CURRENCY.DECIMAL_PLACES_SHORT)}${STRINGS.COMMON.MILLION_SUFFIX}`;
     }
-    if (val >= 1000) {
-      return `${Math.round(val / 1000)}k`;
+    if (val >= CONFIG.CURRENCY.THOUSAND_THRESHOLD) {
+      return `${Math.round(val / CONFIG.CURRENCY.THOUSAND_THRESHOLD)}${STRINGS.COMMON.THOUSAND_SUFFIX}`;
     }
     return String(Math.round(val));
   };
 
   const labels = chartData.labels?.length
     ? chartData.labels
-    : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    : STRINGS.OWNER_DASHBOARD.DEFAULT_WEEK_LABELS;
 
   const dataValues = chartData.datasets?.[0]?.data?.length
     ? chartData.datasets[0].data
     : [3500000, 18700000, 6000000, 12500000, 9000000, 15500000, 11000000];
 
-  // Tính đỉnh cao nhất trong chu kỳ
-  const peakValue = Math.max(...dataValues, 100000);
-  const ceilingValue = Math.round(peakValue * 1.18); // Tạo khoảng đệm 18% phía trên chống tràn đỉnh
+  // Tính đỉnh cao nhất trong chu kỳ dựa trên cấu hình tập trung
+  const peakValue = Math.max(...dataValues, CONFIG.CHART.MIN_PEAK_VALUE);
+  const ceilingValue = Math.round(peakValue * CONFIG.CHART.CEILING_MULTIPLIER);
 
   const chartConfig = {
-    backgroundColor: '#FFFFFF',
-    backgroundGradientFrom: '#FFFFFF',
-    backgroundGradientTo: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
+    backgroundGradientFrom: theme.colors.surface,
+    backgroundGradientTo: theme.colors.surface,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(103, 190, 195, ${opacity})`,
-    labelColor: (opacity = 1) => theme.textSecondary,
+    color: (opacity = 1) => `rgba(${theme.primaryRgb}, ${opacity})`,
+    labelColor: () => theme.colors.textSecondary,
     style: {
-      borderRadius: 16,
-      paddingTop: 16,
+      borderRadius: theme.radii.lg,
+      paddingTop: theme.spacing.lg,
     },
     // Gradient mềm mượt hướng về trục hoành
-    fillShadowGradient: PRIMARY_TEAL,
-    fillShadowGradientOpacity: 0.35,
-    fillShadowGradientFrom: PRIMARY_TEAL,
-    fillShadowGradientFromOpacity: 0.45,
-    fillShadowGradientTo: '#FFFFFF',
-    fillShadowGradientToOpacity: 0.02,
+    fillShadowGradient: theme.colors.primary[500],
+    fillShadowGradientOpacity: CONFIG.CHART.SHADOW_OPACITY,
+    fillShadowGradientFrom: theme.colors.primary[500],
+    fillShadowGradientFromOpacity: CONFIG.CHART.SHADOW_FROM_OPACITY,
+    fillShadowGradientTo: theme.colors.surface,
+    fillShadowGradientToOpacity: CONFIG.CHART.SHADOW_TO_OPACITY,
     propsForDots: {
-      r: '5',
-      strokeWidth: '2.5',
-      stroke: PRIMARY_TEAL,
-      fill: '#FFFFFF',
+      r: CONFIG.CHART.DOT_RADIUS,
+      strokeWidth: CONFIG.CHART.DOT_STROKE_WIDTH,
+      stroke: theme.colors.primary[500],
+      fill: theme.colors.surface,
     },
     propsForBackgroundLines: {
-      strokeDasharray: '4',
-      stroke: '#F1F5F9',
-      strokeWidth: 1,
+      strokeDasharray: CONFIG.CHART.DASH_ARRAY,
+      stroke: theme.colors.borderSubtle,
+      strokeWidth: CONFIG.CHART.GRID_STROKE_WIDTH,
     },
   };
 
@@ -77,8 +78,8 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
     datasets: [
       {
         data: dataValues,
-        color: (opacity = 1) => `rgba(103, 190, 195, ${opacity})`,
-        strokeWidth: 2.5,
+        color: (opacity = 1) => `rgba(${theme.primaryRgb}, ${opacity})`,
+        strokeWidth: CONFIG.CHART.LINE_STROKE_WIDTH,
       },
       // Headroom dataset vô hình giúp đẩy trần trục Y lên 1.18x, chống chạm sát mép trên Card
       {
@@ -97,12 +98,17 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
         <View style={styles.legendRow}>
           <View style={styles.legendDot} />
           <Text style={styles.legendText}>
-            {chartData.period === 'week' ? 'Doanh thu 7 ngày qua (VNĐ)' : 'Doanh thu các tuần trong tháng (VNĐ)'}
+            {chartData.period === 'week'
+              ? STRINGS.OWNER_DASHBOARD.CHART_WEEK_LEGEND
+              : STRINGS.OWNER_DASHBOARD.CHART_MONTH_LEGEND}
           </Text>
         </View>
 
         <View style={styles.peakBadge}>
-          <Text style={styles.peakBadgeText}>Đỉnh: {peakValue.toLocaleString('vi-VN')} đ</Text>
+          <Text style={styles.peakBadgeText}>
+            {STRINGS.COMMON.PEAK_LABEL}
+            {peakValue.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
+          </Text>
         </View>
       </View>
 
@@ -111,7 +117,7 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
         <LineChartComponent
           data={formattedData}
           width={screenWidth}
-          height={205}
+          height={CONFIG.CHART.HEIGHT}
           chartConfig={chartConfig}
           bezier
           style={styles.chartStyle}
@@ -122,7 +128,7 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
           withHorizontalLines
           withShadow={true}
           fromZero
-          segments={4}
+          segments={CONFIG.CHART.SEGMENTS}
         />
       </View>
     </View>
@@ -131,12 +137,12 @@ export function RevenueChart({ chartData }: RevenueChartProps) {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.colors.borderSubtle,
     padding: theme.spacing.md,
-    paddingTop: 18,
+    paddingTop: theme.spacing.lg + 2,
     marginBottom: theme.spacing.lg,
     ...theme.shadows.card,
   },
@@ -145,7 +151,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: theme.spacing.xs,
-    paddingHorizontal: 4,
+    paddingHorizontal: theme.spacing.xs,
   },
   legendRow: {
     flexDirection: 'row',
@@ -153,34 +159,34 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: PRIMARY_TEAL,
+    width: theme.spacing.sm,
+    height: theme.spacing.sm,
+    borderRadius: theme.radii.xs,
+    backgroundColor: theme.colors.primary[500],
   },
   legendText: {
     ...theme.typography.caption,
-    fontWeight: '600',
-    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.textSecondary,
   },
   peakBadge: {
-    backgroundColor: '#E8F6F7',
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: theme.spacing.xs - 1,
     borderRadius: theme.radii.full,
   },
   peakBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: PRIMARY_TEAL,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primaryDark,
   },
   chartWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 10,
+    paddingTop: theme.spacing.md - 2,
   },
   chartStyle: {
-    marginVertical: 4,
-    borderRadius: 16,
+    marginVertical: theme.spacing.xs,
+    borderRadius: theme.radii.lg,
   },
 });

@@ -2,11 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DeviceStatistics } from '../../data/ownerAnalyticsMock';
-
-const PRIMARY_TEAL = '#67BEC3'; // brand-500
-const PASTEL_TEAL = '#E8F6F7'; // brand-100
-const TEXT_SECONDARY = '#64748B'; // Slate-500
-const BORDER_SUBTLE = '#F1F5F9';
+import { theme, STRINGS } from '../../constants';
 
 type DeviceStatsProps = {
   statistics: DeviceStatistics;
@@ -15,25 +11,25 @@ type DeviceStatsProps = {
 export function DeviceStats({ statistics }: DeviceStatsProps) {
   const items = [
     {
-      label: 'Tổng thiết bị',
+      label: STRINGS.ANALYTICS.TOTAL_DEVICES,
       value: statistics.totalDevices,
       icon: 'cube-outline' as const,
-      color: PRIMARY_TEAL,
-      bg: PASTEL_TEAL,
+      color: theme.primary,
+      bg: theme.primaryLight,
     },
     {
-      label: 'Đang cho thuê',
+      label: STRINGS.ANALYTICS.RENTED_DEVICES,
       value: statistics.rentedDevices,
       icon: 'flash-outline' as const,
-      color: '#D97706',
-      bg: '#FEF3C7',
+      color: theme.warning,
+      bg: theme.warningLight,
     },
     {
-      label: 'Sẵn sàng thuê',
+      label: STRINGS.ANALYTICS.AVAILABLE_DEVICES,
       value: statistics.availableDevices,
       icon: 'checkmark-circle-outline' as const,
-      color: '#10B981',
-      bg: '#ECFDF5',
+      color: theme.success,
+      bg: theme.successLight,
     },
   ];
 
@@ -57,40 +53,36 @@ export function DeviceStats({ statistics }: DeviceStatsProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    gap: 10,
+    gap: theme.spacing.md - 2,
   },
   card: {
     flex: 1,
     minWidth: 0,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    padding: theme.spacing.md,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
+    borderColor: theme.border,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    ...theme.shadows.card,
   },
   iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 9999,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: theme.spacing.xs + 2,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
     textAlign: 'center',
   },
   value: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.h2,
+    fontWeight: theme.typography.weights.heavy,
     marginTop: 2,
     textAlign: 'center',
   },

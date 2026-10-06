@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../constants/theme';
+import { theme, STRINGS, CONFIG } from '../../constants';
 import { useAppSelector } from '../../store';
 import { socketService } from '../../services/socketService';
 import { bookingService, Booking } from '../../services/bookingService';
@@ -93,13 +93,9 @@ export type OwnerTab = 'overview' | 'fleet' | 'ai_tools';
 type PeriodType = 'week' | 'month';
 type DeviceFilterType = 'all' | 'rented' | 'available';
 
-// ─── 2. COLOR PALETTE CONSTANTS (Soft UI & Pastel Theme) ───────────────────
+// ─── 2. PALETTE TOKENS FROM theme (constants/theme.ts) ─────────────────────
 
-const PRIMARY_TEAL = '#67BEC3';
-const PASTEL_TEAL = '#E8F6F7';
-const BG_SLATE = '#F8FAFC';
-const CARD_BG = '#FFFFFF';
-const BORDER_COLOR = '#E2E8F0';
+const palette = theme;
 
 const normalizeCategory = (
   cat?: string,
@@ -138,8 +134,17 @@ export function OwnerDashboardScreen({
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current) {
       Animated.sequence([
-        Animated.timing(notifScale, { toValue: 1.45, duration: 160, useNativeDriver: true }),
-        Animated.spring(notifScale, { toValue: 1, friction: 4, tension: 70, useNativeDriver: true }),
+        Animated.timing(notifScale, {
+          toValue: CONFIG.ANIMATION.NOTIF_BADGE_SCALE,
+          duration: CONFIG.ANIMATION.NOTIF_BADGE_DURATION_MS,
+          useNativeDriver: true,
+        }),
+        Animated.spring(notifScale, {
+          toValue: 1,
+          friction: CONFIG.ANIMATION.SPRING_FRICTION,
+          tension: CONFIG.ANIMATION.SPRING_TENSION,
+          useNativeDriver: true,
+        }),
       ]).start();
     }
     prevUnreadRef.current = unreadCount;
@@ -387,8 +392,8 @@ export function OwnerDashboardScreen({
     // Nếu thiết bị đang trong trạng thái cho thuê, không cho phép tắt
     if (item.status === 'rented') {
       Alert.alert(
-        'Thiết bị đang cho thuê 🔒',
-        'Thiết bị này đang có khách thuê hoạt động. Bạn chỉ có thể thay đổi trạng thái sau khi đã nhận lại máy và hoàn tất đơn thuê.',
+        STRINGS.OWNER_DASHBOARD.DEVICE_RENTED_ALERT_TITLE,
+        STRINGS.OWNER_DASHBOARD.DEVICE_RENTED_ALERT_MSG,
       );
       return;
     }
@@ -398,12 +403,12 @@ export function OwnerDashboardScreen({
     if (isCurrentlyActive) {
       // Chuyển từ "Bật" sang "Tắt" (tạm dừng cho thuê) -> BẮT BUỘC HỘP THOẠI XÁC NHẬN
       Alert.alert(
-        'Tạm dừng cho thuê thiết bị ⚠️',
-        `Bạn có chắc chắn muốn tạm dừng cho thuê thiết bị "${item.name}"?\n\nKhách hàng sẽ không thể tìm thấy máy trên sàn cho đến khi bạn bật lại.`,
+        STRINGS.OWNER_DASHBOARD.DEVICE_PAUSE_ALERT_TITLE,
+        STRINGS.OWNER_DASHBOARD.DEVICE_PAUSE_ALERT_MSG(item.name),
         [
-          { text: 'Hủy', style: 'cancel' },
+          { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
           {
-            text: 'Xác nhận',
+            text: STRINGS.COMMON.CONFIRM,
             style: 'destructive',
             onPress: () => {
               applyStatusChange(item._id, 'maintenance');
@@ -436,7 +441,7 @@ export function OwnerDashboardScreen({
       try {
         await deviceService.updateDeviceStatus(token, deviceId, newStatus);
         if (newStatus === 'available') {
-          Alert.alert('Thành công 🎉', 'Thiết bị đã sẵn sàng hiển thị trên sàn cho thuê.');
+          Alert.alert(STRINGS.COMMON.SUCCESS, STRINGS.OWNER_DASHBOARD.DEVICE_AVAILABLE_SUCCESS);
         }
       } catch (err: any) {
         console.warn('⚠️ Lỗi khi cập nhật trạng thái thiết bị:', err);
@@ -452,7 +457,7 @@ export function OwnerDashboardScreen({
               : dev,
           ),
         );
-        Alert.alert('Lỗi', 'Không thể cập nhật trạng thái máy lúc này. Vui lòng thử lại.');
+        Alert.alert(STRINGS.COMMON.ERROR, STRINGS.OWNER_DASHBOARD.DEVICE_STATUS_UPDATE_ERROR);
       }
     }
   };
@@ -479,19 +484,19 @@ export function OwnerDashboardScreen({
     switch (selectedTab) {
       case 'fleet':
         return {
-          title: 'Kho thiết bị của tôi',
-          subtitle: `Quản lý ${effectiveDeviceList.length} máy • Bật/tắt cho thuê`,
+          title: STRINGS.OWNER_DASHBOARD.TOPBAR_FLEET_TITLE,
+          subtitle: STRINGS.OWNER_DASHBOARD.TOPBAR_FLEET_SUBTITLE(effectiveDeviceList.length),
         };
       case 'ai_tools':
         return {
-          title: 'Trợ lý Thông minh AI',
-          subtitle: 'Định giá & tự động hóa tối ưu doanh thu',
+          title: STRINGS.OWNER_DASHBOARD.TOPBAR_AI_TITLE,
+          subtitle: STRINGS.OWNER_DASHBOARD.TOPBAR_AI_SUBTITLE,
         };
       case 'overview':
       default:
         return {
-          title: 'Bảng điều khiển KPI',
-          subtitle: 'Chỉ số hiệu suất & doanh thu thuần',
+          title: STRINGS.OWNER_DASHBOARD.TOPBAR_KPI_TITLE,
+          subtitle: STRINGS.OWNER_DASHBOARD.TOPBAR_KPI_SUBTITLE,
         };
     }
   };
@@ -499,7 +504,7 @@ export function OwnerDashboardScreen({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.surface} />
 
       {/* ── 0. THANH TIÊU ĐỀ CỐ ĐỊNH PHÍA TRÊN (TOP BAR CÓ SAFE AREA) ── */}
       <View
@@ -521,8 +526,8 @@ export function OwnerDashboardScreen({
                 navigation.openDrawer();
               }
             }}
-            activeOpacity={0.7}
-            accessibilityLabel="Mở menu quản lý chủ máy"
+            activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_CARD}
+            accessibilityLabel={STRINGS.OWNER_DASHBOARD.MENU_ACCESSIBILITY_LABEL}
           >
             <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
@@ -542,15 +547,17 @@ export function OwnerDashboardScreen({
                 navigation.navigate('Notification', { from: 'owner' });
               }
             }}
-            activeOpacity={0.7}
+            activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_CARD}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Xem thông báo"
+            accessibilityLabel={STRINGS.OWNER_DASHBOARD.NOTIFICATION_ACCESSIBILITY_LABEL}
           >
             <Ionicons name="notifications-outline" size={22} color={theme.textPrimary} />
             {unreadCount > 0 && (
               <Animated.View style={[styles.notifBadge, { transform: [{ scale: notifScale }] }]}>
                 <Text style={styles.notifBadgeText}>
-                  {unreadCount > 99 ? '99+' : String(unreadCount)}
+                  {unreadCount > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
+                    ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
+                    : String(unreadCount)}
                 </Text>
               </Animated.View>
             )}
@@ -567,8 +574,8 @@ export function OwnerDashboardScreen({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[PRIMARY_TEAL]}
-            tintColor={PRIMARY_TEAL}
+            colors={[palette.primary]}
+            tintColor={palette.primary}
           />
         }
       >
@@ -588,21 +595,23 @@ export function OwnerDashboardScreen({
                         {ownerProfile.name}
                       </Text>
                       {ownerProfile.isVerified && (
-                        <Ionicons name="checkmark-circle" size={16} color={PRIMARY_TEAL} />
+                        <Ionicons name="checkmark-circle" size={16} color={palette.primary} />
                       )}
                     </View>
 
                     <View style={styles.badgeRow}>
                       <View style={styles.ratingBadge}>
-                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Ionicons name="star" size={12} color={palette.warning} />
                         <Text style={styles.ratingText}>
                           {ownerProfile.rating} ({ownerProfile.reviewCount})
                         </Text>
                       </View>
 
                       <View style={styles.trustScoreBadge}>
-                        <Ionicons name="shield-checkmark" size={11} color="#10B981" />
-                        <Text style={styles.trustScoreText}>Uy tín: {ownerProfile.trustScore}</Text>
+                        <Ionicons name="shield-checkmark" size={11} color={palette.success} />
+                        <Text style={styles.trustScoreText}>
+                          {STRINGS.OWNER_DASHBOARD.TRUST_PREFIX}{ownerProfile.trustScore}
+                        </Text>
                       </View>
 
                       <View style={styles.topOwnerBadge}>
@@ -617,10 +626,10 @@ export function OwnerDashboardScreen({
                     <TouchableOpacity
                       style={styles.logoutButton}
                       onPress={() => setShowLogoutModal(true)}
-                      activeOpacity={0.8}
-                      accessibilityLabel="Đăng xuất"
+                      activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
+                      accessibilityLabel={STRINGS.OWNER_DASHBOARD.LOGOUT_ACCESSIBILITY_LABEL}
                     >
-                      <Ionicons name="log-out-outline" size={16} color={theme.colors.danger[600]} />
+                      <Ionicons name="log-out-outline" size={16} color={palette.danger} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -630,7 +639,14 @@ export function OwnerDashboardScreen({
             {/* 2. KHỐI THẺ KPI HIỆU SUẤT & DOANH THU TOÀN DIỆN */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeaderTitle}>📊 HIỆU SUẤT & DOANH THU</Text>
+                <View style={styles.sectionHeaderTitleRow}>
+                  <View style={styles.sectionHeaderIconWrap}>
+                    <Ionicons name="bar-chart-outline" size={15} color={palette.primary} />
+                  </View>
+                  <Text style={styles.sectionHeaderTitle}>
+                    {STRINGS.OWNER_DASHBOARD.SECTION_PERFORMANCE}
+                  </Text>
+                </View>
 
                 <View style={styles.periodSelector}>
                   <TouchableOpacity
@@ -638,7 +654,7 @@ export function OwnerDashboardScreen({
                     onPress={() => setPeriod('week')}
                   >
                     <Text style={[styles.periodBtnText, period === 'week' && styles.periodBtnTextActive]}>
-                      Tuần
+                      {STRINGS.OWNER_DASHBOARD.PERIOD_WEEK}
                     </Text>
                   </TouchableOpacity>
 
@@ -647,7 +663,7 @@ export function OwnerDashboardScreen({
                     onPress={() => setPeriod('month')}
                   >
                     <Text style={[styles.periodBtnText, period === 'month' && styles.periodBtnTextActive]}>
-                      Tháng
+                      {STRINGS.OWNER_DASHBOARD.PERIOD_MONTH}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -658,45 +674,47 @@ export function OwnerDashboardScreen({
                 <View style={styles.kpiRow}>
                   {/* Card 1: Doanh thu thuần */}
                   <View style={styles.kpiCard}>
-                    <View style={[styles.kpiIconBox, { backgroundColor: PASTEL_TEAL }]}>
-                      <Ionicons name="cash-outline" size={18} color={PRIMARY_TEAL} />
+                    <View style={[styles.kpiIconBox, { backgroundColor: palette.primaryLight }]}>
+                      <Ionicons name="cash-outline" size={18} color={palette.primary} />
                     </View>
-                    <Text style={styles.kpiLabel}>Doanh thu thuần</Text>
+                    <Text style={styles.kpiLabel}>{STRINGS.OWNER_DASHBOARD.KPI_NET_REVENUE}</Text>
                     <Text style={styles.kpiValue}>
-                      {metrics.netRevenue >= 1000000
-                        ? `${(metrics.netRevenue / 1000000).toFixed(1)}M`
-                        : `${metrics.netRevenue.toLocaleString('vi-VN')} đ`}
+                      {metrics.netRevenue >= CONFIG.CURRENCY.MILLION_THRESHOLD
+                        ? `${(metrics.netRevenue / CONFIG.CURRENCY.MILLION_THRESHOLD).toFixed(CONFIG.CURRENCY.DECIMAL_PLACES_SHORT)}M`
+                        : `${metrics.netRevenue.toLocaleString(CONFIG.CURRENCY.LOCALE)} ${CONFIG.COMMON.CURRENCY_SUFFIX}`}
                     </Text>
                   </View>
 
                   {/* Card 2: Lượt cho thuê */}
                   <View style={styles.kpiCard}>
-                    <View style={[styles.kpiIconBox, { backgroundColor: '#ECFDF5' }]}>
-                      <Ionicons name="checkmark-done-outline" size={18} color="#10B981" />
+                    <View style={[styles.kpiIconBox, { backgroundColor: palette.successLight }]}>
+                      <Ionicons name="checkmark-done-outline" size={18} color={palette.success} />
                     </View>
-                    <Text style={styles.kpiLabel}>Lượt cho thuê</Text>
-                    <Text style={styles.kpiValue}>{metrics.rentalCount} lượt</Text>
+                    <Text style={styles.kpiLabel}>{STRINGS.OWNER_DASHBOARD.KPI_RENTAL_COUNT}</Text>
+                    <Text style={styles.kpiValue}>
+                      {metrics.rentalCount} {STRINGS.OWNER_DASHBOARD.UNIT_RENTAL_COUNT}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.kpiRow}>
                   {/* Card 3: Đang cho thuê */}
                   <View style={styles.kpiCard}>
-                    <View style={[styles.kpiIconBox, { backgroundColor: '#FEF3C7' }]}>
-                      <Ionicons name="flash-outline" size={18} color="#D97706" />
+                    <View style={[styles.kpiIconBox, { backgroundColor: palette.warningLight }]}>
+                      <Ionicons name="flash-outline" size={18} color={palette.warning} />
                     </View>
-                    <Text style={styles.kpiLabel}>Đang cho thuê</Text>
-                    <Text style={[styles.kpiValue, { color: metrics.activeRentals > 0 ? PRIMARY_TEAL : theme.textPrimary }]}>
-                      {metrics.activeRentals} máy
+                    <Text style={styles.kpiLabel}>{STRINGS.OWNER_DASHBOARD.KPI_ACTIVE_RENTALS}</Text>
+                    <Text style={[styles.kpiValue, { color: metrics.activeRentals > 0 ? palette.primaryDark : palette.textPrimary }]}>
+                      {metrics.activeRentals} {STRINGS.OWNER_DASHBOARD.UNIT_DEVICES}
                     </Text>
                   </View>
 
                   {/* Card 4: Tỷ lệ lấp đầy */}
                   <View style={styles.kpiCard}>
-                    <View style={[styles.kpiIconBox, { backgroundColor: '#EEF2FF' }]}>
-                      <Ionicons name="pie-chart-outline" size={18} color="#6366F1" />
+                    <View style={[styles.kpiIconBox, { backgroundColor: palette.aiLight }]}>
+                      <Ionicons name="pie-chart-outline" size={18} color={palette.ai} />
                     </View>
-                    <Text style={styles.kpiLabel}>Tỷ lệ lấp đầy</Text>
+                    <Text style={styles.kpiLabel}>{STRINGS.OWNER_DASHBOARD.KPI_OCCUPANCY_RATE}</Text>
                     <Text style={styles.kpiValue}>{metrics.occupancyRate}%</Text>
                   </View>
                 </View>
@@ -712,23 +730,25 @@ export function OwnerDashboardScreen({
             <View style={styles.walletCard}>
               <View style={styles.walletHeaderRow}>
                 <View>
-                  <Text style={styles.walletLabel}>Số dư ví khả dụng</Text>
+                  <Text style={styles.walletLabel}>{STRINGS.OWNER_DASHBOARD.WALLET_AVAILABLE_BALANCE}</Text>
                   <Text style={styles.walletAmount}>
-                    {wallet.availableBalance.toLocaleString('vi-VN')} đ
+                    {wallet.availableBalance.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.btnWithdraw}
                   onPress={() =>
                     Alert.alert(
-                      'Yêu cầu rút tiền về ngân hàng 💳',
-                      `Số dư khả dụng hiện tại: ${wallet.availableBalance.toLocaleString('vi-VN')} đ.\nLệnh rút tiền về tài khoản ngân hàng liên kết Vietcombank (*8899) đang được xử lý trong 5-10 phút.`,
+                      STRINGS.OWNER_DASHBOARD.WALLET_WITHDRAW_ALERT_TITLE,
+                      STRINGS.OWNER_DASHBOARD.WALLET_WITHDRAW_ALERT_MSG(
+                        `${wallet.availableBalance.toLocaleString(CONFIG.CURRENCY.LOCALE)} ${CONFIG.COMMON.CURRENCY_SUFFIX}`,
+                      ),
                     )
                   }
-                  activeOpacity={0.8}
+                  activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
                 >
-                  <Ionicons name="wallet-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.btnWithdrawText}>Rút tiền</Text>
+                  <Ionicons name="wallet-outline" size={16} color={theme.white} />
+                  <Text style={styles.btnWithdrawText}>{STRINGS.OWNER_DASHBOARD.WALLET_WITHDRAW_BUTTON}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -737,21 +757,21 @@ export function OwnerDashboardScreen({
               <View style={styles.walletSubRow}>
                 <View style={styles.walletSubCol}>
                   <View style={styles.subColHeader}>
-                    <Ionicons name="time-outline" size={13} color="#D97706" />
-                    <Text style={styles.walletSubLabel}>Cọc đang giữ hộ (Escrow)</Text>
+                    <Ionicons name="time-outline" size={13} color={palette.warning} />
+                    <Text style={styles.walletSubLabel}>{STRINGS.OWNER_DASHBOARD.WALLET_ESCROW_HOLDING}</Text>
                   </View>
                   <Text style={styles.walletSubValueYellow}>
-                    {wallet.escrowHolding.toLocaleString('vi-VN')} đ
+                    {wallet.escrowHolding.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
                   </Text>
                 </View>
 
                 <View style={styles.walletSubColRight}>
                   <View style={styles.subColHeader}>
-                    <Ionicons name="trending-up-outline" size={13} color={PRIMARY_TEAL} />
-                    <Text style={styles.walletSubLabel}>Doanh thu tháng này</Text>
+                    <Ionicons name="trending-up-outline" size={13} color={palette.primary} />
+                    <Text style={styles.walletSubLabel}>{STRINGS.OWNER_DASHBOARD.WALLET_MONTHLY_REVENUE}</Text>
                   </View>
                   <Text style={styles.walletSubValueBlue}>
-                    {wallet.monthlyRevenue.toLocaleString('vi-VN')} đ (+{wallet.growthPercent}%)
+                    {wallet.monthlyRevenue.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX} (+{wallet.growthPercent}%)
                   </Text>
                 </View>
               </View>
@@ -767,19 +787,19 @@ export function OwnerDashboardScreen({
             {/* Header Kho máy */}
             <View style={styles.fleetHeaderBox}>
               <View>
-                <Text style={styles.fleetHeaderMainTitle}>KHO MÁY CỦA TÔI</Text>
+                <Text style={styles.fleetHeaderMainTitle}>{STRINGS.OWNER_DASHBOARD.FLEET_MAIN_TITLE}</Text>
                 <Text style={styles.fleetHeaderMainSubtitle}>
-                  Tổng cộng {filteredDevices.length} thiết bị • Quản lý tình trạng cho thuê
+                  {STRINGS.OWNER_DASHBOARD.FLEET_MAIN_SUBTITLE(filteredDevices.length)}
                 </Text>
               </View>
               {onNavigateToPostDevice && (
                 <TouchableOpacity
                   style={styles.fleetAddButton}
                   onPress={onNavigateToPostDevice}
-                  activeOpacity={0.8}
+                  activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
                 >
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
-                  <Text style={styles.fleetAddButtonText}>Đăng máy</Text>
+                  <Ionicons name="add" size={16} color={theme.white} />
+                  <Text style={styles.fleetAddButtonText}>{STRINGS.OWNER_DASHBOARD.FLEET_ADD_DEVICE_BTN}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -794,7 +814,7 @@ export function OwnerDashboardScreen({
                     deviceFilter === filterKey && styles.fleetFilterPillActive,
                   ]}
                   onPress={() => setDeviceFilter(filterKey)}
-                  activeOpacity={0.75}
+                  activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_PILL}
                 >
                   <Text
                     style={[
@@ -803,10 +823,10 @@ export function OwnerDashboardScreen({
                     ]}
                   >
                     {filterKey === 'all'
-                      ? `Tất cả (${effectiveDeviceList.length})`
+                      ? STRINGS.OWNER_DASHBOARD.FLEET_FILTER_ALL(effectiveDeviceList.length)
                       : filterKey === 'rented'
-                      ? `Đang thuê (${effectiveDeviceList.filter((d: OwnerDeviceItem) => d.status === 'rented').length})`
-                      : `Sẵn sàng (${effectiveDeviceList.filter((d: OwnerDeviceItem) => d.status === 'available').length})`}
+                      ? STRINGS.OWNER_DASHBOARD.FLEET_FILTER_RENTED(effectiveDeviceList.filter((d: OwnerDeviceItem) => d.status === 'rented').length)
+                      : STRINGS.OWNER_DASHBOARD.FLEET_FILTER_AVAILABLE(effectiveDeviceList.filter((d: OwnerDeviceItem) => d.status === 'available').length)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -815,21 +835,21 @@ export function OwnerDashboardScreen({
             {/* Danh sách thẻ thiết bị */}
             {filteredDevices.length === 0 ? (
               <View style={styles.emptyFleetBox}>
-                <Ionicons name="cube-outline" size={48} color="#94A3B8" />
-                <Text style={styles.emptyFleetTitle}>Không có thiết bị phù hợp</Text>
+                <Ionicons name="cube-outline" size={48} color={palette.textMuted} />
+                <Text style={styles.emptyFleetTitle}>{STRINGS.OWNER_DASHBOARD.FLEET_EMPTY_TITLE}</Text>
                 <Text style={styles.emptyFleetDesc}>
                   {deviceFilter === 'rented'
-                    ? 'Hiện chưa có thiết bị nào đang trong trạng thái cho thuê.'
-                    : 'Hiện không có thiết bị nào trong danh mục này.'}
+                    ? STRINGS.OWNER_DASHBOARD.FLEET_EMPTY_RENTED_DESC
+                    : STRINGS.OWNER_DASHBOARD.FLEET_EMPTY_DEFAULT_DESC}
                 </Text>
                 {onNavigateToPostDevice && (
                   <TouchableOpacity
                     style={styles.emptyFleetBtn}
                     onPress={onNavigateToPostDevice}
-                    activeOpacity={0.8}
+                    activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
                   >
-                    <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.emptyFleetBtnText}>Đăng thiết bị mới</Text>
+                    <Ionicons name="add-circle-outline" size={16} color={theme.white} />
+                    <Text style={styles.emptyFleetBtnText}>{STRINGS.OWNER_DASHBOARD.FLEET_ADD_DEVICE_NEW_BTN}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -843,7 +863,7 @@ export function OwnerDashboardScreen({
                     key={item._id}
                     style={styles.fleetCard}
                     onPress={() => onNavigateToDeviceDetail?.(item._id)}
-                    activeOpacity={0.7}
+                    activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_CARD}
                   >
                     <Image source={{ uri: item.imageUrl }} style={styles.fleetThumb} />
 
@@ -874,7 +894,11 @@ export function OwnerDashboardScreen({
                                 : styles.statusTextMaintenance,
                             ]}
                           >
-                            {isRented ? 'Đang thuê' : isAvailable ? 'Sẵn sàng' : 'Tạm ẩn'}
+                            {isRented
+                              ? STRINGS.OWNER_DASHBOARD.FLEET_STATUS_RENTED
+                              : isAvailable
+                              ? STRINGS.OWNER_DASHBOARD.FLEET_STATUS_AVAILABLE
+                              : STRINGS.OWNER_DASHBOARD.FLEET_STATUS_MAINTENANCE}
                           </Text>
                         </View>
                       </View>
@@ -885,39 +909,44 @@ export function OwnerDashboardScreen({
 
                       <View style={styles.fleetMetaStatsRow}>
                         <Text style={styles.fleetPriceText}>
-                          {item.pricePerDay.toLocaleString('vi-VN')} đ/ngày
+                          {item.pricePerDay.toLocaleString(CONFIG.CURRENCY.LOCALE)} {STRINGS.OWNER_DASHBOARD.FLEET_PRICE_UNIT}
                         </Text>
-                        <Text style={styles.dotSep}>•</Text>
+                        <Text style={styles.dotSep}>{STRINGS.COMMON.BULLET_SEPARATOR}</Text>
                         <Text style={styles.fleetRentalCountText}>
-                          {item.rentalCount} lượt thuê
+                          {item.rentalCount} {STRINGS.OWNER_DASHBOARD.FLEET_RENTAL_COUNT_SUFFIX}
                         </Text>
-                        <Text style={styles.dotSep}>•</Text>
-                        <Text style={styles.fleetRatingText}>⭐ {item.ratingAvg}</Text>
+                        <Text style={styles.dotSep}>{STRINGS.COMMON.BULLET_SEPARATOR}</Text>
+                        <View style={styles.fleetRatingWrap}>
+                          <Ionicons name="star" size={11} color={palette.warning} />
+                          <Text style={styles.fleetRatingText}>{item.ratingAvg}</Text>
+                        </View>
                       </View>
 
                       {/* Doanh thu tích lũy thật (totalEarned) & Switch an toàn */}
                       <View style={styles.fleetBottomActionRow}>
                         <Text style={styles.accumulatedRevText}>
-                          Thu về: {item.totalEarned.toLocaleString('vi-VN')} đ
+                          {STRINGS.OWNER_DASHBOARD.FLEET_TOTAL_EARNED(
+                            `${item.totalEarned.toLocaleString(CONFIG.CURRENCY.LOCALE)} ${CONFIG.COMMON.CURRENCY_SUFFIX}`,
+                          )}
                         </Text>
 
                         <View style={styles.switchWrapper}>
                           <Text style={styles.switchLabel}>
                             {isRented
-                              ? 'Đang thuê'
+                              ? STRINGS.OWNER_DASHBOARD.FLEET_STATUS_RENTED
                               : isAvailable
-                              ? 'Bật cho thuê'
-                              : 'Tạm ẩn'}
+                              ? STRINGS.OWNER_DASHBOARD.FLEET_SWITCH_ENABLE
+                              : STRINGS.OWNER_DASHBOARD.FLEET_STATUS_MAINTENANCE}
                           </Text>
                           <Switch
                             value={item.isAvailable}
                             onValueChange={() => handleToggleSwitch(item)}
                             disabled={isRented}
                             trackColor={{
-                              false: '#CBD5E1',
-                              true: PRIMARY_TEAL,
+                              false: palette.borderDefault,
+                              true: palette.primary,
                             }}
-                            thumbColor="#FFFFFF"
+                            thumbColor={theme.white}
                           />
                         </View>
                       </View>
@@ -937,13 +966,11 @@ export function OwnerDashboardScreen({
             {/* Header AI Hub */}
             <View style={styles.aiHeaderBox}>
               <View style={styles.aiHeaderIconBadge}>
-                <Ionicons name="sparkles" size={22} color={PRIMARY_TEAL} />
+                <Ionicons name="sparkles" size={20} color={palette.ai} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.aiHeaderTitle}>TRỢ LÝ THÔNG MINH AI</Text>
-                <Text style={styles.aiHeaderSubtitle}>
-                  Bộ công cụ trí tuệ nhân tạo độc quyền giúp chủ máy tối ưu giá thuê, tăng tỷ lệ lấp đầy và tự động soạn tin.
-                </Text>
+                <Text style={styles.aiHeaderTitle}>{STRINGS.AI_TOOLS.HEADER_TITLE}</Text>
+                <Text style={styles.aiHeaderSubtitle}>{STRINGS.AI_TOOLS.HEADER_SUBTITLE}</Text>
               </View>
             </View>
 
@@ -954,28 +981,26 @@ export function OwnerDashboardScreen({
                 style={styles.aiToolCard}
                 onPress={() =>
                   Alert.alert(
-                    'Trợ lý Định giá Thông minh AI 🎯',
-                    'AI phân tích nhu cầu thị trường hiện tại: Model Sony A7 IV đang có nhu cầu cao cuối tuần này, giá thuê đề xuất tối ưu: 480.000 đ/ngày (+7%).',
+                    STRINGS.AI_TOOLS.SMART_PRICING_ALERT_TITLE,
+                    STRINGS.AI_TOOLS.SMART_PRICING_ALERT_MSG,
                   )
                 }
-                activeOpacity={0.8}
+                activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               >
-                <View style={[styles.aiIconBox, { backgroundColor: PASTEL_TEAL }]}>
-                  <Ionicons name="pricetag-outline" size={22} color={PRIMARY_TEAL} />
+                <View style={[styles.aiIconBox, { backgroundColor: palette.primaryLight }]}>
+                  <Ionicons name="pricetag-outline" size={20} color={palette.primary} />
                 </View>
                 <View style={styles.aiContent}>
                   <View style={styles.aiCardHeaderRow}>
-                    <Text style={styles.aiTitle}>Định giá Thông minh AI</Text>
+                    <Text style={styles.aiTitle}>{STRINGS.AI_TOOLS.SMART_PRICING_TITLE}</Text>
                     <View style={styles.aiActiveBadge}>
-                      <Text style={styles.aiActiveBadgeText}>HOT</Text>
+                      <Text style={styles.aiActiveBadgeText}>{STRINGS.COMMON.HOT}</Text>
                     </View>
                   </View>
-                  <Text style={styles.aiDesc}>
-                    Gợi ý mức giá cạnh tranh nhất theo thời gian thực để tối đa hóa doanh thu và tỷ lệ lấp đầy máy.
-                  </Text>
+                  <Text style={styles.aiDesc}>{STRINGS.AI_TOOLS.SMART_PRICING_DESC}</Text>
                   <View style={styles.aiActionLink}>
-                    <Text style={styles.aiActionLinkText}>Phân tích giá thị trường</Text>
-                    <Ionicons name="arrow-forward" size={12} color={PRIMARY_TEAL} />
+                    <Text style={styles.aiActionLinkText}>{STRINGS.AI_TOOLS.SMART_PRICING_ACTION}</Text>
+                    <Ionicons name="arrow-forward" size={12} color={palette.primaryDark} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -987,22 +1012,25 @@ export function OwnerDashboardScreen({
                   if (onNavigateToPostDevice) {
                     onNavigateToPostDevice();
                   } else {
-                    Alert.alert('Soạn bài AI', 'Chuyển sang màn hình Đăng thiết bị để kích hoạt.');
+                    Alert.alert(
+                      STRINGS.AI_TOOLS.AUTO_LISTING_ALERT_TITLE,
+                      STRINGS.AI_TOOLS.AUTO_LISTING_ALERT_MSG,
+                    );
                   }
                 }}
-                activeOpacity={0.8}
+                activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               >
-                <View style={[styles.aiIconBox, { backgroundColor: '#ECFDF5' }]}>
-                  <Ionicons name="create-outline" size={22} color="#10B981" />
+                <View style={[styles.aiIconBox, { backgroundColor: palette.successLight }]}>
+                  <Ionicons name="create-outline" size={20} color={palette.success} />
                 </View>
                 <View style={styles.aiContent}>
-                  <Text style={styles.aiTitle}>Trợ lý Soạn Tin Đăng AI</Text>
-                  <Text style={styles.aiDesc}>
-                    Tự động sinh tiêu đề cuốn hút, mô tả chi tiết và điền bảng thông số kỹ thuật chuẩn công nghệ.
-                  </Text>
+                  <Text style={styles.aiTitle}>{STRINGS.AI_TOOLS.AUTO_LISTING_TITLE}</Text>
+                  <Text style={styles.aiDesc}>{STRINGS.AI_TOOLS.AUTO_LISTING_DESC}</Text>
                   <View style={styles.aiActionLink}>
-                    <Text style={[styles.aiActionLinkText, { color: '#10B981' }]}>Đăng máy với AI</Text>
-                    <Ionicons name="arrow-forward" size={12} color="#10B981" />
+                    <Text style={[styles.aiActionLinkText, { color: palette.success }]}>
+                      {STRINGS.AI_TOOLS.AUTO_LISTING_ACTION}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={12} color={palette.success} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1012,23 +1040,23 @@ export function OwnerDashboardScreen({
                 style={styles.aiToolCard}
                 onPress={() =>
                   Alert.alert(
-                    'Dự báo Nhu cầu Thuê AI 📈',
-                    'Dự báo dịp nghỉ lễ sắp tới:\n• Máy ảnh & Gimbal: Tăng +42% nhu cầu thuê du lịch.\n• Laptop gaming: Tăng +28%.\nKhuyến nghị: Bật sẵn sàng các thiết bị này để đón khách đặt sớm.',
+                    STRINGS.AI_TOOLS.DEMAND_FORECAST_ALERT_TITLE,
+                    STRINGS.AI_TOOLS.DEMAND_FORECAST_ALERT_MSG,
                   )
                 }
-                activeOpacity={0.8}
+                activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               >
-                <View style={[styles.aiIconBox, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="trending-up-outline" size={22} color="#D97706" />
+                <View style={[styles.aiIconBox, { backgroundColor: palette.warningLight }]}>
+                  <Ionicons name="trending-up-outline" size={20} color={palette.warning} />
                 </View>
                 <View style={styles.aiContent}>
-                  <Text style={styles.aiTitle}>Dự báo Nhu cầu Thuê AI</Text>
-                  <Text style={styles.aiDesc}>
-                    Phân tích lịch nghỉ lễ và sự kiện công nghệ sắp diễn ra để dự báo trước các dòng máy sẽ cháy hàng.
-                  </Text>
+                  <Text style={styles.aiTitle}>{STRINGS.AI_TOOLS.DEMAND_FORECAST_TITLE}</Text>
+                  <Text style={styles.aiDesc}>{STRINGS.AI_TOOLS.DEMAND_FORECAST_DESC}</Text>
                   <View style={styles.aiActionLink}>
-                    <Text style={[styles.aiActionLinkText, { color: '#D97706' }]}>Xem xu hướng mùa vụ</Text>
-                    <Ionicons name="arrow-forward" size={12} color="#D97706" />
+                    <Text style={[styles.aiActionLinkText, { color: palette.warning }]}>
+                      {STRINGS.AI_TOOLS.DEMAND_FORECAST_ACTION}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={12} color={palette.warning} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1038,23 +1066,23 @@ export function OwnerDashboardScreen({
                 style={styles.aiToolCard}
                 onPress={() =>
                   Alert.alert(
-                    'Tối ưu Uy tín & Đánh giá AI ⭐',
-                    'Điểm uy tín hiện tại: 100/100.\n100% đánh giá 5 sao từ khách thuê gần nhất khen ngợi: Giao máy đúng giờ, thiết bị sạch sẽ, pin sạc đầy đủ.',
+                    STRINGS.AI_TOOLS.TRUST_REVIEW_ALERT_TITLE,
+                    STRINGS.AI_TOOLS.TRUST_REVIEW_ALERT_MSG,
                   )
                 }
-                activeOpacity={0.8}
+                activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               >
-                <View style={[styles.aiIconBox, { backgroundColor: '#EEF2FF' }]}>
-                  <Ionicons name="shield-checkmark-outline" size={22} color="#6366F1" />
+                <View style={[styles.aiIconBox, { backgroundColor: palette.aiLight }]}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color={palette.ai} />
                 </View>
                 <View style={styles.aiContent}>
-                  <Text style={styles.aiTitle}>Tối ưu Uy tín & Đánh giá AI</Text>
-                  <Text style={styles.aiDesc}>
-                    Tự động trích xuất phản hồi khen/chê từ khách thuê, gợi ý cách cải thiện dịch vụ để giữ danh hiệu Top Owner.
-                  </Text>
+                  <Text style={styles.aiTitle}>{STRINGS.AI_TOOLS.TRUST_REVIEW_TITLE}</Text>
+                  <Text style={styles.aiDesc}>{STRINGS.AI_TOOLS.TRUST_REVIEW_DESC}</Text>
                   <View style={styles.aiActionLink}>
-                    <Text style={[styles.aiActionLinkText, { color: '#6366F1' }]}>Xem báo cáo đánh giá</Text>
-                    <Ionicons name="arrow-forward" size={12} color="#6366F1" />
+                    <Text style={[styles.aiActionLinkText, { color: palette.ai }]}>
+                      {STRINGS.AI_TOOLS.TRUST_REVIEW_ACTION}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={12} color={palette.ai} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1072,7 +1100,7 @@ export function OwnerDashboardScreen({
           socketService.disconnect();
           onLogout?.();
         }}
-        subtitle="Bạn có chắc chắn muốn đăng xuất khỏi TechShare Owner Hub?"
+        subtitle={STRINGS.OWNER_DASHBOARD.LOGOUT_MODAL_SUBTITLE}
       />
     </View>
   );
@@ -1083,78 +1111,78 @@ export function OwnerDashboardScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_SLATE,
+    backgroundColor: theme.background,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: CARD_BG,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.surface,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
+    borderBottomColor: theme.border,
     ...theme.shadows.subtle,
   },
   topBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.md,
   },
   hamburgerButton: {
     width: 38,
     height: 38,
-    borderRadius: 12,
-    backgroundColor: BG_SLATE,
+    borderRadius: theme.radii.base,
+    backgroundColor: theme.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderColor: theme.border,
   },
   topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.title,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textPrimary,
   },
   topBarSubtitle: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.weights.medium,
   },
   topBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: theme.spacing.sm,
   },
   notificationButton: {
     width: 38,
     height: 38,
-    borderRadius: 12,
-    backgroundColor: BG_SLATE,
+    borderRadius: theme.radii.base,
+    backgroundColor: theme.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderColor: theme.border,
     position: 'relative',
   },
   notifBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -theme.spacing.xs,
+    right: -theme.spacing.xs,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.danger[500],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.danger,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: theme.spacing.xs,
     borderWidth: 1.5,
-    borderColor: CARD_BG,
+    borderColor: theme.surface,
   },
   notifBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
+    color: theme.white,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
   },
   tabContent: {
     width: '100%',
@@ -1163,18 +1191,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing['4xl'],
   },
 
   // Header Card
   headerCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 16,
-    marginBottom: 16,
+    borderColor: theme.border,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     ...theme.shadows.card,
   },
   headerTop: {
@@ -1185,16 +1213,16 @@ const styles = StyleSheet.create({
   ownerProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.md,
     flex: 1,
   },
   ownerAvatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: theme.radii.xl,
     borderWidth: 2,
-    borderColor: PRIMARY_TEAL,
-    backgroundColor: '#E2E8F0',
+    borderColor: theme.primaryLight,
+    backgroundColor: theme.border,
   },
   ownerMetaCol: {
     flex: 1,
@@ -1202,175 +1230,174 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   ownerName: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.title,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textPrimary,
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: theme.spacing.sm,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: theme.warningLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
   },
   ratingText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#D97706',
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.warning,
   },
   trustScoreBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: theme.successLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
   },
   trustScoreText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
   },
   topOwnerBadge: {
-    backgroundColor: PASTEL_TEAL,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: theme.primaryLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
   },
   topOwnerBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: PRIMARY_TEAL,
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
   },
   headerActionsCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  postDeviceQuickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: PRIMARY_TEAL,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  postDeviceQuickText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    gap: theme.spacing.sm,
   },
   logoutButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#FEE2E2',
+    width: 34,
+    height: 34,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.dangerLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // KPI Section
   sectionContainer: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
+  },
+  sectionHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  sectionHeaderIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionHeaderTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: theme.textSecondary,
-    letterSpacing: 0.5,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   periodSelector: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 2,
+    backgroundColor: theme.border,
+    borderRadius: theme.radii.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: theme.borderDefault,
   },
   periodBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: 5,
+    borderRadius: theme.radii.full,
   },
   periodBtnActive: {
-    backgroundColor: CARD_BG,
-    ...theme.shadows.subtle,
+    backgroundColor: theme.primaryLight,
   },
   periodBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.textSecondary,
   },
   periodBtnTextActive: {
-    color: PRIMARY_TEAL,
-    fontWeight: '700',
+    color: theme.primaryDark,
+    fontWeight: theme.typography.weights.bold,
   },
   kpiContainer: {
-    marginBottom: 12,
-    gap: 10,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   kpiRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: theme.spacing.sm,
   },
   kpiCard: {
     flex: 1,
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.base,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderColor: theme.border,
     ...theme.shadows.card,
   },
   kpiIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   kpiLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.bodySm,
     color: theme.textSecondary,
-    fontWeight: '500',
-    marginBottom: 4,
+    fontWeight: theme.typography.weights.medium,
+    marginBottom: theme.spacing.xs,
   },
   kpiValue: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.h3,
+    fontWeight: theme.typography.weights.heavy,
     color: theme.textPrimary,
   },
   chartWrapper: {
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
 
   // Financial Hub Card
   walletCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 16,
-    marginBottom: 16,
+    borderColor: theme.border,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     ...theme.shadows.card,
   },
   walletHeaderRow: {
@@ -1379,34 +1406,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   walletLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.bodySm,
     color: theme.textSecondary,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: theme.typography.weights.semibold,
+    marginBottom: theme.spacing.xs,
   },
   walletAmount: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.kpi,
+    fontWeight: theme.typography.weights.heavy,
     color: theme.textPrimary,
   },
   btnWithdraw: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: PRIMARY_TEAL,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 12,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.primary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.full,
   },
   btnWithdrawText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+    color: theme.white,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
   },
   walletDivider: {
     height: 1,
-    backgroundColor: BORDER_COLOR,
-    marginVertical: 14,
+    backgroundColor: theme.border,
+    marginVertical: theme.spacing.base,
   },
   walletSubRow: {
     flexDirection: 'row',
@@ -1415,33 +1442,33 @@ const styles = StyleSheet.create({
   walletSubCol: {
     flex: 1,
     borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    paddingRight: 10,
+    borderRightColor: theme.border,
+    paddingRight: theme.spacing.sm,
   },
   walletSubColRight: {
     flex: 1,
-    paddingLeft: 12,
+    paddingLeft: theme.spacing.md,
   },
   subColHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   walletSubLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
-    fontWeight: '600',
+    fontWeight: theme.typography.weights.semibold,
   },
   walletSubValueYellow: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#D97706',
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.warning,
   },
   walletSubValueBlue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: PRIMARY_TEAL,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
   },
 
   // Fleet Section (Fleet Tab)
@@ -1449,123 +1476,122 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 16,
-    marginBottom: 12,
+    borderColor: theme.border,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     ...theme.shadows.card,
   },
   fleetHeaderMainTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.subheading,
+    fontWeight: theme.typography.weights.heavy,
     color: theme.textPrimary,
     marginBottom: 2,
   },
   fleetHeaderMainSubtitle: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.weights.medium,
   },
   fleetAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: PRIMARY_TEAL,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: theme.spacing.xs,
+    backgroundColor: theme.primary,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.full,
   },
   fleetAddButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.white,
   },
   fleetFilterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 3,
-    marginBottom: 14,
+    backgroundColor: theme.border,
+    borderRadius: theme.radii.full,
+    padding: theme.spacing.xs,
+    marginBottom: theme.spacing.base,
   },
   fleetFilterPill: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 7,
-    borderRadius: 9,
+    borderRadius: theme.radii.full,
   },
   fleetFilterPillActive: {
-    backgroundColor: CARD_BG,
-    ...theme.shadows.subtle,
+    backgroundColor: theme.primaryLight,
   },
   fleetFilterText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.textSecondary,
   },
   fleetFilterTextActive: {
-    color: PRIMARY_TEAL,
-    fontWeight: '700',
+    color: theme.primaryDark,
+    fontWeight: theme.typography.weights.bold,
   },
   emptyFleetBox: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 32,
+    borderColor: theme.border,
+    padding: theme.spacing['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    ...theme.shadows.subtle,
+    marginTop: theme.spacing.sm,
+    ...theme.shadows.card,
   },
   emptyFleetTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.subheading,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textPrimary,
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
   },
   emptyFleetDesc: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.bodySm,
     color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   emptyFleetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: PRIMARY_TEAL,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radii.full,
   },
   emptyFleetBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.white,
   },
   fleetCard: {
     flexDirection: 'row',
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 12,
-    marginBottom: 10,
+    borderColor: theme.border,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     ...theme.shadows.card,
   },
   fleetThumb: {
     width: 84,
     height: 84,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: theme.radii.base,
+    backgroundColor: theme.border,
   },
   fleetInfoCol: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: theme.spacing.md,
     justifyContent: 'space-between',
   },
   fleetRowTop: {
@@ -1575,94 +1601,99 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   categoryPill: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
+    backgroundColor: theme.border,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: theme.radii.sm,
   },
   categoryPillText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textSecondary,
   },
   statusPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: theme.radii.full,
   },
   statusAvailable: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: theme.successLight,
   },
   statusRented: {
-    backgroundColor: PASTEL_TEAL,
+    backgroundColor: theme.primaryLight,
   },
   statusMaintenance: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.border,
   },
   statusPillText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
   },
   statusTextAvailable: {
-    color: '#059669',
+    color: theme.success,
   },
   statusTextRented: {
-    color: PRIMARY_TEAL,
+    color: theme.primaryDark,
   },
   statusTextMaintenance: {
-    color: '#64748B',
+    color: theme.textSecondary,
   },
   fleetTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textPrimary,
     marginVertical: 2,
   },
   fleetMetaStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
+    gap: 5,
+    marginBottom: theme.spacing.sm,
   },
   fleetPriceText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: PRIMARY_TEAL,
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
   },
   dotSep: {
-    color: '#94A3B8',
-    fontSize: 10,
+    color: theme.textMuted,
+    fontSize: theme.typography.sizes.sm,
   },
   fleetRentalCountText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
   },
+  fleetRatingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
   fleetRatingText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
-    fontWeight: '600',
+    fontWeight: theme.typography.weights.semibold,
   },
   fleetBottomActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 6,
+    borderTopColor: theme.border,
+    paddingTop: theme.spacing.sm,
   },
   accumulatedRevText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
   },
   switchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing.sm,
   },
   switchLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.textSecondary,
   },
 
@@ -1670,54 +1701,54 @@ const styles = StyleSheet.create({
   aiHeaderBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 16,
-    marginBottom: 14,
-    gap: 12,
+    borderColor: theme.border,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.base,
+    gap: theme.spacing.md,
     ...theme.shadows.card,
   },
   aiHeaderIconBadge: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: PASTEL_TEAL,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.aiLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   aiHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.subheading,
+    fontWeight: theme.typography.weights.heavy,
     color: theme.textPrimary,
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   aiHeaderSubtitle: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
     lineHeight: 16,
   },
   aiToolsGrid: {
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 20,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.xl,
   },
   aiToolCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    padding: 14,
-    gap: 12,
+    borderColor: theme.border,
+    padding: theme.spacing.base,
+    gap: theme.spacing.md,
     ...theme.shadows.card,
   },
   aiIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1727,27 +1758,27 @@ const styles = StyleSheet.create({
   aiCardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
     marginBottom: 2,
   },
   aiTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
     color: theme.textPrimary,
   },
   aiActiveBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
+    backgroundColor: theme.warningLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radii.full,
   },
   aiActiveBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#D97706',
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.warning,
   },
   aiDesc: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.caption,
     color: theme.textSecondary,
     lineHeight: 16,
     marginTop: 2,
@@ -1755,12 +1786,12 @@ const styles = StyleSheet.create({
   aiActionLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 8,
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
   },
   aiActionLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: PRIMARY_TEAL,
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
   },
 });

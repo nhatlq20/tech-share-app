@@ -1,11 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Period, RevenueData } from '../../data/ownerAnalyticsMock';
-
-const PRIMARY_TEAL = '#67BEC3'; // brand-500
-const BRAND_DARK = '#286E74'; // brand-800
-const TEXT_SECONDARY = '#64748B'; // Slate-500
-const BORDER_SUBTLE = '#F1F5F9';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 type RevenueChartProps = {
   data: RevenueData[];
@@ -18,20 +14,25 @@ export function RevenueChart({ data, period }: RevenueChartProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.caption}>
-        {period === 'week' ? 'Biến động doanh thu theo ngày' : 'Biến động doanh thu theo tuần'}
+        {period === 'week'
+          ? STRINGS.ANALYTICS.CHART_DAILY_LABEL
+          : STRINGS.ANALYTICS.CHART_WEEKLY_LABEL}
       </Text>
       <View style={styles.chart}>
         {data.map((item) => {
-          const barHeight = Math.max((item.revenue / highestRevenue) * 112, 6);
+          const barHeight = Math.max(
+            (item.revenue / highestRevenue) * CONFIG.CHART.MAX_BAR_HEIGHT,
+            CONFIG.CHART.MIN_BAR_HEIGHT,
+          );
 
           return (
             <View key={item.label} style={styles.barColumn}>
               <Text style={styles.valueLabel} numberOfLines={1}>
-                {item.revenue >= 1000000
-                  ? `${(item.revenue / 1000000).toFixed(1)}M`
+                {item.revenue >= CONFIG.CURRENCY.MILLION_THRESHOLD
+                  ? `${(item.revenue / CONFIG.CURRENCY.MILLION_THRESHOLD).toFixed(CONFIG.CURRENCY.DECIMAL_PLACES_SHORT)}${STRINGS.COMMON.MILLION_SUFFIX}`
                   : item.revenue > 0
-                  ? `${Math.round(item.revenue / 1000)}k`
-                  : '0'}
+                  ? `${Math.round(item.revenue / CONFIG.CURRENCY.THOUSAND_THRESHOLD)}${STRINGS.COMMON.THOUSAND_SUFFIX}`
+                  : STRINGS.COMMON.ZERO}
               </Text>
               <View style={styles.barTrack}>
                 <View style={[styles.bar, { height: barHeight }]} />
@@ -49,29 +50,25 @@ export function RevenueChart({ data, period }: RevenueChartProps) {
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    padding: theme.spacing.lg,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: theme.border,
+    ...theme.shadows.card,
   },
   caption: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    marginBottom: 12,
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
+    marginBottom: theme.spacing.md,
   },
   chart: {
-    height: 164,
+    height: CONFIG.CHART.ANALYTICS_HEIGHT,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: theme.spacing.xs + 2,
   },
   barColumn: {
     flex: 1,
@@ -83,32 +80,32 @@ const styles = StyleSheet.create({
   valueLabel: {
     width: '100%',
     textAlign: 'center',
-    fontSize: 9,
-    fontWeight: '700',
-    color: BRAND_DARK,
-    marginBottom: 4,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
+    marginBottom: theme.spacing.xs,
   },
   barTrack: {
     width: '65%',
-    height: 116,
+    height: CONFIG.CHART.TRACK_HEIGHT,
     justifyContent: 'flex-end',
-    backgroundColor: '#F1F5F9',
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+    backgroundColor: theme.border,
+    borderTopLeftRadius: theme.radii.sm,
+    borderTopRightRadius: theme.radii.sm,
     overflow: 'hidden',
   },
   bar: {
     width: '100%',
-    backgroundColor: PRIMARY_TEAL,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+    backgroundColor: theme.primary,
+    borderTopLeftRadius: theme.radii.sm,
+    borderTopRightRadius: theme.radii.sm,
   },
   axisLabel: {
     width: '100%',
     textAlign: 'center',
-    fontSize: 10,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    marginTop: 6,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
+    marginTop: theme.spacing.xs + 2,
   },
 });

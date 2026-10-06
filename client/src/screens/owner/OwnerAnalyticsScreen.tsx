@@ -27,19 +27,21 @@ import {
   ownerAnalyticsService,
 } from '../../services/ownerAnalyticsService';
 import type { Period, RentalPayment, RevenueData } from '../../data/ownerAnalyticsMock';
+import { colors } from '../../theme/colors';
 
-// ── DESIGN TOKENS (theme-skill.md) ──
-const PRIMARY_TEAL = '#67BEC3'; // brand-500
-const PASTEL_TEAL = '#E8F6F7'; // brand-100
-const BRAND_DARK = '#286E74'; // brand-800
-const BG_SLATE = '#F8FAFC'; // background Slate-50
-const CARD_BG = '#FFFFFF'; // surface / card
-const BORDER_SUBTLE = '#F1F5F9'; // border Slate-100
-const BORDER_COLOR = '#E2E8F0'; // border Slate-200
-const TEXT_PRIMARY = '#0F172A'; // Slate-900
-const TEXT_SECONDARY = '#64748B'; // Slate-500
-const TEXT_MUTED = '#94A3B8'; // Slate-400
-const DANGER_RED = '#EF4444';
+// ── DESIGN TOKENS (theme-skill.md via theme/colors) ──
+const palette = colors.light;
+const PRIMARY_TEAL = palette.primary;
+const PASTEL_TEAL = palette.primaryLight;
+const BRAND_DARK = palette.primaryDark;
+const BG_SLATE = palette.background;
+const CARD_BG = palette.surface;
+const BORDER_SUBTLE = palette.border;
+const BORDER_COLOR = palette.borderDefault;
+const TEXT_PRIMARY = palette.textPrimary;
+const TEXT_SECONDARY = palette.textSecondary;
+const TEXT_MUTED = palette.textMuted;
+const DANGER_RED = palette.danger;
 
 const VN_WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 

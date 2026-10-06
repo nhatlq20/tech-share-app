@@ -2,14 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RentalPayment } from '../../data/ownerAnalyticsMock';
-
-const PRIMARY_TEAL = '#67BEC3'; // brand-500
-const PASTEL_TEAL = '#E8F6F7'; // brand-100
-const TEXT_PRIMARY = '#0F172A'; // Slate-900
-const TEXT_SECONDARY = '#64748B'; // Slate-500
-const TEXT_MUTED = '#94A3B8'; // Slate-400
-const SUCCESS_GREEN = '#10B981';
-const BORDER_SUBTLE = '#F1F5F9';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 type RentalPaymentItemProps = {
   payment: RentalPayment;
@@ -19,21 +12,23 @@ export function RentalPaymentItem({ payment }: RentalPaymentItemProps) {
   return (
     <View style={styles.card}>
       <View style={styles.iconBox}>
-        <Ionicons name="receipt-outline" size={18} color={PRIMARY_TEAL} />
+        <Ionicons name="receipt-outline" size={18} color={theme.primary} />
       </View>
       <View style={styles.details}>
         <Text style={styles.deviceName} numberOfLines={1}>
           {payment.deviceName}
         </Text>
         <Text style={styles.renterName} numberOfLines={1}>
-          Khách thuê: {payment.renterName}
+          {STRINGS.ANALYTICS.RENTER_PREFIX}{payment.renterName}
         </Text>
         <Text style={styles.date}>{payment.date}</Text>
       </View>
       <View style={styles.amountColumn}>
-        <Text style={styles.amount}>+{payment.amount.toLocaleString('vi-VN')} đ</Text>
+        <Text style={styles.amount}>
+          +{payment.amount.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
+        </Text>
         <View style={styles.statusPill}>
-          <Text style={styles.statusText}>Hoàn tất</Text>
+          <Text style={styles.statusText}>{STRINGS.ANALYTICS.STATUS_COMPLETED}</Text>
         </View>
       </View>
     </View>
@@ -44,17 +39,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    gap: theme.spacing.md,
+    padding: theme.spacing.base,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: theme.border,
+    ...theme.shadows.subtle,
   },
   iconBox: {
     width: 38,
@@ -62,26 +53,26 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: PASTEL_TEAL,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.primaryLight,
   },
   details: {
     flex: 1,
     minWidth: 0,
   },
   deviceName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   renterName: {
-    fontSize: 11,
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.caption,
+    color: theme.textSecondary,
     marginTop: 2,
   },
   date: {
-    fontSize: 10,
-    color: TEXT_MUTED,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textMuted,
     marginTop: 2,
   },
   amountColumn: {
@@ -89,20 +80,20 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   amount: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: SUCCESS_GREEN,
-    marginBottom: 4,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
+    marginBottom: theme.spacing.xs,
   },
   statusPill: {
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 9999,
+    backgroundColor: theme.successLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.radii.full,
   },
   statusText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
   },
 });

@@ -1,13 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const PRIMARY_TEAL = '#67BEC3'; // brand-500
-const PASTEL_TEAL = '#E8F6F7'; // brand-100
-const TEXT_PRIMARY = '#0F172A'; // Slate-900
-const TEXT_SECONDARY = '#64748B'; // Slate-500
-const SUCCESS_GREEN = '#10B981';
-const BORDER_SUBTLE = '#F1F5F9';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 type RevenueSummaryProps = {
   totalRevenue: number;
@@ -19,24 +13,26 @@ export function RevenueSummary({ totalRevenue, revenueChange }: RevenueSummaryPr
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.iconBox}>
-          <Ionicons name="wallet-outline" size={20} color={PRIMARY_TEAL} />
+          <Ionicons name="wallet-outline" size={20} color={theme.primary} />
         </View>
-        <Text style={styles.label}>Tổng Doanh Thu Tích Lũy</Text>
+        <Text style={styles.label}>{STRINGS.ANALYTICS.TOTAL_REVENUE}</Text>
       </View>
-      <Text style={styles.amount}>{totalRevenue.toLocaleString('vi-VN')} đ</Text>
+      <Text style={styles.amount}>
+        {totalRevenue.toLocaleString(CONFIG.CURRENCY.LOCALE)} {CONFIG.COMMON.CURRENCY_SUFFIX}
+      </Text>
       <View style={styles.changeRow}>
         <View style={styles.badgePill}>
-          <Ionicons name="trending-up" size={14} color={SUCCESS_GREEN} />
+          <Ionicons name="trending-up" size={14} color={theme.success} />
           <Text style={styles.badgeText}>
             {revenueChange === undefined
-              ? 'Tăng trưởng ổn định'
-              : `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`}
+              ? STRINGS.ANALYTICS.REVENUE_GROWTH_STABLE
+              : STRINGS.ANALYTICS.REVENUE_GROWTH_PCT(revenueChange)}
           </Text>
         </View>
         <Text style={styles.changeText}>
           {revenueChange === undefined
-            ? 'Doanh thu thuần từ các đơn thuê hoàn tất'
-            : 'so với chu kỳ trước'}
+            ? STRINGS.ANALYTICS.REVENUE_GROWTH_SUB_DEFAULT
+            : STRINGS.ANALYTICS.REVENUE_GROWTH_SUB_COMPARE}
         </Text>
       </View>
     </View>
@@ -45,69 +41,64 @@ export function RevenueSummary({ totalRevenue, revenueChange }: RevenueSummaryPr
 
 const styles = StyleSheet.create({
   card: {
-    padding: 18,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    padding: theme.spacing.lg + 2,
+    backgroundColor: theme.surface,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 4,
+    borderColor: theme.border,
+    marginBottom: theme.spacing.xs,
+    ...theme.shadows.card,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: theme.spacing.md - 2,
   },
   iconBox: {
     width: 38,
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: PASTEL_TEAL,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.primaryLight,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   amount: {
-    color: TEXT_PRIMARY,
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 12,
+    color: theme.textPrimary,
+    fontSize: theme.typography.sizes.hero,
+    fontWeight: theme.typography.weights.heavy,
+    marginTop: theme.spacing.md,
   },
   changeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
-    borderTopColor: BORDER_SUBTLE,
+    borderTopColor: theme.border,
   },
   badgePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 9999,
-    backgroundColor: '#ECFDF5',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs - 1,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.successLight,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: SUCCESS_GREEN,
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.success,
   },
   changeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: TEXT_SECONDARY,
     flex: 1,
+    fontSize: theme.typography.sizes.caption,
+    color: theme.textSecondary,
   },
 });
