@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { pickIdCardImage, ekycService } from '../../services/ekycService';
 import { EkycItem } from '../../types';
 
@@ -79,7 +80,7 @@ export function EkycSubmitModal({
       const uploadedUrl = await ekycService.uploadImage(picked);
       setFrontUrl(uploadedUrl);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to upload front ID card photo.');
+      setErrorMsg(err.message || STRINGS.EKYC_MODAL.UPLOAD_FRONT_FAILED);
     } finally {
       setUploadingFront(false);
     }
@@ -95,7 +96,7 @@ export function EkycSubmitModal({
       const uploadedUrl = await ekycService.uploadImage(picked);
       setBackUrl(uploadedUrl);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to upload back ID card photo.');
+      setErrorMsg(err.message || STRINGS.EKYC_MODAL.UPLOAD_BACK_FAILED);
     } finally {
       setUploadingBack(false);
     }
@@ -104,33 +105,33 @@ export function EkycSubmitModal({
   const handleSubmit = async () => {
     const trimmedNumber = idCardNumber.trim();
     if (!trimmedNumber) {
-      setErrorMsg('Please enter your Citizen ID Card (CCCD) number.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_CARD_NUMBER_REQUIRED);
       return;
     }
 
     if (trimmedNumber.length < 9 || trimmedNumber.length > 12) {
-      setErrorMsg('ID Card number must be between 9 and 12 digits.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_CARD_NUMBER_LENGTH);
       return;
     }
 
     const trimmedAddress = address.trim();
     if (!trimmedAddress) {
-      setErrorMsg('Please enter your residential address.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_ADDRESS_REQUIRED);
       return;
     }
 
     if (trimmedAddress.length < 5) {
-      setErrorMsg('Address is too short. Please provide detailed street, ward, and district.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_ADDRESS_SHORT);
       return;
     }
 
     if (!frontUrl) {
-      setErrorMsg('Please upload the front photo of your ID card.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_FRONT_REQUIRED);
       return;
     }
 
     if (!backUrl) {
-      setErrorMsg('Please upload the back photo of your ID card.');
+      setErrorMsg(STRINGS.EKYC_MODAL.ERROR_BACK_REQUIRED);
       return;
     }
 
@@ -147,17 +148,17 @@ export function EkycSubmitModal({
 
       if (res && res.success) {
         Alert.alert(
-          'eKYC Submitted Successfully! 🎉',
+          STRINGS.EKYC_MODAL.ALERT_SUBMIT_SUCCESS_TITLE,
           verificationPurpose === 'renter'
-            ? 'Your identity verification request has been submitted to admins for manual review. Once approved, you will be able to rent devices.'
-            : 'Your identity verification request has been submitted for review. Once approved, your account will receive a Verified Badge and unlock Owner privileges.'
+            ? STRINGS.EKYC_MODAL.ALERT_SUBMIT_SUCCESS_RENTER
+            : STRINGS.EKYC_MODAL.ALERT_SUBMIT_SUCCESS_OWNER
         );
         onSuccess(res.ekyc);
         onClose();
       }
     } catch (err: any) {
       setErrorMsg(
-        err?.response?.data?.message || err.message || 'Failed to submit eKYC. Please try again.'
+        err?.response?.data?.message || err.message || STRINGS.EKYC_MODAL.ERROR_DEFAULT_SUBMIT
       );
     } finally {
       setSubmitting(false);
@@ -184,11 +185,11 @@ export function EkycSubmitModal({
                 <Ionicons name="id-card" size={20} color={colors.light.primary} />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Digital Identity Verification (eKYC)</Text>
+                <Text style={styles.modalTitle}>{STRINGS.EKYC_MODAL.TITLE}</Text>
                 <Text style={styles.modalSubtitle}>
                   {verificationPurpose === 'renter'
-                    ? 'Verify real identity to rent equipment'
-                    : 'Upgrade to Owner & Get Verified Badge'}
+                    ? STRINGS.EKYC_MODAL.SUBTITLE_RENTER
+                    : STRINGS.EKYC_MODAL.SUBTITLE_OWNER}
                 </Text>
               </View>
             </View>
@@ -203,9 +204,9 @@ export function EkycSubmitModal({
               <View style={styles.rejectBanner}>
                 <Ionicons name="alert-circle" size={18} color={colors.light.error} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rejectBannerTitle}>Previous submission was rejected</Text>
+                  <Text style={styles.rejectBannerTitle}>{STRINGS.EKYC_MODAL.PREV_REJECTED_TITLE}</Text>
                   <Text style={styles.rejectBannerReason}>
-                    Reason: {currentEkyc.rejectReason}. Please retake clear photos and resubmit.
+                    {STRINGS.EKYC_MODAL.REJECT_REASON_PREFIX(currentEkyc.rejectReason)}
                   </Text>
                 </View>
               </View>
@@ -226,20 +227,20 @@ export function EkycSubmitModal({
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="lock-closed" size={14} color={colors.light.primary} />
                 <Text style={styles.sectionHeadingTitle}>
-                  ACCOUNT INFORMATION (AUTO-SYNCED)
+                  {STRINGS.EKYC_MODAL.ACCOUNT_INFO_TITLE}
                 </Text>
               </View>
               <Text style={styles.sectionSubDesc}>
-                System automatically syncs details from your account and prevents edits here for verification integrity.
+                {STRINGS.EKYC_MODAL.ACCOUNT_INFO_DESC}
               </Text>
 
               {/* Full name */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <Text style={styles.inputLabel}>{STRINGS.EKYC_MODAL.FULL_NAME_LABEL}</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
+                    <Text style={styles.readOnlyBadgeText}>{STRINGS.EKYC_MODAL.FIXED_BADGE}</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -248,7 +249,7 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.name || 'Name not updated'}
+                    value={currentUser?.name || STRINGS.EKYC_MODAL.NAME_NOT_UPDATED}
                     editable={false}
                   />
                 </View>
@@ -257,10 +258,10 @@ export function EkycSubmitModal({
               {/* Email */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <Text style={styles.inputLabel}>{STRINGS.EKYC_MODAL.EMAIL_LABEL}</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
+                    <Text style={styles.readOnlyBadgeText}>{STRINGS.EKYC_MODAL.FIXED_BADGE}</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -269,7 +270,7 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.email || 'Email not updated'}
+                    value={currentUser?.email || STRINGS.EKYC_MODAL.EMAIL_NOT_UPDATED}
                     editable={false}
                   />
                 </View>
@@ -278,10 +279,10 @@ export function EkycSubmitModal({
               {/* Phone number */}
               <View style={[styles.inputGroup, { marginBottom: 4 }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Phone Number</Text>
+                  <Text style={styles.inputLabel}>{STRINGS.EKYC_MODAL.PHONE_LABEL}</Text>
                   <View style={styles.readOnlyBadge}>
                     <Ionicons name="lock-closed" size={10} color={colors.light.textSecondary} />
-                    <Text style={styles.readOnlyBadgeText}>Fixed</Text>
+                    <Text style={styles.readOnlyBadgeText}>{STRINGS.EKYC_MODAL.FIXED_BADGE}</Text>
                   </View>
                 </View>
                 <View style={[styles.inputWrap, styles.inputWrapDisabled]}>
@@ -290,7 +291,7 @@ export function EkycSubmitModal({
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputDisabled]}
-                    value={currentUser?.phone || 'Phone not updated'}
+                    value={currentUser?.phone || STRINGS.EKYC_MODAL.PHONE_NOT_UPDATED}
                     editable={false}
                   />
                 </View>
@@ -303,22 +304,22 @@ export function EkycSubmitModal({
             <View style={[styles.sectionCard, { marginTop: 14 }]}>
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="create-outline" size={15} color={colors.light.primary} />
-                <Text style={styles.sectionHeadingTitle}>ADDITIONAL IDENTIFICATION DETAILS</Text>
+                <Text style={styles.sectionHeadingTitle}>{STRINGS.EKYC_MODAL.ADDITIONAL_ID_TITLE}</Text>
               </View>
               <Text style={styles.sectionSubDesc}>
-                Please enter your ID card number and current residential address accurately.
+                {STRINGS.EKYC_MODAL.ADDITIONAL_ID_DESC}
               </Text>
 
               {/* ID Card Number */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>National ID / CCCD Number *</Text>
+                <Text style={styles.inputLabel}>{STRINGS.EKYC_MODAL.NATIONAL_ID_LABEL}</Text>
                 <View style={styles.inputWrap}>
                   <View style={styles.inputIconBox}>
                     <Ionicons name="card-outline" size={18} color={colors.light.textSecondary} />
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Enter 9-12 digit ID number (e.g. 079204001234)"
+                    placeholder={STRINGS.EKYC_MODAL.NATIONAL_ID_PLACEHOLDER}
                     placeholderTextColor={colors.light.textSecondary}
                     keyboardType="numeric"
                     maxLength={12}
@@ -333,14 +334,14 @@ export function EkycSubmitModal({
 
               {/* Residential Address */}
               <View style={[styles.inputGroup, { marginBottom: 4 }]}>
-                <Text style={styles.inputLabel}>Residential Address (Permanent / Current) *</Text>
+                <Text style={styles.inputLabel}>{STRINGS.EKYC_MODAL.RESIDENTIAL_ADDRESS_LABEL}</Text>
                 <View style={[styles.inputWrap, styles.inputWrapMultiline]}>
                   <View style={[styles.inputIconBox, { marginTop: 4 }]}>
                     <Ionicons name="home-outline" size={18} color={colors.light.textSecondary} />
                   </View>
                   <TextInput
                     style={[styles.textInput, styles.textInputMultiline]}
-                    placeholder="e.g. 123 Nguyen Hue St, Ben Nghe Ward, District 1, Ho Chi Minh City"
+                    placeholder={STRINGS.EKYC_MODAL.RESIDENTIAL_ADDRESS_PLACEHOLDER}
                     placeholderTextColor={colors.light.textSecondary}
                     value={address}
                     multiline
@@ -361,16 +362,16 @@ export function EkycSubmitModal({
               {/* Upload Front Photo */}
               <View style={styles.uploadSection}>
                 <View style={styles.uploadHeaderRow}>
-                  <Text style={styles.uploadLabel}>1. ID Card Front Photo *</Text>
+                  <Text style={styles.uploadLabel}>{STRINGS.EKYC_MODAL.FRONT_TITLE}</Text>
                   {frontUrl ? (
                     <View style={styles.verifiedChip}>
                       <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                      <Text style={styles.verifiedChipText}>Uploaded</Text>
+                      <Text style={styles.verifiedChipText}>{STRINGS.EKYC_MODAL.UPLOADED_BADGE}</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={styles.uploadHelper}>
-                  Clearly capture ID number, full name, date of birth, emblem, and portrait photo.
+                  {STRINGS.EKYC_MODAL.FRONT_HELPER}
                 </Text>
 
                 {frontUrl ? (
@@ -381,8 +382,8 @@ export function EkycSubmitModal({
                       onPress={handlePickFront}
                       disabled={uploadingFront}
                     >
-                      <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                      <Text style={styles.btnChangeImageText}>Change photo</Text>
+                      <Ionicons name="camera-reverse" size={14} color={colors.light.white} />
+                      <Text style={styles.btnChangeImageText}>{STRINGS.EKYC_MODAL.CHANGE_PHOTO}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -395,15 +396,15 @@ export function EkycSubmitModal({
                     {uploadingFront ? (
                       <View style={styles.uploadLoadingCol}>
                         <ActivityIndicator size="small" color={colors.light.primary} />
-                        <Text style={styles.uploadLoadingText}>Uploading photo...</Text>
+                        <Text style={styles.uploadLoadingText}>{STRINGS.EKYC_MODAL.UPLOADING_PHOTO}</Text>
                       </View>
                     ) : (
                       <View style={styles.uploadPlaceholderCol}>
                         <View style={styles.uploadIconCircle}>
                           <Ionicons name="camera" size={24} color={colors.light.primary} />
                         </View>
-                        <Text style={styles.uploadBtnText}>Capture or select Front ID Photo</Text>
-                        <Text style={styles.uploadBtnSubText}>JPG, PNG format (max 10MB)</Text>
+                        <Text style={styles.uploadBtnText}>{STRINGS.EKYC_MODAL.CAPTURE_FRONT_TEXT}</Text>
+                        <Text style={styles.uploadBtnSubText}>{STRINGS.EKYC_MODAL.FORMAT_HINT}</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -413,16 +414,16 @@ export function EkycSubmitModal({
               {/* Upload Back Photo */}
               <View style={styles.uploadSection}>
                 <View style={styles.uploadHeaderRow}>
-                  <Text style={styles.uploadLabel}>2. ID Card Back Photo *</Text>
+                  <Text style={styles.uploadLabel}>{STRINGS.EKYC_MODAL.BACK_TITLE}</Text>
                   {backUrl ? (
                     <View style={styles.verifiedChip}>
                       <Ionicons name="checkmark-circle" size={12} color={colors.light.success} />
-                      <Text style={styles.verifiedChipText}>Uploaded</Text>
+                      <Text style={styles.verifiedChipText}>{STRINGS.EKYC_MODAL.UPLOADED_BADGE}</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={styles.uploadHelper}>
-                  Clearly capture fingerprints, identifying features, issue date, and MRZ code.
+                  {STRINGS.EKYC_MODAL.BACK_HELPER}
                 </Text>
 
                 {backUrl ? (
@@ -433,8 +434,8 @@ export function EkycSubmitModal({
                       onPress={handlePickBack}
                       disabled={uploadingBack}
                     >
-                      <Ionicons name="camera-reverse" size={14} color="#FFFFFF" />
-                      <Text style={styles.btnChangeImageText}>Change photo</Text>
+                      <Ionicons name="camera-reverse" size={14} color={colors.light.white} />
+                      <Text style={styles.btnChangeImageText}>{STRINGS.EKYC_MODAL.CHANGE_PHOTO}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -447,15 +448,15 @@ export function EkycSubmitModal({
                     {uploadingBack ? (
                       <View style={styles.uploadLoadingCol}>
                         <ActivityIndicator size="small" color={colors.light.primary} />
-                        <Text style={styles.uploadLoadingText}>Uploading photo...</Text>
+                        <Text style={styles.uploadLoadingText}>{STRINGS.EKYC_MODAL.UPLOADING_PHOTO}</Text>
                       </View>
                     ) : (
                       <View style={styles.uploadPlaceholderCol}>
                         <View style={styles.uploadIconCircle}>
                           <Ionicons name="camera" size={24} color={colors.light.primary} />
                         </View>
-                        <Text style={styles.uploadBtnText}>Capture or select Back ID Photo</Text>
-                        <Text style={styles.uploadBtnSubText}>JPG, PNG format (max 10MB)</Text>
+                        <Text style={styles.uploadBtnText}>{STRINGS.EKYC_MODAL.CAPTURE_BACK_TEXT}</Text>
+                        <Text style={styles.uploadBtnSubText}>{STRINGS.EKYC_MODAL.FORMAT_HINT}</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -467,20 +468,20 @@ export function EkycSubmitModal({
             <View style={styles.policyNoticeBox}>
               <View style={styles.policyHeaderRow}>
                 <Ionicons name="shield-checkmark" size={16} color={colors.light.primary} />
-                <Text style={styles.policyTitle}>Review & Privacy Policy:</Text>
+                <Text style={styles.policyTitle}>{STRINGS.EKYC_MODAL.POLICY_TITLE}</Text>
               </View>
               <Text style={styles.policyText}>
-                • Your eKYC submission will be manually reviewed and matched against official records by TechShare admins.
+                {STRINGS.EKYC_MODAL.POLICY_ITEM_1}
               </Text>
               <Text style={[styles.policyText, { marginTop: 4 }]}>
-                • Upon successful approval, your account receives a{' '}
-                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Verified Badge</Text>{' '}
-                and unlocks{' '}
-                <Text style={{ fontWeight: '700', color: colors.light.primary }}>Owner</Text>{' '}
-                capabilities to list equipment.
+                {STRINGS.EKYC_MODAL.POLICY_ITEM_2_PREFIX}
+                <Text style={{ fontWeight: '700', color: colors.light.primary }}>{STRINGS.EKYC_MODAL.POLICY_ITEM_2_BADGE}</Text>
+                {STRINGS.EKYC_MODAL.POLICY_ITEM_2_MID}
+                <Text style={{ fontWeight: '700', color: colors.light.primary }}>{STRINGS.EKYC_MODAL.POLICY_ITEM_2_OWNER}</Text>
+                {STRINGS.EKYC_MODAL.POLICY_ITEM_2_SUFFIX}
               </Text>
               <Text style={[styles.policyText, { marginTop: 4 }]}>
-                • ID number and photos are strictly encrypted and used solely for identity verification.
+                {STRINGS.EKYC_MODAL.POLICY_ITEM_3}
               </Text>
             </View>
           </ScrollView>
@@ -494,11 +495,11 @@ export function EkycSubmitModal({
               activeOpacity={0.85}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={colors.light.white} />
               ) : (
                 <View style={styles.btnContentRow}>
-                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnSubmitText}>SUBMIT eKYC VERIFICATION</Text>
+                  <Ionicons name="paper-plane" size={18} color={colors.light.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.btnSubmitText}>{STRINGS.EKYC_MODAL.SUBMIT_EKYC_BTN}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -566,9 +567,9 @@ const styles = StyleSheet.create({
   rejectBanner: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.light.dangerLight,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -580,7 +581,7 @@ const styles = StyleSheet.create({
   },
   rejectBannerReason: {
     fontSize: 11,
-    color: '#991B1B',
+    color: colors.light.error,
     marginTop: 2,
     lineHeight: 16,
   },
@@ -588,7 +589,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.light.dangerLight,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -644,7 +645,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -665,8 +666,8 @@ const styles = StyleSheet.create({
     height: 46,
   },
   inputWrapDisabled: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.light.background,
+    borderColor: colors.light.borderDefault,
   },
   inputWrapMultiline: {
     height: 72,
@@ -682,7 +683,7 @@ const styles = StyleSheet.create({
     color: colors.light.textPrimary,
   },
   textInputDisabled: {
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   textInputMultiline: {
     textAlignVertical: 'top',
@@ -706,7 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -726,7 +727,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: colors.light.primary,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     borderRadius: 12,
     paddingVertical: 20,
     alignItems: 'center',
@@ -791,14 +792,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   btnChangeImageText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 11,
     fontWeight: '600',
   },
   policyNoticeBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
   },
   policyText: {
     fontSize: 11,
-    color: '#1E40AF',
+    color: colors.light.primaryDark,
     lineHeight: 16,
   },
   modalFooter: {
@@ -836,7 +837,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   btnSubmitDisabled: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: colors.light.borderDefault,
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -846,7 +847,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSubmitText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,

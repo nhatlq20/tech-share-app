@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { Booking } from '../../services/bookingService';
 import { reviewService } from '../../services/reviewService';
 
@@ -25,37 +26,6 @@ interface ReviewModalProps {
   onSuccess: () => void;
 }
 
-const RATING_LABELS: Record<number, string> = {
-  1: 'Rất tệ 😡',
-  2: 'Không hài lòng 🙁',
-  3: 'Bình thường 😐',
-  4: 'Hài lòng 😊',
-  5: 'Rất tuyệt vời 🤩',
-};
-
-const OWNER_RATING_LABELS: Record<number, string> = {
-  1: 'Giao trễ / Thái độ kém',
-  2: 'Chưa nhiệt tình',
-  3: 'Đúng hẹn',
-  4: 'Nhiệt tình & thân thiện',
-  5: 'Xuất sắc & tận tâm ⭐',
-};
-
-const DEVICE_TAGS = [
-  'Máy hoạt động mượt mà',
-  'Ngoại hình máy như mới',
-  'Pin dùng lâu',
-  'Đầy đủ phụ kiện',
-  'Đúng với mô tả',
-];
-
-const OWNER_TAGS = [
-  'Chủ máy rất nhiệt tình',
-  'Giao nhận đúng hẹn',
-  'Hỗ trợ kỹ thuật chu đáo',
-  'Thủ tục nhanh gọn',
-];
-
 export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModalProps) {
   const [deviceRating, setDeviceRating] = useState(5);
   const [deviceComment, setDeviceComment] = useState('');
@@ -63,9 +33,9 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
   const [ownerFeedback, setOwnerFeedback] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const deviceName = booking?.deviceId?.name || 'Thiết bị';
+  const deviceName = booking?.deviceId?.name || STRINGS.REVIEW_MODAL.DEFAULT_DEVICE_NAME;
   const deviceImage = booking?.deviceId?.images?.[0] || 'https://via.placeholder.com/150';
-  const ownerName = booking?.ownerId?.name || 'Chủ thiết bị';
+  const ownerName = booking?.ownerId?.name || STRINGS.REVIEW_MODAL.DEFAULT_OWNER_NAME;
 
   const toggleDeviceTag = (tag: string) => {
     if (deviceComment.includes(tag)) {
@@ -97,7 +67,7 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
     if (!booking) return;
 
     if (!deviceComment.trim()) {
-      Alert.alert('Chưa hoàn tất', 'Vui lòng chia sẻ đôi lời nhận xét về sản phẩm bạn đã thuê.');
+      Alert.alert(STRINGS.REVIEW_MODAL.INCOMPLETE_ALERT_TITLE, STRINGS.REVIEW_MODAL.INCOMPLETE_ALERT_MSG);
       return;
     }
 
@@ -112,11 +82,11 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
       });
 
       Alert.alert(
-        'Đánh giá thành công! 🎉',
-        'Cảm ơn bạn đã đóng góp ý kiến giúp cộng đồng TechShare ngày một tốt hơn.',
+        STRINGS.REVIEW_MODAL.SUCCESS_ALERT_TITLE,
+        STRINGS.REVIEW_MODAL.SUCCESS_ALERT_MSG,
         [
           {
-            text: 'Tuyệt vời',
+            text: STRINGS.REVIEW_MODAL.ALERT_BUTTON_AWESOME,
             onPress: () => {
               onClose();
               onSuccess();
@@ -125,8 +95,8 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
         ]
       );
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Không thể gửi đánh giá lúc này';
-      Alert.alert('Lỗi', msg);
+      const msg = error.response?.data?.message || STRINGS.REVIEW_MODAL.ERROR_DEFAULT;
+      Alert.alert(STRINGS.COMMON.ERROR, msg);
     } finally {
       setLoading(false);
     }
@@ -145,11 +115,11 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <View style={styles.headerIcon}>
-                <Ionicons name="star" size={20} color="#F59E0B" />
+                <Ionicons name="star" size={20} color={colors.light.warning} />
               </View>
               <View>
-                <Text style={styles.title}>Đánh giá & Phản hồi</Text>
-                <Text style={styles.subtitle}>Đơn thuê #{booking.bookingCode}</Text>
+                <Text style={styles.title}>{STRINGS.REVIEW_MODAL.TITLE}</Text>
+                <Text style={styles.subtitle}>{STRINGS.REVIEW_MODAL.ORDER_PREFIX}{booking.bookingCode}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -166,7 +136,7 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
                   {deviceName}
                 </Text>
                 <Text style={styles.ownerText}>
-                  Chủ máy: <Text style={{ fontWeight: '700' }}>{ownerName}</Text>
+                  {STRINGS.REVIEW_MODAL.OWNER_PREFIX}<Text style={{ fontWeight: '700' }}>{ownerName}</Text>
                 </Text>
               </View>
             </View>
@@ -175,10 +145,10 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="hardware-chip-outline" size={18} color={colors.light.primary} />
-                <Text style={styles.sectionTitle}>1. Đánh giá chất lượng thiết bị</Text>
+                <Text style={styles.sectionTitle}>{STRINGS.REVIEW_MODAL.DEVICE_SECTION_TITLE}</Text>
               </View>
               <Text style={styles.sectionSubtitle}>
-                Chất lượng hoạt động, ngoại hình và sự chính xác so với mô tả
+                {STRINGS.REVIEW_MODAL.DEVICE_SECTION_SUBTITLE}
               </Text>
 
               {/* Star selector */}
@@ -193,16 +163,16 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
                     <Ionicons
                       name={star <= deviceRating ? 'star' : 'star-outline'}
                       size={32}
-                      color={star <= deviceRating ? '#F59E0B' : '#CBD5E1'}
+                      color={star <= deviceRating ? colors.light.warning : colors.light.borderDefault}
                     />
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={styles.ratingTextLabel}>{RATING_LABELS[deviceRating]}</Text>
+              <Text style={styles.ratingTextLabel}>{STRINGS.REVIEW_MODAL.RATING_LABELS[deviceRating]}</Text>
 
               {/* Quick tags */}
               <View style={styles.tagsContainer}>
-                {DEVICE_TAGS.map((tag) => {
+                {STRINGS.REVIEW_MODAL.DEVICE_TAGS.map((tag) => {
                   const isSelected = deviceComment.includes(tag);
                   return (
                     <TouchableOpacity
@@ -221,7 +191,7 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
               {/* Device comment input */}
               <TextInput
                 style={styles.textInput}
-                placeholder="Viết cảm nhận chi tiết về thiết bị (độ nét, pin, tính năng...)"
+                placeholder={STRINGS.REVIEW_MODAL.DEVICE_COMMENT_PLACEHOLDER}
                 placeholderTextColor={colors.light.textSecondary}
                 value={deviceComment}
                 onChangeText={setDeviceComment}
@@ -233,13 +203,13 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
             {/* ── SECTION 2: ĐÁNH GIÁ DỊCH VỤ CỦA CHỦ MÁY ── */}
             <View style={[styles.section, styles.ownerSection]}>
               <View style={styles.sectionHeaderRow}>
-                <Ionicons name="person-circle-outline" size={18} color="#0D9488" />
-                <Text style={[styles.sectionTitle, { color: '#0F766E' }]}>
-                  2. Đánh giá dịch vụ của người cho thuê
+                <Ionicons name="person-circle-outline" size={18} color={colors.light.primaryDark} />
+                <Text style={[styles.sectionTitle, { color: colors.light.primaryDark }]}>
+                  {STRINGS.REVIEW_MODAL.OWNER_SECTION_TITLE}
                 </Text>
               </View>
               <Text style={styles.sectionSubtitle}>
-                Thái độ tiếp đón, giao nhận đúng hẹn và hỗ trợ kỹ thuật
+                {STRINGS.REVIEW_MODAL.OWNER_SECTION_SUBTITLE}
               </Text>
 
               {/* Star selector for owner */}
@@ -254,32 +224,32 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
                     <Ionicons
                       name={star <= ownerRating ? 'star' : 'star-outline'}
                       size={28}
-                      color={star <= ownerRating ? '#0D9488' : '#CBD5E1'}
+                      color={star <= ownerRating ? colors.light.primaryDark : colors.light.borderDefault}
                     />
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={[styles.ratingTextLabel, { color: '#0F766E' }]}>
-                {OWNER_RATING_LABELS[ownerRating]}
+              <Text style={[styles.ratingTextLabel, { color: colors.light.primaryDark }]}>
+                {STRINGS.REVIEW_MODAL.OWNER_RATING_LABELS[ownerRating]}
               </Text>
 
               {/* Quick tags for owner */}
               <View style={styles.tagsContainer}>
-                {OWNER_TAGS.map((tag) => {
+                {STRINGS.REVIEW_MODAL.OWNER_TAGS.map((tag) => {
                   const isSelected = ownerFeedback.includes(tag);
                   return (
                     <TouchableOpacity
                       key={tag}
                       style={[
                         styles.tagChip,
-                        isSelected && { backgroundColor: '#CCFBF1', borderColor: '#14B8A6' },
+                        isSelected && { backgroundColor: colors.light.primaryLight, borderColor: colors.light.primary },
                       ]}
                       onPress={() => toggleOwnerTag(tag)}
                     >
                       <Text
                         style={[
                           styles.tagText,
-                          isSelected && { color: '#0F766E', fontWeight: '700' },
+                          isSelected && { color: colors.light.primaryDark, fontWeight: '700' },
                         ]}
                       >
                         {tag}
@@ -292,7 +262,7 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
               {/* Owner feedback input */}
               <TextInput
                 style={styles.textInput}
-                placeholder="Nhận xét về thái độ phục vụ, mức độ hỗ trợ của chủ máy (không bắt buộc)..."
+                placeholder={STRINGS.REVIEW_MODAL.OWNER_FEEDBACK_PLACEHOLDER}
                 placeholderTextColor={colors.light.textSecondary}
                 value={ownerFeedback}
                 onChangeText={setOwnerFeedback}
@@ -305,7 +275,7 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
           {/* Action Row */}
           <View style={styles.footerActions}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={loading}>
-              <Text style={styles.cancelBtnText}>Bỏ qua</Text>
+              <Text style={styles.cancelBtnText}>{STRINGS.REVIEW_MODAL.SKIP}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -314,11 +284,11 @@ export function ReviewModal({ visible, onClose, booking, onSuccess }: ReviewModa
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={colors.light.white} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                  <Text style={styles.submitBtnText}>Gửi đánh giá</Text>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.light.white} />
+                  <Text style={styles.submitBtnText}>{STRINGS.REVIEW_MODAL.SUBMIT}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -336,13 +306,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
     paddingTop: 18,
     paddingBottom: Platform.OS === 'ios' ? 28 : 20,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -366,7 +336,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -403,7 +373,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.light.borderDefault,
   },
   deviceInfo: {
     flex: 1,
@@ -419,7 +389,7 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
@@ -427,8 +397,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   ownerSection: {
-    borderColor: '#CCFBF1',
-    backgroundColor: '#F0FDFA',
+    borderColor: colors.light.primaryLight,
+    backgroundColor: colors.light.primaryBg,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -459,7 +429,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
     fontWeight: '700',
-    color: '#D97706',
+    color: colors.light.warning,
     marginBottom: 12,
   },
   tagsContainer: {
@@ -495,7 +465,7 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 13,
     color: colors.light.textPrimary,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     textAlignVertical: 'top',
     minHeight: 65,
   },
@@ -535,6 +505,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
 });

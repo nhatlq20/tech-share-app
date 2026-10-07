@@ -5,38 +5,38 @@ export const FALLBACK_NOTIFICATIONS: Notification[] = [
   {
     _id: 'notif_seed_01',
     recipient: 'user_renter_01',
-    title: 'Đơn thuê #TS-8821 đã được duyệt 🎉',
-    body: 'Chủ máy Minh Tuấn đã phê duyệt yêu cầu thuê iPhone 15 Pro Max của bạn. Hãy liên hệ nhận máy nhé!',
+    title: 'Booking #TS-8821 Approved 🎉',
+    body: 'Owner Minh Tuan approved your rental request for iPhone 15 Pro Max. You can now arrange device handover!',
     type: 'order',
     isRead: false,
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 phút trước
+    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 mins ago
   },
   {
     _id: 'notif_seed_02',
     recipient: 'user_renter_01',
-    title: 'Nhắc nhở: Sắp đến hạn trả thiết bị! ⏳',
-    body: 'Đơn thuê máy ảnh Sony Alpha A7 IV sẽ hết hạn vào 18:00 hôm nay. Vui lòng sắp xếp bàn giao đúng giờ.',
+    title: 'Reminder: Return Deadline Approaching! ⏳',
+    body: 'Your rental for Sony Alpha A7 IV ends at 18:00 today. Please arrange punctual return.',
     type: 'reminder',
     isRead: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 tiếng trước
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
   },
   {
     _id: 'notif_seed_03',
     recipient: 'user_renter_01',
-    title: 'Hồ sơ eKYC đã được phê duyệt! ✅',
-    body: 'Chúc mừng bạn! Căn cước công dân đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín.',
+    title: 'eKYC Application Approved! ✅',
+    body: 'Congratulations! Your citizen ID has been verified successfully. You have received the Verified Badge.',
     type: 'system',
     isRead: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 ngày trước
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
   },
   {
     _id: 'notif_seed_04',
     recipient: 'user_renter_01',
-    title: 'Mã ưu đãi TECHSHARE50 độc quyền 🎁',
-    body: 'Nhận ngay giảm giá 50.000đ cho đơn thuê thiết bị công nghệ bất kỳ trong tuần này.',
+    title: 'Exclusive Promo TECHSHARE50 🎁',
+    body: 'Get 50,000 VND off on any tech device rental this week.',
     type: 'promo',
     isRead: true,
-    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 2 ngày trước
+    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago
   },
 ];
 

@@ -123,7 +123,6 @@ function buildLeafletHtml(initialData: {
       #map { position: absolute; inset: 0; width: 100%; height: 100%; background: #e8edf2; }
       .leaflet-container { touch-action: none; }
       .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.9) !important; }
-      .price-marker { background: transparent; border: 0; }
       .price-pill {
         display: inline-flex;
         min-width: 48px;
@@ -132,10 +131,10 @@ function buildLeafletHtml(initialData: {
         box-sizing: border-box;
         align-items: center;
         justify-content: center;
-        border: 2px solid #2563eb;
+        border: 2px solid ${colors.light.primary};
         border-radius: 14px;
         background: #fff;
-        color: #2563eb;
+        color: ${colors.light.primary};
         font-size: 12px;
         font-weight: 800;
         line-height: 24px;
@@ -145,9 +144,9 @@ function buildLeafletHtml(initialData: {
       }
       .price-pill.selected {
         border-color: #fff;
-        background: #2563eb;
+        background: ${colors.light.primary};
         color: #fff;
-        box-shadow: 0 4px 9px rgba(37, 99, 235, .42);
+        box-shadow: 0 4px 9px rgba(${colors.light.primaryRgb}, .42);
         transform: translate(-50%, -50%) scale(1.08);
       }
       .user-marker {
@@ -156,8 +155,8 @@ function buildLeafletHtml(initialData: {
         box-sizing: border-box;
         border: 3px solid #fff;
         border-radius: 50%;
-        background: #2563eb;
-        box-shadow: 0 0 0 7px rgba(37,99,235,.22), 0 2px 5px rgba(15,23,42,.3);
+        background: ${colors.light.primary};
+        box-shadow: 0 0 0 7px rgba(${colors.light.primaryRgb}, .22), 0 2px 5px rgba(15,23,42,.3);
       }
     </style>
   </head>
@@ -587,8 +586,8 @@ export function OpenStreetMap({
 export const OpenStreetMapFallback = OpenStreetMap;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#E8EDF2' },
-  webView: { flex: 1, backgroundColor: '#E8EDF2' },
+  container: { flex: 1, backgroundColor: colors.light.background },
+  webView: { flex: 1, backgroundColor: colors.light.background },
   loadingOverlay: {
     position: 'absolute',
     top: 0,
@@ -611,7 +610,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     paddingHorizontal: 32,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
   },
   errorText: { color: colors.light.textPrimary, fontSize: 14, textAlign: 'center' },
   retryButton: {
@@ -620,5 +619,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  retryText: { color: colors.light.white, fontSize: 14, fontWeight: '700' },
 });

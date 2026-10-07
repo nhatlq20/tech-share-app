@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../constants/theme';
+import { STRINGS } from '../../../constants/strings';
 import { EkycItem } from '../../../types';
 
 interface EkycTabProps {
@@ -15,15 +16,15 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
       <View style={styles.sectionHeaderTitleRow}>
         <Ionicons name="id-card-outline" size={16} color={theme.colors.primary[600]} />
         <Text style={styles.sectionHeaderTitle}>
-          Hồ sơ xác minh eKYC ({ekycRequests.length})
+          {STRINGS.ADMIN.EKYC_TAB.TITLE(ekycRequests.length)}
         </Text>
       </View>
 
       {ekycRequests.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="id-card-outline" size={48} color={theme.colors.primary[600]} />
-          <Text style={styles.emptyTitle}>Không có hồ sơ nào</Text>
-          <Text style={styles.emptyDesc}>Hiện tại chưa có yêu cầu cấp Tích xanh mới.</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.ADMIN.EKYC_TAB.EMPTY_TITLE}</Text>
+          <Text style={styles.emptyDesc}>{STRINGS.ADMIN.EKYC_TAB.EMPTY_DESC}</Text>
         </View>
       ) : (
         ekycRequests.map((req: EkycItem) => {
@@ -43,7 +44,7 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                 />
                 <View style={styles.ekycMetaCol}>
                   <View style={styles.ekycNameRow}>
-                    <Text style={styles.ekycName}>{req.fullName || req.userId?.name || 'Người dùng'}</Text>
+                    <Text style={styles.ekycName}>{req.fullName || req.userId?.name || STRINGS.ADMIN.EKYC_TAB.DEFAULT_USER}</Text>
                     {isApproved && (
                       <View style={styles.trustBadge}>
                         <Ionicons
@@ -52,64 +53,69 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                           color={theme.colors.primary[600]}
                         />
                         <Text style={styles.trustBadgeText}>
-                          {req.verificationPurpose === 'renter' ? 'Đã xác thực' : 'Đã cấp Tích Xanh'}
+                          {req.verificationPurpose === 'renter'
+                            ? STRINGS.ADMIN.EKYC_TAB.BADGE_VERIFIED_RENTER
+                            : STRINGS.ADMIN.EKYC_TAB.BADGE_VERIFIED_OWNER}
                         </Text>
                       </View>
                     )}
                     {isRejected && (
                       <View style={styles.badgePendingRed}>
-                        <Text style={styles.badgePendingRedText}>Bị từ chối</Text>
+                        <Text style={styles.badgePendingRedText}>{STRINGS.ADMIN.EKYC_TAB.BADGE_REJECTED}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.ekycSubMeta}>
-                    {req.email || req.userId?.email || 'Chưa có email'} • SĐT: {req.phone || req.userId?.phone || 'Chưa cập nhật'}
+                    {STRINGS.ADMIN.EKYC_TAB.META_SUB(
+                      req.email || req.userId?.email || STRINGS.ADMIN.EKYC_TAB.NO_EMAIL,
+                      req.phone || req.userId?.phone || STRINGS.ADMIN.EKYC_TAB.NOT_UPDATED
+                    )}
                   </Text>
                   <Text style={styles.ekycVerificationType}>
                     {req.verificationPurpose === 'renter'
-                      ? 'Yêu cầu: Xác thực người dùng thực (quyền thuê)'
-                      : 'Yêu cầu: Xác thực eKYC chủ máy'}
+                      ? STRINGS.ADMIN.EKYC_TAB.REQ_RENTER
+                      : STRINGS.ADMIN.EKYC_TAB.REQ_OWNER}
                   </Text>
                   {req.idCardNumber ? (
                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary[600], marginTop: 2 }}>
-                      Số CCCD: {req.idCardNumber}
+                      {STRINGS.ADMIN.EKYC_TAB.ID_CARD_NO_LABEL}{req.idCardNumber}
                     </Text>
                   ) : null}
                   {(req.address || req.userId?.address) ? (
                     <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 1 }} numberOfLines={1}>
-                      Địa chỉ: {req.address || req.userId?.address}
+                      {STRINGS.ADMIN.EKYC_TAB.ADDRESS_LABEL}{req.address || req.userId?.address}
                     </Text>
                   ) : null}
                 </View>
               </View>
 
-              {/* Thumbnails ảnh giấy tờ */}
+              {/* Document thumbnails */}
               <View style={styles.ekycThumbnailsRow}>
                 <View style={styles.ekycThumbCol}>
-                  <Text style={styles.thumbLabel}>CCCD Mặt trước</Text>
+                  <Text style={styles.thumbLabel}>{STRINGS.ADMIN.EKYC_TAB.THUMB_FRONT}</Text>
                   <Image source={{ uri: req.idCardFrontUrl }} style={styles.thumbImg} />
                 </View>
                 <View style={styles.ekycThumbCol}>
-                  <Text style={styles.thumbLabel}>CCCD Mặt sau</Text>
+                  <Text style={styles.thumbLabel}>{STRINGS.ADMIN.EKYC_TAB.THUMB_BACK}</Text>
                   <Image source={{ uri: req.idCardBackUrl }} style={styles.thumbImg} />
                 </View>
                 {req.selfieUrl ? (
                   <View style={styles.ekycThumbCol}>
-                    <Text style={styles.thumbLabel}>Chân dung Selfie</Text>
+                    <Text style={styles.thumbLabel}>{STRINGS.ADMIN.EKYC_TAB.THUMB_SELFIE}</Text>
                     <Image source={{ uri: req.selfieUrl }} style={styles.thumbImg} />
                   </View>
                 ) : null}
               </View>
 
-              {/* Nhãn duyệt hồ sơ thủ công */}
+              {/* Manual review notice */}
               <View style={styles.ekycManualRow}>
                 <Ionicons name="shield-checkmark" size={13} color={theme.colors.primary[600]} />
                 <Text style={styles.ekycManualText}>
-                  Duyệt thủ công • Kiểm tra đối chiếu thông tin cá nhân & CCCD 2 mặt
+                  {STRINGS.ADMIN.EKYC_TAB.MANUAL_REVIEW_NOTICE}
                 </Text>
               </View>
 
-              {/* Nút tác vụ duyệt */}
+              {/* Review buttons */}
               {req.status === 'pending' ? (
                 <TouchableOpacity
                   style={styles.btnOpenEkycModal}
@@ -123,8 +129,8 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                   />
                   <Text style={styles.btnOpenEkycModalText}>
                     {req.verificationPurpose === 'renter'
-                      ? 'Kiểm tra & xác nhận danh tính'
-                      : 'Kiểm tra hồ sơ & Phê duyệt Tích xanh'}
+                      ? STRINGS.ADMIN.EKYC_TAB.BTN_REVIEW_RENTER
+                      : STRINGS.ADMIN.EKYC_TAB.BTN_REVIEW_OWNER}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -146,9 +152,11 @@ export function EkycTab({ ekycRequests, onOpenEkyc }: EkycTabProps) {
                   >
                     {isApproved
                       ? req.verificationPurpose === 'renter'
-                        ? 'Đã xác thực danh tính; tài khoản vẫn giữ role renter và được thuê thiết bị.'
-                        : 'Hồ sơ đã được duyệt và cấp Tích xanh uy tín thành công.'
-                      : `Đã từ chối hồ sơ. Lý do: ${req.rejectReason || 'Không hợp lệ'}`}
+                        ? STRINGS.ADMIN.EKYC_TAB.STATUS_APPROVED_RENTER
+                        : STRINGS.ADMIN.EKYC_TAB.STATUS_APPROVED_OWNER
+                      : STRINGS.ADMIN.EKYC_TAB.STATUS_REJECTED(
+                          req.rejectReason || STRINGS.ADMIN.EKYC_TAB.DEFAULT_REJECT_REASON
+                        )}
                   </Text>
                 </View>
               )}

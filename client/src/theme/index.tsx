@@ -15,7 +15,7 @@ export function getOrderStatusColor(
     case 'pending':
     case 'chờ duyệt':
       return {
-        bg: mode === 'light' ? '#FEF3C7' : 'rgba(245, 158, 11, 0.2)',
+        bg: mode === 'light' ? currentColors.warningLight : 'rgba(245, 158, 11, 0.2)',
         text: currentColors.warning,
         border: currentColors.warning,
       };
@@ -33,7 +33,7 @@ export function getOrderStatusColor(
     case 'hoàn thành':
     case 'thành công':
       return {
-        bg: mode === 'light' ? '#DCFCE7' : 'rgba(22, 163, 74, 0.2)',
+        bg: mode === 'light' ? currentColors.successLight : 'rgba(16, 185, 129, 0.2)',
         text: currentColors.success,
         border: currentColors.success,
       };
@@ -44,7 +44,7 @@ export function getOrderStatusColor(
     case 'hủy đơn':
     case 'khiếu nại':
       return {
-        bg: mode === 'light' ? '#FEE2E2' : 'rgba(220, 38, 38, 0.2)',
+        bg: mode === 'light' ? currentColors.dangerLight : 'rgba(239, 68, 68, 0.2)',
         text: currentColors.error,
         border: currentColors.error,
       };

@@ -29,7 +29,7 @@ import {
 import type { Period, RentalPayment, RevenueData } from '../../data/ownerAnalyticsMock';
 import { theme, STRINGS, CONFIG } from '../../constants';
 
-const VN_WEEKDAYS = STRINGS.OWNER_ANALYTICS.VN_WEEKDAYS;
+const WEEKDAYS = STRINGS.OWNER_ANALYTICS.WEEKDAYS;
 
 const getBookingDate = (booking: OwnerAnalyticsBooking) =>
   new Date(booking.updatedAt || booking.endDate || booking.startDate);
@@ -54,7 +54,7 @@ const getChartData = (
       nextDay.setDate(day.getDate() + 1);
 
       return {
-        label: VN_WEEKDAYS[day.getDay()],
+        label: WEEKDAYS[day.getDay()],
         revenue: bookings.reduce((sum, booking) => {
           const bookingDate = getBookingDate(booking);
           return bookingDate >= day && bookingDate < nextDay
@@ -66,7 +66,7 @@ const getChartData = (
   }
 
   return Array.from({ length: 5 }, (_, index) => ({
-    label: `Tuần ${index + 1}`,
+    label: `Week ${index + 1}`,
     revenue: bookings.reduce((sum, booking) => {
       const bookingDate = getBookingDate(booking);
       const isCurrentMonth =
@@ -84,7 +84,7 @@ const getChartData = (
 const formatDate = (dateValue?: string | null) => {
   if (!dateValue) return '-';
   const date = new Date(dateValue);
-  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('vi-VN');
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-US');
 };
 
 interface OwnerAnalyticsScreenProps {
@@ -108,7 +108,7 @@ export function OwnerAnalyticsScreen({
   const [analytics, setAnalytics] = useState(null as OwnerAnalyticsData | null);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Tính toán Safe Area Insets chính xác cho iOS notch & Android status bar
+  // Safe Area Insets calculation for iOS notch & Android status bar
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
@@ -118,7 +118,7 @@ export function OwnerAnalyticsScreen({
   const fetchAnalytics = useCallback(async () => {
     if (!token || role !== 'owner') {
       setAnalytics(null);
-      setErrorMessage(token ? 'Yêu cầu quyền truy cập Chủ máy.' : 'Vui lòng đăng nhập lại.');
+      setErrorMessage(token ? 'Owner access required.' : 'Please log in again.');
       setIsLoading(false);
       return;
     }
@@ -129,7 +129,7 @@ export function OwnerAnalyticsScreen({
       setErrorMessage('');
     } catch (error: any) {
       setErrorMessage(
-        error?.response?.data?.message || error?.message || 'Không thể tải dữ liệu phân tích.',
+        error?.response?.data?.message || error?.message || 'Unable to load analytics data.',
       );
     } finally {
       setIsLoading(false);
@@ -166,8 +166,8 @@ export function OwnerAnalyticsScreen({
 
     return {
       id: booking._id,
-      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || 'Thiết bị công nghệ',
-      renterName: renterReference?.name || 'Khách thuê',
+      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || 'Tech Device',
+      renterName: renterReference?.name || 'Renter',
       amount: Number(booking.rentalFee || 0),
       date: formatDate(bookingDate),
       status: 'completed',

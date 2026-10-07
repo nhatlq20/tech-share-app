@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { bookingService, Booking } from '../../services/bookingService';
 
 interface ExtensionModalProps {
@@ -54,16 +55,16 @@ export function ExtensionModal({
     const fee = additionalDays * dailyRate;
 
     return {
-      currentEndDateStr: currentEnd.toLocaleDateString('vi-VN', {
+      currentEndDateStr: currentEnd.toLocaleDateString('en-US', {
         weekday: 'short',
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
       }),
-      newEndDateStr: newEnd.toLocaleDateString('vi-VN', {
+      newEndDateStr: newEnd.toLocaleDateString('en-US', {
         weekday: 'short',
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
       }),
       additionalFee: fee,
@@ -87,11 +88,11 @@ export function ExtensionModal({
       setLoading(true);
       await bookingService.requestExtension(booking._id, additionalDays);
       Alert.alert(
-        'Đã gửi yêu cầu! ⏳',
-        `Yêu cầu gia hạn thêm ${additionalDays} ngày đã được chuyển đến chủ máy. Bạn sẽ nhận được thông báo khi chủ máy phê duyệt.`,
+        STRINGS.EXTENSION_MODAL.REQUEST_SENT_TITLE,
+        STRINGS.EXTENSION_MODAL.REQUEST_SENT_MSG(additionalDays),
         [
           {
-            text: 'Đã hiểu',
+            text: STRINGS.EXTENSION_MODAL.GOT_IT,
             onPress: () => {
               onClose();
               onSuccess();
@@ -100,8 +101,8 @@ export function ExtensionModal({
         ]
       );
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Không thể gửi yêu cầu gia hạn lúc này';
-      Alert.alert('Không thành công', msg);
+      const msg = error.response?.data?.message || STRINGS.EXTENSION_MODAL.FAILED_MSG;
+      Alert.alert(STRINGS.EXTENSION_MODAL.FAILED_TITLE, msg);
     } finally {
       setLoading(false);
     }
@@ -119,8 +120,8 @@ export function ExtensionModal({
               <Ionicons name="calendar" size={22} color={colors.light.primary} />
             </View>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.title}>Yêu cầu gia hạn thuê</Text>
-              <Text style={styles.subtitle}>Đơn hàng #{booking.bookingCode}</Text>
+              <Text style={styles.title}>{STRINGS.EXTENSION_MODAL.TITLE}</Text>
+              <Text style={styles.subtitle}>{STRINGS.EXTENSION_MODAL.ORDER_PREFIX}{booking.bookingCode}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={22} color={colors.light.textSecondary} />
@@ -130,32 +131,31 @@ export function ExtensionModal({
           {isPendingExtension ? (
             <View style={styles.pendingNotice}>
               <Ionicons name="time" size={28} color={colors.light.warning} />
-              <Text style={styles.pendingTitle}>Yêu cầu gia hạn đang chờ duyệt</Text>
+              <Text style={styles.pendingTitle}>{STRINGS.EXTENSION_MODAL.PENDING_TITLE}</Text>
               <Text style={styles.pendingDesc}>
-                Bạn đã gửi yêu cầu thuê thêm {booking.extensionRequest?.requestedDays} ngày. Vui lòng
-                chờ chủ máy phản hồi trước khi gửi yêu cầu mới.
+                {STRINGS.EXTENSION_MODAL.PENDING_DESC(booking.extensionRequest?.requestedDays || 0)}
               </Text>
               <TouchableOpacity style={styles.closeActionButton} onPress={onClose}>
-                <Text style={styles.closeActionButtonText}>Đã hiểu</Text>
+                <Text style={styles.closeActionButtonText}>{STRINGS.EXTENSION_MODAL.GOT_IT}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {/* Stepper chọn số ngày */}
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Chọn số ngày muốn gia hạn thêm:</Text>
+                <Text style={styles.sectionLabel}>{STRINGS.EXTENSION_MODAL.SECTION_LABEL}</Text>
                 <View style={styles.stepperRow}>
                   <TouchableOpacity
                     style={[styles.stepBtn, additionalDays <= 1 && styles.stepBtnDisabled]}
                     onPress={handleDecrement}
                     disabled={additionalDays <= 1}
                   >
-                    <Ionicons name="remove" size={20} color={additionalDays <= 1 ? '#CBD5E1' : colors.light.textPrimary} />
+                    <Ionicons name="remove" size={20} color={additionalDays <= 1 ? colors.light.textMuted : colors.light.textPrimary} />
                   </TouchableOpacity>
 
                   <View style={styles.stepValueBox}>
                     <Text style={styles.stepValueText}>+{additionalDays}</Text>
-                    <Text style={styles.stepValueSub}>ngày</Text>
+                    <Text style={styles.stepValueSub}>{STRINGS.EXTENSION_MODAL.DAYS_UNIT}</Text>
                   </View>
 
                   <TouchableOpacity
@@ -163,7 +163,7 @@ export function ExtensionModal({
                     onPress={handleIncrement}
                     disabled={additionalDays >= 30}
                   >
-                    <Ionicons name="add" size={20} color={additionalDays >= 30 ? '#CBD5E1' : colors.light.textPrimary} />
+                    <Ionicons name="add" size={20} color={additionalDays >= 30 ? colors.light.textMuted : colors.light.textPrimary} />
                   </TouchableOpacity>
                 </View>
 
@@ -178,7 +178,7 @@ export function ExtensionModal({
                         onPress={() => setAdditionalDays(days)}
                       >
                         <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                          +{days} ngày
+                          {STRINGS.EXTENSION_MODAL.DAYS_CHIP(days)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -189,12 +189,12 @@ export function ExtensionModal({
               {/* Preview Card */}
               <View style={styles.previewCard}>
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewLabel}>Hạn trả hiện tại:</Text>
+                  <Text style={styles.previewLabel}>{STRINGS.EXTENSION_MODAL.CURRENT_RETURN_LABEL}</Text>
                   <Text style={styles.previewValue}>{currentEndDateStr}</Text>
                 </View>
 
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewLabel}>Hạn trả mới dự kiến:</Text>
+                  <Text style={styles.previewLabel}>{STRINGS.EXTENSION_MODAL.NEW_RETURN_LABEL}</Text>
                   <Text style={[styles.previewValue, styles.previewHighlight]}>
                     {newEndDateStr}
                   </Text>
@@ -203,23 +203,22 @@ export function ExtensionModal({
                 <View style={styles.divider} />
 
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewLabel}>Đơn giá theo ngày:</Text>
+                  <Text style={styles.previewLabel}>{STRINGS.EXTENSION_MODAL.DAILY_RATE_LABEL}</Text>
                   <Text style={styles.previewValue}>
-                    {dailyRate.toLocaleString('vi-VN')} đ/ngày
+                    {dailyRate.toLocaleString('en-US')} {STRINGS.EXTENSION_MODAL.RATE_UNIT}
                   </Text>
                 </View>
 
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewFeeLabel}>Phụ phí gia hạn phát sinh:</Text>
+                  <Text style={styles.previewFeeLabel}>{STRINGS.EXTENSION_MODAL.ADDITIONAL_FEE_LABEL}</Text>
                   <Text style={styles.previewFeeValue}>
-                    +{additionalFee.toLocaleString('vi-VN')} đ
+                    {STRINGS.EXTENSION_MODAL.FEE_PREFIX}{additionalFee.toLocaleString('en-US')} VND
                   </Text>
                 </View>
               </View>
 
               <Text style={styles.noticeText}>
-                💡 Yêu cầu gia hạn sẽ được gửi đến chủ máy. Thời gian hoàn trả và phụ phí phát sinh
-                sẽ chính thức được cập nhật sau khi chủ máy phê duyệt.
+                {STRINGS.EXTENSION_MODAL.NOTICE_TEXT}
               </Text>
 
               {/* Action Buttons */}
@@ -229,7 +228,7 @@ export function ExtensionModal({
                   onPress={onClose}
                   disabled={loading}
                 >
-                  <Text style={styles.cancelBtnText}>Bỏ qua</Text>
+                  <Text style={styles.cancelBtnText}>{STRINGS.EXTENSION_MODAL.SKIP}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -238,11 +237,11 @@ export function ExtensionModal({
                   disabled={loading}
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.light.white} />
                   ) : (
                     <>
-                      <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
-                      <Text style={styles.confirmBtnText}>Gửi yêu cầu gia hạn</Text>
+                      <Ionicons name="paper-plane" size={16} color={colors.light.white} />
+                      <Text style={styles.confirmBtnText}>{STRINGS.EXTENSION_MODAL.CONFIRM}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -253,7 +252,7 @@ export function ExtensionModal({
       </View>
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
   overlay: {
@@ -262,12 +261,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 32,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   previewCard: {
     backgroundColor: colors.light.surface,
@@ -458,7 +457,7 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   pendingNotice: {
     alignItems: 'center',
@@ -486,7 +485,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   closeActionButtonText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '700',
     fontSize: 14,
   },

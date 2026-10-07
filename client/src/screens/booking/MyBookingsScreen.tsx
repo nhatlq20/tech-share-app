@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { BookingItemCard } from '../../components/booking/BookingItemCard';
 import { ExtensionModal } from '../../components/booking/ExtensionModal';
 import { ReviewModal } from '../../components/booking/ReviewModal';
@@ -30,20 +31,15 @@ interface MyBookingsScreenProps {
 }
 
 const TABS = [
-  { id: 'all', label: 'Tất cả', status: '' },
-  { id: 'pending', label: 'Chờ duyệt', status: 'pending' },
-  { id: 'approved', label: 'Đã duyệt', status: 'approved' },
-  { id: 'active', label: 'Đang thuê', status: 'active' },
-  { id: 'completed', label: 'Hoàn tất', status: 'completed' },
-  { id: 'cancelled', label: 'Đã hủy', status: 'cancelled' },
+  { id: 'all', label: STRINGS.MY_BOOKINGS.TABS.ALL, status: '' },
+  { id: 'pending', label: STRINGS.MY_BOOKINGS.TABS.PENDING, status: 'pending' },
+  { id: 'approved', label: STRINGS.MY_BOOKINGS.TABS.APPROVED, status: 'approved' },
+  { id: 'active', label: STRINGS.MY_BOOKINGS.TABS.ACTIVE, status: 'active' },
+  { id: 'completed', label: STRINGS.MY_BOOKINGS.TABS.COMPLETED, status: 'completed' },
+  { id: 'cancelled', label: STRINGS.MY_BOOKINGS.TABS.CANCELLED, status: 'cancelled' },
 ];
 
-const CANCEL_REASONS = [
-  'Đổi ý, không muốn thuê nữa',
-  'Tìm được thiết bị khác phù hợp hơn',
-  'Thời gian không còn phù hợp',
-  'Lý do khác',
-];
+const CANCEL_REASONS = STRINGS.MY_BOOKINGS.CANCEL_REASONS;
 
 export function MyBookingsScreen({
   onNavigateToHome,
@@ -137,18 +133,18 @@ export function MyBookingsScreen({
   const handleConfirmCancel = async () => {
     if (!selectedBookingToCancel) return;
     if (!cancelReason.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng chọn hoặc nhập lý do hủy đơn');
+      Alert.alert(STRINGS.MY_BOOKINGS.ALERT_CANCEL_SELECT_REASON, STRINGS.MY_BOOKINGS.ALERT_CANCEL_SELECT_REASON);
       return;
     }
 
     try {
       setIsSubmittingCancel(true);
       await bookingService.cancelBooking(selectedBookingToCancel._id, cancelReason);
-      Alert.alert('Thành công', 'Đã hủy đơn thuê');
+      Alert.alert(STRINGS.MY_BOOKINGS.ALERT_CANCEL_SUCCESS, STRINGS.MY_BOOKINGS.ALERT_CANCEL_SUCCESS);
       setCancelModalVisible(false);
       fetchBookings(activeTab);
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message || 'Không thể hủy đơn lúc này');
+      Alert.alert(STRINGS.COMMON.ERROR, error.response?.data?.message || STRINGS.MY_BOOKINGS.ALERT_CANCEL_ERROR_DEFAULT);
     } finally {
       setIsSubmittingCancel(false);
     }
@@ -161,9 +157,9 @@ export function MyBookingsScreen({
         <View style={styles.iconCircle}>
           <Ionicons name="receipt-outline" size={54} color={colors.light.primary} />
         </View>
-        <Text style={styles.title}>Chưa có đơn thuê nào</Text>
+        <Text style={styles.title}>{STRINGS.MY_BOOKINGS.EMPTY_TITLE}</Text>
         <Text style={styles.description}>
-          Bạn chưa có đơn đặt thuê thiết bị nào trong trạng thái này.
+          {STRINGS.MY_BOOKINGS.EMPTY_DESC}
         </Text>
         {onNavigateToHome && activeTab === 'all' && (
           <TouchableOpacity
@@ -171,8 +167,8 @@ export function MyBookingsScreen({
             onPress={onNavigateToHome}
             activeOpacity={0.8}
           >
-            <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Khám phá thiết bị</Text>
+            <Ionicons name="sparkles" size={18} color={colors.light.white} />
+            <Text style={styles.actionButtonText}>{STRINGS.MY_BOOKINGS.EXPLORE_DEVICES}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -185,7 +181,7 @@ export function MyBookingsScreen({
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="receipt" size={24} color={colors.light.primary} />
-          <Text style={styles.headerTitle}>Đơn thuê của tôi</Text>
+          <Text style={styles.headerTitle}>{STRINGS.MY_BOOKINGS.TITLE}</Text>
         </View>
       </View>
 
@@ -271,9 +267,9 @@ export function MyBookingsScreen({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Hủy đơn thuê</Text>
+            <Text style={styles.modalTitle}>{STRINGS.BOOKING_DETAIL.CANCEL_BOOKING}</Text>
             <Text style={styles.modalDesc}>
-              Bạn đang yêu cầu hủy đơn #{selectedBookingToCancel?.bookingCode}. Vui lòng cho biết lý do:
+              {STRINGS.MY_BOOKINGS.CANCEL_MODAL_DESC(selectedBookingToCancel?.bookingCode || '')}
             </Text>
 
             <View style={styles.reasonsContainer}>
@@ -300,7 +296,8 @@ export function MyBookingsScreen({
 
             <TextInput
               style={styles.reasonInput}
-              placeholder="Hoặc nhập lý do khác..."
+              placeholder={STRINGS.MY_BOOKINGS.REASON_PLACEHOLDER}
+              placeholderTextColor={colors.light.textMuted}
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -312,7 +309,7 @@ export function MyBookingsScreen({
                 onPress={() => setCancelModalVisible(false)}
                 disabled={isSubmittingCancel}
               >
-                <Text style={styles.modalBtnCancelText}>Đóng</Text>
+                <Text style={styles.modalBtnCancelText}>{STRINGS.HANDOVER_QR.CLOSE}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtnConfirm, isSubmittingCancel && { opacity: 0.7 }]}
@@ -320,9 +317,9 @@ export function MyBookingsScreen({
                 disabled={isSubmittingCancel}
               >
                 {isSubmittingCancel ? (
-                  <ActivityIndicator size="small" color="#FFF" />
+                  <ActivityIndicator size="small" color={colors.light.white} />
                 ) : (
-                  <Text style={styles.modalBtnConfirmText}>Xác nhận hủy</Text>
+                  <Text style={styles.modalBtnConfirmText}>{STRINGS.BOOKING_DETAIL.CONFIRM_CANCEL_ACTION}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -342,7 +339,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -355,7 +352,7 @@ const styles = StyleSheet.create({
     color: colors.light.textPrimary,
   },
   tabsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.light.border,
   },
@@ -379,7 +376,7 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   listContent: {
     padding: 16,
@@ -429,7 +426,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -440,7 +437,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 12,
     padding: 20,
   },
@@ -514,6 +511,6 @@ const styles = StyleSheet.create({
   modalBtnConfirmText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFF',
+    color: colors.light.white,
   },
 });

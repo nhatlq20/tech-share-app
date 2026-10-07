@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 interface RentalCountdownTimerProps {
   endDate: string | Date;
@@ -85,26 +86,26 @@ export function RentalCountdownTimer({
   let containerBg = colors.light.primaryLight + '50';
   let borderColor = colors.light.primary;
   let statusTextColor = colors.light.primaryDark;
-  let headerLabel = 'Thời gian thuê còn lại';
+  let headerLabel: string = STRINGS.RENTAL_COUNTDOWN.REMAINING_TITLE;
   let iconName: any = 'timer-outline';
 
   if (timeLeft.isExpired) {
-    containerBg = '#FEE2E2'; // light red
+    containerBg = colors.light.dangerLight;
     borderColor = colors.light.error;
     statusTextColor = colors.light.error;
-    headerLabel = 'Đã quá hạn trả máy';
+    headerLabel = STRINGS.RENTAL_COUNTDOWN.OVERDUE_TITLE;
     iconName = 'alert-circle';
   } else if (timeLeft.isUrgent) {
-    containerBg = '#FFF1F2'; // intense alert
-    borderColor = '#E11D48';
-    statusTextColor = '#BE123C';
-    headerLabel = 'Khẩn cấp: Trả máy trong 2 giờ';
+    containerBg = colors.light.dangerLight;
+    borderColor = colors.light.danger;
+    statusTextColor = colors.light.danger;
+    headerLabel = STRINGS.RENTAL_COUNTDOWN.URGENT_TITLE;
     iconName = 'flame';
   } else if (timeLeft.isWarning) {
-    containerBg = '#FEF3C7'; // light amber
+    containerBg = colors.light.warningLight;
     borderColor = colors.light.warning;
-    statusTextColor = '#B45309';
-    headerLabel = 'Sắp hết hạn trả máy (< 6h)';
+    statusTextColor = colors.light.warning;
+    headerLabel = STRINGS.RENTAL_COUNTDOWN.WARNING_TITLE;
     iconName = 'hourglass-outline';
   }
 
@@ -114,9 +115,9 @@ export function RentalCountdownTimer({
         <Ionicons name={iconName} size={14} color={statusTextColor} />
         <Text style={[styles.compactText, { color: statusTextColor }]}>
           {timeLeft.isExpired ? (
-            `Quá hạn: ${timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}${padZero(timeLeft.hours)}:${padZero(timeLeft.minutes)}:${padZero(timeLeft.seconds)}`
+            `${STRINGS.RENTAL_COUNTDOWN.COMPACT_OVERDUE_PREFIX}${timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}${padZero(timeLeft.hours)}:${padZero(timeLeft.minutes)}:${padZero(timeLeft.seconds)}`
           ) : (
-            `Còn lại: ${timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}${padZero(timeLeft.hours)}:${padZero(timeLeft.minutes)}:${padZero(timeLeft.seconds)}`
+            `${STRINGS.RENTAL_COUNTDOWN.COMPACT_REMAINING_PREFIX}${timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}${padZero(timeLeft.hours)}:${padZero(timeLeft.minutes)}:${padZero(timeLeft.seconds)}`
           )}
         </Text>
       </View>
@@ -133,7 +134,7 @@ export function RentalCountdownTimer({
         </View>
         {timeLeft.isExpired && (
           <View style={styles.overdueBadge}>
-            <Text style={styles.overdueBadgeText}>QUÁ HẠN</Text>
+            <Text style={styles.overdueBadgeText}>{STRINGS.RENTAL_COUNTDOWN.OVERDUE_BADGE}</Text>
           </View>
         )}
       </View>
@@ -145,7 +146,7 @@ export function RentalCountdownTimer({
           <Text style={[styles.digitNumber, { color: statusTextColor }]}>
             {padZero(timeLeft.days)}
           </Text>
-          <Text style={styles.digitLabel}>Ngày</Text>
+          <Text style={styles.digitLabel}>{STRINGS.RENTAL_COUNTDOWN.DAYS}</Text>
         </View>
 
         <Text style={[styles.colon, { color: statusTextColor }]}>:</Text>
@@ -155,7 +156,7 @@ export function RentalCountdownTimer({
           <Text style={[styles.digitNumber, { color: statusTextColor }]}>
             {padZero(timeLeft.hours)}
           </Text>
-          <Text style={styles.digitLabel}>Giờ</Text>
+          <Text style={styles.digitLabel}>{STRINGS.RENTAL_COUNTDOWN.HOURS}</Text>
         </View>
 
         <Text style={[styles.colon, { color: statusTextColor }]}>:</Text>
@@ -165,7 +166,7 @@ export function RentalCountdownTimer({
           <Text style={[styles.digitNumber, { color: statusTextColor }]}>
             {padZero(timeLeft.minutes)}
           </Text>
-          <Text style={styles.digitLabel}>Phút</Text>
+          <Text style={styles.digitLabel}>{STRINGS.RENTAL_COUNTDOWN.MINS}</Text>
         </View>
 
         <Text style={[styles.colon, { color: statusTextColor }]}>:</Text>
@@ -175,12 +176,12 @@ export function RentalCountdownTimer({
           <Text style={[styles.digitNumber, { color: statusTextColor }]}>
             {padZero(timeLeft.seconds)}
           </Text>
-          <Text style={styles.digitLabel}>Giây</Text>
+          <Text style={styles.digitLabel}>{STRINGS.RENTAL_COUNTDOWN.SECS}</Text>
         </View>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   overdueBadgeText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 10,
     fontWeight: '800',
   },
@@ -225,12 +226,12 @@ const styles = StyleSheet.create({
   },
   digitBox: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.white,
     borderRadius: 6,
     paddingVertical: 4,
     paddingHorizontal: 8,
     minWidth: 46,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,

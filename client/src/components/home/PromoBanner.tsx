@@ -29,7 +29,7 @@ export const PROMO_BANNERS: PromoBannerItem[] = [
     title: 'Rent Tech Easily',
     subtitle: 'Flagship Apple, Sony and DJI devices ready from just 100k/day',
     imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&auto=format&fit=crop&q=80',
-    accentColor: '#2563EB',
+    accentColor: colors.light.primary,
   },
   {
     id: 'banner_2',
@@ -45,7 +45,7 @@ export const PROMO_BANNERS: PromoBannerItem[] = [
     title: 'Premium Quality Gear',
     subtitle: 'Fully inspected for condition and specs before handover',
     imageUrl: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800&auto=format&fit=crop&q=80',
-    accentColor: '#059669',
+    accentColor: colors.light.success,
   },
 ];
 
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.light.white,
     marginBottom: 4,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: '#F1F5F9',
+    color: colors.light.borderSubtle,
     lineHeight: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },

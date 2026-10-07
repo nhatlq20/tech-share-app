@@ -12,9 +12,10 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { bookingService, Booking } from '../../services/bookingService';
 
 export interface OwnerQrScannerModalProps {
@@ -86,7 +87,7 @@ export function OwnerQrScannerModal({
       });
 
       if (!booking || !booking._id) {
-        setScanError('Booking not found or invalid QR token. Please check the code.');
+        setScanError(STRINGS.OWNER_QR_SCANNER.ERR_INVALID_TOKEN);
         setVerifiedBooking(null);
       } else {
         setVerifiedBooking(booking);
@@ -94,7 +95,7 @@ export function OwnerQrScannerModal({
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
-        'Unable to verify QR token. Please check and try again.';
+        STRINGS.OWNER_QR_SCANNER.ERR_VERIFY_DEFAULT;
       setScanError(msg);
       setVerifiedBooking(null);
     } finally {
@@ -102,7 +103,7 @@ export function OwnerQrScannerModal({
     }
   };
 
-  const handleBarcodeScanned = (result: BarcodeScanningResult) => {
+  const handleBarcodeScanned = (result: { data?: string }) => {
     if (scannedData || isVerifying || verifiedBooking) return;
     const data = result.data;
     if (!data) return;
@@ -113,7 +114,7 @@ export function OwnerQrScannerModal({
 
   const handleManualVerify = () => {
     if (!manualCode.trim()) {
-      Alert.alert('Required', 'Please enter a booking code or QR verification token.');
+      Alert.alert(STRINGS.OWNER_QR_SCANNER.ALERT_REQUIRED_TITLE, STRINGS.OWNER_QR_SCANNER.ALERT_REQUIRED_MSG);
       return;
     }
     parseAndVerifyToken(manualCode.trim());
@@ -126,11 +127,11 @@ export function OwnerQrScannerModal({
       setIsHandingOver(true);
       const updated = await bookingService.handoverBooking(verifiedBooking._id);
       Alert.alert(
-        'Handover Successful! 🎉',
-        `Booking #${verifiedBooking.bookingCode} is now ACTIVE. Rental timer has started.`,
+        STRINGS.OWNER_QR_SCANNER.SUCCESS_TITLE,
+        STRINGS.OWNER_QR_SCANNER.SUCCESS_MSG(verifiedBooking.bookingCode),
         [
           {
-            text: 'OK',
+            text: STRINGS.COMMON.OK,
             onPress: () => {
               onHandoverSuccess?.(updated);
               onClose();
@@ -140,8 +141,8 @@ export function OwnerQrScannerModal({
       );
     } catch (err: any) {
       const msg =
-        err?.response?.data?.message || 'Failed to activate handover. Please try again.';
-      Alert.alert('Handover Error', msg);
+        err?.response?.data?.message || STRINGS.OWNER_QR_SCANNER.ERR_HANDOVER_DEFAULT;
+      Alert.alert(STRINGS.OWNER_QR_SCANNER.ERR_HANDOVER_TITLE, msg);
     } finally {
       setIsHandingOver(false);
     }
@@ -161,12 +162,12 @@ export function OwnerQrScannerModal({
         {/* Header Bar */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-            <Ionicons name="close" size={24} color="#1E293B" />
+            <Ionicons name="close" size={24} color={colors.light.textPrimary} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Scan Handover QR</Text>
-            <Text style={styles.headerSubtitle}>Verify & activate device rental</Text>
+            <Text style={styles.headerTitle}>{STRINGS.OWNER_QR_SCANNER.HEADER_TITLE}</Text>
+            <Text style={styles.headerSubtitle}>{STRINGS.OWNER_QR_SCANNER.HEADER_SUBTITLE}</Text>
           </View>
 
           <View style={{ width: 40 }} />
@@ -185,12 +186,12 @@ export function OwnerQrScannerModal({
               <Ionicons
                 name="camera-outline"
                 size={18}
-                color={activeTab === 'camera' ? colors.light.primary : '#64748B'}
+                color={activeTab === 'camera' ? colors.light.primary : colors.light.textSecondary}
               />
               <Text
                 style={[styles.tabBtnText, activeTab === 'camera' && styles.tabBtnTextActive]}
               >
-                Camera Scanner
+                {STRINGS.OWNER_QR_SCANNER.TAB_CAMERA}
               </Text>
             </TouchableOpacity>
 
@@ -204,12 +205,12 @@ export function OwnerQrScannerModal({
               <Ionicons
                 name="keypad-outline"
                 size={18}
-                color={activeTab === 'manual' ? colors.light.primary : '#64748B'}
+                color={activeTab === 'manual' ? colors.light.primary : colors.light.textSecondary}
               />
               <Text
                 style={[styles.tabBtnText, activeTab === 'manual' && styles.tabBtnTextActive]}
               >
-                Manual Input
+                {STRINGS.OWNER_QR_SCANNER.TAB_MANUAL}
               </Text>
             </TouchableOpacity>
           </View>
@@ -225,14 +226,14 @@ export function OwnerQrScannerModal({
           {verifiedBooking ? (
             <View style={styles.verifiedCard}>
               <View style={styles.successBadge}>
-                <Ionicons name="checkmark-circle" size={24} color="#059669" />
-                <Text style={styles.successBadgeText}>Valid Handover QR Verified</Text>
+                <Ionicons name="checkmark-circle" size={24} color={colors.light.success} />
+                <Text style={styles.successBadgeText}>{STRINGS.OWNER_QR_SCANNER.BADGE_VALID_QR}</Text>
               </View>
 
               {/* Order Info */}
               <View style={styles.orderHeadRow}>
                 <View>
-                  <Text style={styles.orderLabel}>Booking Code</Text>
+                  <Text style={styles.orderLabel}>{STRINGS.OWNER_QR_SCANNER.LABEL_BOOKING_CODE}</Text>
                   <Text style={styles.orderCode}>#{verifiedBooking.bookingCode}</Text>
                 </View>
                 <View style={[styles.statusPill, getStatusPillStyle(verifiedBooking.status)]}>
@@ -256,20 +257,20 @@ export function OwnerQrScannerModal({
                   <Text style={styles.deviceName} numberOfLines={2}>
                     {(verifiedBooking.deviceId as any)?.name ||
                       (verifiedBooking.deviceId as any)?.title ||
-                      'Tech Device'}
+                      STRINGS.OWNER_QR_SCANNER.DEFAULT_DEVICE}
                   </Text>
                   <Text style={styles.deviceDays}>
-                    Rental duration: {verifiedBooking.totalDays} days
+                    {STRINGS.OWNER_QR_SCANNER.RENTAL_DURATION(verifiedBooking.totalDays)}
                   </Text>
                   <Text style={styles.deviceAmount}>
-                    Total: {(verifiedBooking.totalAmount || 0).toLocaleString('en-US')} VND
+                    {STRINGS.OWNER_QR_SCANNER.TOTAL_LABEL((verifiedBooking.totalAmount || 0).toLocaleString('en-US'))}
                   </Text>
                 </View>
               </View>
 
               {/* Renter Details */}
               <View style={styles.renterBox}>
-                <Text style={styles.sectionHeading}>Renter Information</Text>
+                <Text style={styles.sectionHeading}>{STRINGS.OWNER_QR_SCANNER.SECTION_RENTER_INFO}</Text>
                 <View style={styles.renterRow}>
                   <Image
                     source={{
@@ -281,10 +282,10 @@ export function OwnerQrScannerModal({
                   />
                   <View style={styles.renterInfo}>
                     <Text style={styles.renterName}>
-                      {(verifiedBooking.renterId as any)?.name || 'Renter'}
+                      {(verifiedBooking.renterId as any)?.name || STRINGS.OWNER_QR_SCANNER.DEFAULT_RENTER_NAME}
                     </Text>
                     <Text style={styles.renterPhone}>
-                      Phone: {(verifiedBooking.renterId as any)?.phone || 'Not provided'}
+                      {STRINGS.OWNER_QR_SCANNER.PHONE_LABEL}{(verifiedBooking.renterId as any)?.phone || STRINGS.OWNER_QR_SCANNER.NOT_PROVIDED}
                     </Text>
                   </View>
                 </View>
@@ -300,17 +301,17 @@ export function OwnerQrScannerModal({
                   }
                   size={20}
                   color={
-                    verifiedBooking.handoverPhotos?.beforeRental?.length ? '#059669' : '#D97706'
+                    verifiedBooking.handoverPhotos?.beforeRental?.length ? colors.light.success : colors.light.warning
                   }
                 />
                 <View style={styles.photoCheckInfo}>
                   <Text style={styles.photoCheckTitle}>
-                    Before-Rental Device Photos (4 angles)
+                    {STRINGS.OWNER_QR_SCANNER.PHOTOS_TITLE}
                   </Text>
                   <Text style={styles.photoCheckDesc}>
                     {verifiedBooking.handoverPhotos?.beforeRental?.length
-                      ? `Renter uploaded ${verifiedBooking.handoverPhotos.beforeRental.length}/4 condition verification photos.`
-                      : 'No photos taken yet. Renter can take photos upon receipt.'}
+                      ? STRINGS.OWNER_QR_SCANNER.PHOTOS_DESC_UPLOADED(verifiedBooking.handoverPhotos.beforeRental.length)
+                      : STRINGS.OWNER_QR_SCANNER.PHOTOS_DESC_NONE}
                   </Text>
                 </View>
               </View>
@@ -325,29 +326,28 @@ export function OwnerQrScannerModal({
                     activeOpacity={0.85}
                   >
                     {isHandingOver ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.light.white} />
                     ) : (
                       <>
-                        <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
+                        <Ionicons name="shield-checkmark" size={18} color={colors.light.white} />
                         <Text style={styles.btnConfirmHandoverText}>
-                          Confirm Handover & Activate
+                          {STRINGS.OWNER_QR_SCANNER.BTN_CONFIRM_HANDOVER}
                         </Text>
                       </>
                     )}
                   </TouchableOpacity>
                 ) : verifiedBooking.status === 'active' ? (
                   <View style={styles.alreadyActiveBanner}>
-                    <Ionicons name="checkmark-circle" size={18} color="#0284C7" />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.light.primary} />
                     <Text style={styles.alreadyActiveText}>
-                      This rental is ALREADY ACTIVE and in progress.
+                      {STRINGS.OWNER_QR_SCANNER.ALREADY_ACTIVE_TEXT}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.otherStatusBanner}>
-                    <Ionicons name="information-circle" size={18} color="#64748B" />
+                    <Ionicons name="information-circle" size={18} color={colors.light.textSecondary} />
                     <Text style={styles.otherStatusText}>
-                      Current status: {verifiedBooking.status}. Handover is only available for
-                      Approved orders.
+                      {STRINGS.OWNER_QR_SCANNER.OTHER_STATUS_TEXT(verifiedBooking.status)}
                     </Text>
                   </View>
                 )}
@@ -357,8 +357,8 @@ export function OwnerQrScannerModal({
                   onPress={handleScanAgain}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="scan-outline" size={16} color="#475569" />
-                  <Text style={styles.btnScanAnotherText}>Scan Another Code</Text>
+                  <Ionicons name="scan-outline" size={16} color={colors.light.textSecondary} />
+                  <Text style={styles.btnScanAnotherText}>{STRINGS.OWNER_QR_SCANNER.BTN_SCAN_ANOTHER}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -367,25 +367,25 @@ export function OwnerQrScannerModal({
             <View style={styles.cameraContainer}>
               {!permission?.granted ? (
                 <View style={styles.permissionBox}>
-                  <Ionicons name="camera-reverse-outline" size={48} color="#64748B" />
-                  <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+                  <Ionicons name="camera-reverse-outline" size={48} color={colors.light.textSecondary} />
+                  <Text style={styles.permissionTitle}>{STRINGS.OWNER_QR_SCANNER.PERMISSION_TITLE}</Text>
                   <Text style={styles.permissionDesc}>
-                    We need your permission to access the camera to scan handover QR codes.
+                    {STRINGS.OWNER_QR_SCANNER.PERMISSION_DESC}
                   </Text>
                   <TouchableOpacity
                     style={styles.permissionBtn}
                     onPress={requestPermission}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.permissionBtnText}>Grant Camera Access</Text>
+                    <Text style={styles.permissionBtnText}>{STRINGS.OWNER_QR_SCANNER.BTN_GRANT_CAMERA}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.permissionBtn, { backgroundColor: '#F1F5F9', marginTop: 12 }]}
+                    style={[styles.permissionBtn, { backgroundColor: colors.light.border, marginTop: 12 }]}
                     onPress={() => setActiveTab('manual')}
                   >
-                    <Text style={[styles.permissionBtnText, { color: '#334155' }]}>
-                      Use Manual Input Instead
+                    <Text style={[styles.permissionBtnText, { color: colors.light.textPrimary }]}>
+                      {STRINGS.OWNER_QR_SCANNER.BTN_USE_MANUAL}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -413,8 +413,8 @@ export function OwnerQrScannerModal({
 
                           {isVerifying && (
                             <View style={styles.verifyingOverlay}>
-                              <ActivityIndicator size="large" color="#FFFFFF" />
-                              <Text style={styles.verifyingText}>Verifying code...</Text>
+                              <ActivityIndicator size="large" color={colors.light.white} />
+                              <Text style={styles.verifyingText}>{STRINGS.OWNER_QR_SCANNER.VERIFYING_TEXT}</Text>
                             </View>
                           )}
                         </View>
@@ -422,7 +422,7 @@ export function OwnerQrScannerModal({
                       </View>
                       <View style={styles.overlayBottom}>
                         <Text style={styles.targetPrompt}>
-                          Align the renter's QR code within the frame
+                          {STRINGS.OWNER_QR_SCANNER.TARGET_PROMPT}
                         </Text>
                       </View>
                     </View>
@@ -436,16 +436,15 @@ export function OwnerQrScannerModal({
               <View style={styles.manualIconWrap}>
                 <Ionicons name="keypad" size={28} color={colors.light.primary} />
               </View>
-              <Text style={styles.manualTitle}>Enter Handover Code</Text>
+              <Text style={styles.manualTitle}>{STRINGS.OWNER_QR_SCANNER.MANUAL_TITLE}</Text>
               <Text style={styles.manualDesc}>
-                Type the booking code (e.g. #TS123456) or the handover token provided on the
-                renter's screen.
+                {STRINGS.OWNER_QR_SCANNER.MANUAL_DESC}
               </Text>
 
               <TextInput
                 style={styles.manualInput}
-                placeholder="e.g. TS123456 or TSQR-..."
-                placeholderTextColor="#94A3B8"
+                placeholder={STRINGS.OWNER_QR_SCANNER.MANUAL_PLACEHOLDER}
+                placeholderTextColor={colors.light.textMuted}
                 value={manualCode}
                 onChangeText={setManualCode}
                 autoCapitalize="characters"
@@ -459,11 +458,11 @@ export function OwnerQrScannerModal({
                 activeOpacity={0.85}
               >
                 {isVerifying ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.light.white} />
                 ) : (
                   <>
-                    <Ionicons name="search" size={18} color="#FFFFFF" />
-                    <Text style={styles.btnVerifyManualText}>Verify & Inspect Booking</Text>
+                    <Ionicons name="search" size={18} color={colors.light.white} />
+                    <Text style={styles.btnVerifyManualText}>{STRINGS.OWNER_QR_SCANNER.BTN_VERIFY_MANUAL}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -473,13 +472,13 @@ export function OwnerQrScannerModal({
           {/* Error Banner */}
           {scanError && (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={18} color="#EF4444" />
+              <Ionicons name="alert-circle" size={18} color={colors.light.error} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.errorTitle}>Verification Failed</Text>
+                <Text style={styles.errorTitle}>{STRINGS.OWNER_QR_SCANNER.ERR_VERIFICATION_FAILED}</Text>
                 <Text style={styles.errorText}>{scanError}</Text>
               </View>
               <TouchableOpacity onPress={handleScanAgain}>
-                <Ionicons name="refresh" size={18} color="#EF4444" />
+                <Ionicons name="refresh" size={18} color={colors.light.error} />
               </TouchableOpacity>
             </View>
           )}
@@ -492,18 +491,18 @@ export function OwnerQrScannerModal({
 function getStatusPillStyle(status: string) {
   switch (status) {
     case 'approved':
-      return { backgroundColor: '#E0F2FE' };
+      return { backgroundColor: colors.light.primaryLight };
     case 'active':
-      return { backgroundColor: '#DCFCE7' };
+      return { backgroundColor: colors.light.successLight };
     default:
-      return { backgroundColor: '#F1F5F9' };
+      return { backgroundColor: colors.light.borderSubtle };
   }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     paddingTop: Platform.OS === 'android' ? 36 : 48,
   },
   header: {
@@ -513,14 +512,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.light.borderDefault,
+    backgroundColor: colors.light.surface,
   },
   closeBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -530,18 +529,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.light.borderDefault,
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 12,
@@ -553,16 +552,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     gap: 8,
   },
   tabBtnActive: {
-    backgroundColor: colors.light.primaryLight || '#EEF2FF',
+    backgroundColor: colors.light.primaryLight,
   },
   tabBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   tabBtnTextActive: {
     color: colors.light.primary,
@@ -583,7 +582,7 @@ const styles = StyleSheet.create({
     height: 420,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#000000',
+    backgroundColor: colors.light.black,
   },
   cameraView: {
     flex: 1,
@@ -616,7 +615,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   targetPrompt: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',
@@ -626,7 +625,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 24,
     height: 24,
-    borderColor: '#3B82F6',
+    borderColor: colors.light.primary,
   },
   reticleTL: {
     top: 0,
@@ -660,17 +659,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   verifyingText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '600',
   },
   permissionBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
@@ -678,12 +677,12 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
     marginTop: 12,
   },
   permissionDesc: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 19,
@@ -698,15 +697,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   permissionBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '600',
   },
   manualCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
@@ -715,7 +714,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.light.primaryLight || '#EEF2FF',
+    backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -723,24 +722,24 @@ const styles = StyleSheet.create({
   manualTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   manualDesc: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 4,
     lineHeight: 18,
   },
   manualInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
     marginTop: 16,
   },
   btnVerifyManual: {
@@ -754,15 +753,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   btnVerifyManualText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '600',
   },
   verifiedCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 16,
     padding: 18,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 3,
@@ -770,7 +769,7 @@ const styles = StyleSheet.create({
   successBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
@@ -780,7 +779,7 @@ const styles = StyleSheet.create({
   successBadgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#059669',
+    color: colors.light.success,
   },
   orderHeadRow: {
     flexDirection: 'row',
@@ -788,17 +787,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.light.border,
   },
   orderLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     fontWeight: '500',
   },
   orderCode: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   statusPill: {
     paddingHorizontal: 10,
@@ -808,7 +807,7 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0284C7',
+    color: colors.light.primary,
   },
   deviceRow: {
     flexDirection: 'row',
@@ -819,7 +818,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
   },
   deviceMeta: {
     flex: 1,
@@ -828,11 +827,11 @@ const styles = StyleSheet.create({
   deviceName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   deviceDays: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 3,
   },
   deviceAmount: {
@@ -845,12 +844,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.light.border,
   },
   sectionHeading: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.light.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -864,7 +863,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
   },
   renterInfo: {
     flex: 1,
@@ -872,23 +871,23 @@ const styles = StyleSheet.create({
   renterName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   renterPhone: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   photoCheckCard: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     borderRadius: 12,
     padding: 12,
     marginTop: 14,
     gap: 10,
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.light.borderDefault,
   },
   photoCheckInfo: {
     flex: 1,
@@ -896,11 +895,11 @@ const styles = StyleSheet.create({
   photoCheckTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.light.textPrimary,
   },
   photoCheckDesc: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 2,
     lineHeight: 15,
   },
@@ -909,7 +908,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   btnConfirmHandover: {
-    backgroundColor: '#059669',
+    backgroundColor: colors.light.success,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -918,7 +917,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   btnConfirmHandoverText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -928,18 +927,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     gap: 6,
   },
   btnScanAnotherText: {
-    color: '#475569',
+    color: colors.light.textSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
   alreadyActiveBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0F2FE',
+    backgroundColor: colors.light.primaryLight,
     padding: 12,
     borderRadius: 10,
     gap: 8,
@@ -947,13 +946,13 @@ const styles = StyleSheet.create({
   alreadyActiveText: {
     flex: 1,
     fontSize: 12,
-    color: '#0369A1',
+    color: colors.light.primaryDark,
     fontWeight: '600',
   },
   otherStatusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     padding: 12,
     borderRadius: 10,
     gap: 8,
@@ -961,13 +960,13 @@ const styles = StyleSheet.create({
   otherStatusText: {
     flex: 1,
     fontSize: 12,
-    color: '#475569',
+    color: colors.light.textSecondary,
   },
   errorBox: {
     flexDirection: 'row',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.light.error,
     borderRadius: 12,
     padding: 12,
     marginTop: 16,
@@ -977,11 +976,11 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#B91C1C',
+    color: colors.light.error,
   },
   errorText: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.light.error,
     marginTop: 2,
   },
 });

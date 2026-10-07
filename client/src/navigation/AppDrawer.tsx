@@ -1,6 +1,7 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../constants/theme';
 import { BottomTabNavigator } from './BottomTabNavigator';
 
 const Drawer = createDrawerNavigator();
@@ -17,9 +18,9 @@ export function AppDrawer({ onLogout, onOpenDevice, onOpenMyDevices }: AppDrawer
       screenOptions={{
         headerShown: false,
         drawerType: 'front',
-        drawerStyle: { backgroundColor: '#0F172A', width: 280 },
-        drawerActiveTintColor: '#38BDF8',
-        drawerInactiveTintColor: '#CBD5E1',
+        drawerStyle: { backgroundColor: theme.textPrimary, width: 280 },
+        drawerActiveTintColor: theme.primary,
+        drawerInactiveTintColor: theme.textMuted,
         drawerLabelStyle: { fontSize: 14, fontWeight: '600' },
       }}
     >

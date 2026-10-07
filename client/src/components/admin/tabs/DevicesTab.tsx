@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../constants/theme';
+import { STRINGS } from '../../../constants/strings';
 import { AdminDeviceItem } from '../../../types';
 
 interface CategoryOption {
@@ -19,12 +20,12 @@ interface CategoryOption {
 }
 
 const DEVICE_CATEGORIES: CategoryOption[] = [
-  { id: 'all', label: 'Tất cả', icon: 'apps-outline' },
-  { id: 'camera', label: 'Máy ảnh', icon: 'camera-outline' },
-  { id: 'laptop', label: 'Laptop', icon: 'laptop-outline' },
-  { id: 'smartphone', label: 'Điện thoại', icon: 'phone-portrait-outline' },
-  { id: 'drone', label: 'Drone & Flycam', icon: 'airplane-outline' },
-  { id: 'gaming', label: 'Gaming', icon: 'game-controller-outline' },
+  { id: 'all', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.all, icon: 'apps-outline' },
+  { id: 'camera', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.camera, icon: 'camera-outline' },
+  { id: 'laptop', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.laptop, icon: 'laptop-outline' },
+  { id: 'smartphone', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.smartphone, icon: 'phone-portrait-outline' },
+  { id: 'drone', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.drone, icon: 'airplane-outline' },
+  { id: 'gaming', label: STRINGS.ADMIN.DEVICES_TAB.CATEGORIES.gaming, icon: 'game-controller-outline' },
 ];
 
 interface DevicesTabProps {
@@ -50,16 +51,16 @@ export function DevicesTab({ devices, onDeleteDevice }: DevicesTabProps) {
       <View style={styles.sectionHeaderTitleRow}>
         <Ionicons name="hardware-chip-outline" size={16} color={theme.colors.primary[600]} />
         <Text style={styles.sectionHeaderTitle}>
-          Kiểm duyệt thiết bị ({filteredDevices.length})
+          {STRINGS.ADMIN.DEVICES_TAB.TITLE(filteredDevices.length)}
         </Text>
       </View>
 
-      {/* Ô tìm kiếm bo tròn mềm */}
+      {/* Search Input */}
       <View style={styles.searchBarContainer}>
         <Ionicons name="search" size={18} color={theme.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo tên máy hoặc thương hiệu..."
+          placeholder={STRINGS.ADMIN.DEVICES_TAB.SEARCH_PLACEHOLDER}
           placeholderTextColor={theme.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -71,7 +72,7 @@ export function DevicesTab({ devices, onDeleteDevice }: DevicesTabProps) {
         )}
       </View>
 
-      {/* Thanh lọc danh mục thiết bị (Cuộn ngang) */}
+      {/* Category filter tabs */}
       <View style={styles.categoryFilterContainer}>
         <ScrollView
           horizontal
@@ -110,7 +111,7 @@ export function DevicesTab({ devices, onDeleteDevice }: DevicesTabProps) {
         </ScrollView>
       </View>
 
-      {/* Danh sách thiết bị */}
+      {/* Device list */}
       {filteredDevices.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons
@@ -118,8 +119,8 @@ export function DevicesTab({ devices, onDeleteDevice }: DevicesTabProps) {
             size={48}
             color={theme.textSecondary}
           />
-          <Text style={styles.emptyTitle}>Không tìm thấy thiết bị</Text>
-          <Text style={styles.emptyDesc}>Thử tìm kiếm với từ khóa khác.</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.ADMIN.DEVICES_TAB.EMPTY_TITLE}</Text>
+          <Text style={styles.emptyDesc}>{STRINGS.ADMIN.DEVICES_TAB.EMPTY_DESC}</Text>
         </View>
       ) : (
         filteredDevices.map((device: AdminDeviceItem) => (
@@ -140,21 +141,25 @@ export function DevicesTab({ devices, onDeleteDevice }: DevicesTabProps) {
                 {device.name}
               </Text>
               <Text style={styles.deviceBrand}>
-                Hãng: {device.brand} • Tình trạng: {device.condition}
+                {STRINGS.ADMIN.DEVICES_TAB.BRAND_CONDITION(device.brand, device.condition)}
               </Text>
               <Text style={styles.devicePrice}>
-                {device.pricePerDay?.toLocaleString('vi-VN')} đ/ngày • Cọc:{' '}
-                {device.depositAmount?.toLocaleString('vi-VN')} đ
+                {STRINGS.ADMIN.DEVICES_TAB.PRICE_DEPOSIT(
+                  device.pricePerDay?.toLocaleString('en-US') || '0',
+                  device.depositAmount?.toLocaleString('en-US') || '0'
+                )}
               </Text>
 
-              {/* Nút xóa mềm */}
+              {/* Remove device button */}
               <TouchableOpacity
                 style={styles.btnDeleteDevice}
                 onPress={() => onDeleteDevice(device)}
                 activeOpacity={0.8}
               >
                 <Ionicons name="trash-outline" size={14} color={theme.colors.danger[600]} />
-                <Text style={styles.btnDeleteDeviceText}>Gỡ / Xóa máy vi phạm</Text>
+                <Text style={styles.btnDeleteDeviceText}>
+                  {STRINGS.ADMIN.DEVICES_TAB.REMOVE_FLAG_BTN}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

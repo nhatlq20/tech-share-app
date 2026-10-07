@@ -40,7 +40,7 @@ export const fetchNotifications = createAsyncThunk(
       });
       return { ...res, isRefresh: params?.isRefresh ?? false };
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Lỗi khi tải thông báo');
+      return rejectWithValue(err.message || 'Error loading notifications');
     }
   }
 );
