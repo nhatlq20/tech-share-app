@@ -57,7 +57,7 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
               <Text style={styles.modalSubtitle}>Xuất trình khi nhận máy</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={20} color="#64748B" />
+              <Ionicons name="close" size={20} color={colors.light.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -106,7 +106,7 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
 
           {/* Hướng dẫn an toàn */}
           <View style={styles.hintBox}>
-            <Ionicons name="shield-checkmark-outline" size={16} color="#059669" />
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.light.success} />
             <Text style={styles.hintText}>
               Đưa mã QR này cho Chủ máy quét xác nhận khi hai bên gặp mặt trực tiếp để nhận thiết bị.
             </Text>
@@ -133,11 +133,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.card,
     borderRadius: 24,
     padding: 22,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -164,18 +164,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -183,32 +183,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.light.successLight,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: colors.light.success,
   },
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#059669',
+    backgroundColor: colors.light.success,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#047857',
+    color: colors.light.success,
   },
   qrContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.light.borderDefault,
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -217,16 +217,16 @@ const styles = StyleSheet.create({
   },
   qrInnerBox: {
     padding: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.white,
     borderRadius: 12,
   },
   infoBox: {
     width: '100%',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.light.borderSubtle,
     gap: 8,
     marginBottom: 12,
   },
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   copyRow: {
     flexDirection: 'row',
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
     maxWidth: '65%',
   },
   hintBox: {
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.light.successLight,
     padding: 10,
     borderRadius: 12,
     marginBottom: 16,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   hintText: {
     flex: 1,
     fontSize: 12,
-    color: '#166534',
+    color: colors.light.success,
     lineHeight: 17,
   },
   doneBtn: {
@@ -282,6 +282,6 @@ const styles = StyleSheet.create({
   doneBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
 });

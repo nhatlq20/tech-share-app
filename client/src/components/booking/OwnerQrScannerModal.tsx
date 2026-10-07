@@ -12,7 +12,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { bookingService, Booking } from '../../services/bookingService';
@@ -102,7 +102,7 @@ export function OwnerQrScannerModal({
     }
   };
 
-  const handleBarcodeScanned = (result: BarcodeScanningResult) => {
+  const handleBarcodeScanned = (result: { data?: string }) => {
     if (scannedData || isVerifying || verifiedBooking) return;
     const data = result.data;
     if (!data) return;
@@ -328,7 +328,7 @@ export function OwnerQrScannerModal({
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
+                        <Ionicons name="shield-checkmark" size={18} color={colors.light.white} />
                         <Text style={styles.btnConfirmHandoverText}>
                           Confirm Handover & Activate
                         </Text>
@@ -337,7 +337,7 @@ export function OwnerQrScannerModal({
                   </TouchableOpacity>
                 ) : verifiedBooking.status === 'active' ? (
                   <View style={styles.alreadyActiveBanner}>
-                    <Ionicons name="checkmark-circle" size={18} color="#0284C7" />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.light.primary} />
                     <Text style={styles.alreadyActiveText}>
                       This rental is ALREADY ACTIVE and in progress.
                     </Text>
@@ -492,11 +492,11 @@ export function OwnerQrScannerModal({
 function getStatusPillStyle(status: string) {
   switch (status) {
     case 'approved':
-      return { backgroundColor: '#E0F2FE' };
+      return { backgroundColor: colors.light.primaryLight };
     case 'active':
-      return { backgroundColor: '#DCFCE7' };
+      return { backgroundColor: colors.light.successLight };
     default:
-      return { backgroundColor: '#F1F5F9' };
+      return { backgroundColor: colors.light.borderSubtle };
   }
 }
 
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 24,
     height: 24,
-    borderColor: '#3B82F6',
+    borderColor: colors.light.primary,
   },
   reticleTL: {
     top: 0,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0284C7',
+    color: colors.light.primary,
   },
   deviceRow: {
     flexDirection: 'row',
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   alreadyActiveBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0F2FE',
+    backgroundColor: colors.light.primaryLight,
     padding: 12,
     borderRadius: 10,
     gap: 8,
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
   alreadyActiveText: {
     flex: 1,
     fontSize: 12,
-    color: '#0369A1',
+    color: colors.light.primaryDark,
     fontWeight: '600',
   },
   otherStatusBanner: {

@@ -23,8 +23,8 @@ const slides = [
     title: 'Tech you need, right near you',
     description: 'Discover laptops, cameras, and useful equipment from your local community.',
     icon: 'search' as const,
-    accent: '#2563EB',
-    tint: '#DBEAFE',
+    accent: colors.light.primary,
+    tint: colors.light.primaryLight,
     secondaryIcon: 'location' as const,
   },
   {

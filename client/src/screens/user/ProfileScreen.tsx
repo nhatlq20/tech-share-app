@@ -565,7 +565,7 @@ export function ProfileScreen({
             <Ionicons
               name="person-outline"
               size={16}
-              color={activeTab === "info" ? "#38BDF8" : "#94A3B8"}
+              color={activeTab === "info" ? colors.light.primary : colors.light.textMuted}
             />
             <Text
               style={[
@@ -587,7 +587,7 @@ export function ProfileScreen({
             <Ionicons
               name="location-outline"
               size={16}
-              color={activeTab === "address" ? "#38BDF8" : "#94A3B8"}
+              color={activeTab === "address" ? colors.light.primary : colors.light.textMuted}
             />
             <Text
               style={[
@@ -615,7 +615,7 @@ export function ProfileScreen({
                 <Ionicons
                   name={isEditing ? "checkmark-circle" : "create-outline"}
                   size={16}
-                  color="#38BDF8"
+                  color={colors.light.primary}
                 />
                 <Text style={styles.editBtnText}>
                   {isEditing ? "Save" : "Edit"}
@@ -1025,11 +1025,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderRadius: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.light.primary,
     marginTop: 14,
   },
   listDeviceButtonText: {
-    color: "#FFFFFF",
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -1182,7 +1182,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rolePillVerified: {
-    borderColor: '#93C5FD',
+    borderColor: colors.light.primaryLight,
     backgroundColor: colors.light.primaryLight,
   },
   rolePillTextVerified: {
@@ -1191,9 +1191,9 @@ const styles = StyleSheet.create({
   ekycSuccessCard: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.light.successLight,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.light.success,
     borderRadius: 14,
     padding: 14,
   },
@@ -1300,16 +1300,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   btnResubmitEkycText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 12,
     fontWeight: '600',
   },
   ekycActionCard: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: colors.light.borderDefault,
     borderRadius: 14,
     padding: 14,
   },
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
     color: colors.light.primary,
   },
   ekycBadgeNotVerified: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1341,11 +1341,11 @@ const styles = StyleSheet.create({
   ekycBadgeNotVerifiedText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#B45309',
+    color: colors.light.warning,
   },
   ekycActionDesc: {
     fontSize: 12,
-    color: '#0369A1',
+    color: colors.light.primaryDark,
     lineHeight: 17,
     marginBottom: 8,
   },

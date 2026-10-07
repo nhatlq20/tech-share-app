@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../theme/colors';
 
 type Specification = {
   id: number;
@@ -71,7 +72,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
 
       {specifications.length === 0 ? (
         <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}><Ionicons name="list-outline" size={22} color="#2563EB" /></View>
+          <View style={styles.emptyIcon}><Ionicons name="list-outline" size={22} color={colors.light.primary} /></View>
           <Text style={styles.emptyTitle}>No specifications added yet.</Text>
           <Text style={styles.emptyText}>Add technical details to help renters understand your device.</Text>
         </View>
@@ -83,7 +84,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
               <View style={styles.specHeader}>
                 <Text style={styles.specNumber}>SPECIFICATION {specification.id}</Text>
                 <TouchableOpacity onPress={() => removeSpecification(specification.id)} activeOpacity={0.8} accessibilityLabel="Delete specification">
-                  <Ionicons name="trash-outline" size={18} color="#64748B" />
+                  <Ionicons name="trash-outline" size={18} color={colors.light.textSecondary} />
                 </TouchableOpacity>
               </View>
               <View style={styles.inputRow}>
@@ -94,7 +95,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
                     onChangeText={(text: string) => updateSpecification(specification.id, 'name', text)}
                     onBlur={() => markTouched(specification.id)}
                     placeholder="e.g. Storage"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={colors.light.textSecondary}
                     style={[styles.input, invalid && styles.inputError]}
                   />
                 </View>
@@ -105,7 +106,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
                     onChangeText={(text: string) => updateSpecification(specification.id, 'value', text)}
                     onBlur={() => markTouched(specification.id)}
                     placeholder="e.g. 256GB"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={colors.light.textSecondary}
                     style={[styles.input, invalid && styles.inputError]}
                   />
                 </View>
@@ -117,7 +118,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
       )}
 
       <TouchableOpacity style={styles.addButton} onPress={addSpecification} activeOpacity={0.8}>
-        <Ionicons name="add" size={18} color="#2563EB" />
+        <Ionicons name="add" size={18} color={colors.light.primary} />
         <Text style={styles.addButtonText}>Add Specification</Text>
       </TouchableOpacity>
     </View>
@@ -125,22 +126,22 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#FFFFFF' },
-  title: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  description: { color: '#64748B', fontSize: 13, lineHeight: 19, marginTop: 5, marginBottom: 14 },
-  specCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, padding: 12, marginBottom: 10 },
+  container: { backgroundColor: colors.light.card },
+  title: { color: colors.light.textPrimary, fontSize: 18, fontWeight: '800' },
+  description: { color: colors.light.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 5, marginBottom: 14 },
+  specCard: { backgroundColor: colors.light.card, borderWidth: 1, borderColor: colors.light.borderDefault, borderRadius: 12, padding: 12, marginBottom: 10 },
   specHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 },
-  specNumber: { color: '#64748B', fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
+  specNumber: { color: colors.light.textSecondary, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
   inputRow: { flexDirection: 'row', gap: 10 },
   inputColumn: { flex: 1 },
-  fieldLabel: { color: '#475569', fontSize: 11, fontWeight: '700', marginBottom: 6 },
-  input: { height: 44, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 11, color: '#0F172A', fontSize: 13 },
-  inputError: { borderColor: '#DC2626' },
-  errorText: { color: '#DC2626', fontSize: 11, marginTop: 8 },
-  addButton: { height: 45, borderRadius: 12, backgroundColor: '#DBEAFE', borderWidth: 1, borderColor: '#DBEAFE', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
-  addButtonText: { color: '#2563EB', fontSize: 13, fontWeight: '800' },
-  emptyState: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 18, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, marginBottom: 12 },
-  emptyIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { color: '#0F172A', fontSize: 14, fontWeight: '800', marginTop: 10 },
-  emptyText: { color: '#64748B', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 4 },
+  fieldLabel: { color: colors.light.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 6 },
+  input: { height: 44, backgroundColor: colors.light.background, borderWidth: 1, borderColor: colors.light.borderDefault, borderRadius: 10, paddingHorizontal: 11, color: colors.light.textPrimary, fontSize: 13 },
+  inputError: { borderColor: colors.light.danger },
+  errorText: { color: colors.light.danger, fontSize: 11, marginTop: 8 },
+  addButton: { height: 45, borderRadius: 12, backgroundColor: colors.light.primaryLight, borderWidth: 1, borderColor: colors.light.primaryLight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
+  addButtonText: { color: colors.light.primary, fontSize: 13, fontWeight: '800' },
+  emptyState: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 18, borderWidth: 1, borderColor: colors.light.borderDefault, borderRadius: 12, marginBottom: 12 },
+  emptyIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.light.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { color: colors.light.textPrimary, fontSize: 14, fontWeight: '800', marginTop: 10 },
+  emptyText: { color: colors.light.textSecondary, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 4 },
 });

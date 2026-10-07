@@ -494,20 +494,20 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   statusDotAvailable: {
-    backgroundColor: '#16A34A',
+    backgroundColor: colors.light.success,
   },
   statusDotRented: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.light.error,
   },
   statusText: {
     fontSize: 9,
     fontWeight: '700',
   },
   statusTextAvailable: {
-    color: '#15803D',
+    color: colors.light.success,
   },
   statusTextRented: {
-    color: '#B91C1C',
+    color: colors.light.error,
   },
   listContentBox: {
     flex: 1,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -554,14 +554,14 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     textTransform: 'capitalize',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FEF9C3',
+    backgroundColor: colors.light.warningLight,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#A16207',
+    color: colors.light.warning,
   },
   listFooter: {
     flexDirection: 'row',
@@ -577,11 +577,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
+    borderTopColor: colors.light.borderSubtle,
   },
   priceSub: {
     fontSize: 9,
-    color: '#94A3B8',
+    color: colors.light.textMuted,
     fontWeight: '500',
   },
   priceValue: {
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   priceUnit: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   arrowCircleBtn: {
     width: 26,
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   exploreBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -183,7 +183,7 @@ export function EkycReviewModal({
 
             {/* Thông báo duyệt thủ công */}
             <View style={styles.manualNoticeBox}>
-              <Ionicons name="information-circle" size={16} color="#0284C7" />
+              <Ionicons name="information-circle" size={16} color={colors.light.primary} />
               <Text style={styles.manualNoticeText}>
                 Hồ sơ xét duyệt thủ công: Quản trị viên vui lòng đối chiếu Số CCCD, Họ tên, và Địa chỉ nhà với ảnh 2 mặt Căn cước công dân trước khi phê duyệt.
               </Text>
@@ -436,17 +436,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.light.primaryLight,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: colors.light.borderDefault,
     marginBottom: 16,
   },
   manualNoticeText: {
     flex: 1,
     fontSize: 11,
-    color: '#0369A1',
+    color: colors.light.primaryDark,
     lineHeight: 16,
     fontWeight: '500',
   },

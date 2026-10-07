@@ -790,11 +790,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#93C5FD',
+    borderColor: colors.light.primaryLight,
     marginBottom: 16,
   },
   infoText: {
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   primaryBtnDisabled: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: colors.light.borderDefault,
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,

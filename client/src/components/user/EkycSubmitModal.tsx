@@ -791,14 +791,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   btnChangeImageText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 11,
     fontWeight: '600',
   },
   policyNoticeBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   },
   policyText: {
     fontSize: 11,
-    color: '#1E40AF',
+    color: colors.light.primaryDark,
     lineHeight: 16,
   },
   modalFooter: {
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   btnSubmitDisabled: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: colors.light.borderDefault,
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSubmitText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,

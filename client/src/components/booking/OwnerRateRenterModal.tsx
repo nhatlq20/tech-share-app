@@ -29,7 +29,7 @@ const TRUST_LABELS: Record<number, { label: string; color: string; icon: string;
   2: { label: 'Poor', color: '#F97316', icon: 'warning-outline', desc: 'Dirty condition, minor scratches, returned late without prior notice' },
   3: { label: 'Fair', color: '#F59E0B', icon: 'remove-circle-outline', desc: 'Slightly late return with prior communication, device in acceptable condition' },
   4: { label: 'Good', color: '#16A34A', icon: 'thumbs-up-outline', desc: 'Well maintained, polite communication, returned punctually on time' },
-  5: { label: 'Excellent', color: '#2563EB', icon: 'star', desc: 'Exemplary renter, immaculate condition, all accessories complete, returned early' },
+  5: { label: 'Excellent', color: colors.light.primary, icon: 'star', desc: 'Exemplary renter, immaculate condition, all accessories complete, returned early' },
 };
 
 const QUICK_TAGS = [
@@ -265,10 +265,10 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                 activeOpacity={0.85}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.light.white} />
                 ) : (
                   <>
-                    <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                    <Ionicons name="shield-checkmark" size={16} color={colors.light.white} />
                     <Text style={styles.submitBtnText}>Submit Rating ({selectedRating} ★)</Text>
                   </>
                 )}
@@ -309,16 +309,16 @@ const styles = StyleSheet.create({
   ratingDescText: { fontSize: 12, color: colors.light.textSecondary, lineHeight: 18 },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, borderWidth: 1, borderColor: colors.light.border, backgroundColor: colors.light.surface },
-  tagChipGoodActive: { borderColor: '#16A34A', backgroundColor: '#DCFCE7' },
-  tagChipBadActive: { borderColor: '#F97316', backgroundColor: '#FFF7ED' },
+  tagChipGoodActive: { borderColor: colors.light.success, backgroundColor: colors.light.successLight },
+  tagChipBadActive: { borderColor: colors.light.warning, backgroundColor: colors.light.warningLight },
   tagChipText: { fontSize: 12, fontWeight: '600', color: colors.light.textSecondary },
-  tagChipTextGood: { color: '#16A34A' },
-  tagChipTextBad: { color: '#F97316' },
+  tagChipTextGood: { color: colors.light.success },
+  tagChipTextBad: { color: colors.light.warning },
   textInput: { borderWidth: 1, borderColor: colors.light.border, borderRadius: 10, padding: 12, fontSize: 13, color: colors.light.textPrimary, backgroundColor: colors.light.surface, textAlignVertical: 'top', minHeight: 80 },
   charCount: { fontSize: 11, color: colors.light.textSecondary, textAlign: 'right', marginTop: -8 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 6 },
   cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.light.border, alignItems: 'center', backgroundColor: colors.light.surface },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: colors.light.textSecondary },
   submitBtn: { flex: 2, paddingVertical: 12, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  submitBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  submitBtnText: { fontSize: 14, fontWeight: '700', color: colors.light.white },
 });

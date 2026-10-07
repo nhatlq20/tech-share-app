@@ -279,7 +279,7 @@ export function HandoverCameraModal({
 
             {/* Warning Advice */}
             <View style={styles.adviceBox}>
-              <Ionicons name="shield-outline" size={16} color="#2563EB" />
+              <Ionicons name="shield-outline" size={16} color={colors.light.primary} />
               <Text style={styles.adviceText}>
                 Ảnh chụp lúc nhận máy là căn cứ quan trọng nhất để đối chiếu với ảnh lúc trả máy (`afterRental`), giúp giải quyết tranh chấp hoàn cọc minh bạch.
               </Text>
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '90%',
@@ -347,25 +347,25 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -429,12 +429,12 @@ const styles = StyleSheet.create({
   slotTitleText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.light.textPrimary,
     textAlign: 'center',
   },
   slotSubText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.light.textMuted,
     textAlign: 'center',
     marginTop: 2,
     lineHeight: 14,
@@ -517,10 +517,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.light.borderDefault,
     padding: 12,
     fontSize: 13,
-    color: '#0F172A',
+    color: colors.light.textPrimary,
     minHeight: 70,
     textAlignVertical: 'top',
   },
@@ -528,16 +528,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: colors.light.primaryLight,
   },
   adviceText: {
     flex: 1,
     fontSize: 12,
-    color: '#1E40AF',
+    color: colors.light.primaryDark,
     lineHeight: 18,
   },
   bottomBar: {
@@ -545,11 +545,11 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.light.borderSubtle,
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     paddingVertical: 13,
     borderRadius: 14,
     alignItems: 'center',
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   saveBtn: {
     flex: 2,
@@ -573,6 +573,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
 });

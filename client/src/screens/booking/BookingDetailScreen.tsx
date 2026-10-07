@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     borderRadius: 8,
     marginBottom: 6,
   },
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -1175,12 +1175,12 @@ const styles = StyleSheet.create({
   emptyHandoverTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.light.textPrimary,
     marginBottom: 4,
   },
   emptyHandoverDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.light.textSecondary,
     textAlign: 'center',
     lineHeight: 17,
     marginBottom: 12,
@@ -1197,15 +1197,15 @@ const styles = StyleSheet.create({
   takePhotosCtaText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   openQrCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     padding: 12,
     marginTop: 8,
@@ -1214,7 +1214,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0369A1',
+    color: colors.light.primaryDark,
     marginLeft: 8,
   },
   approvedActionRow: {
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
   qrPrimaryBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   cameraSecondaryBtn: {
     flex: 2,
@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.light.primary,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.card,
   },
   cameraSecondaryBtnText: {
     fontSize: 14,

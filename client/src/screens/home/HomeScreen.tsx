@@ -219,7 +219,7 @@ export function HomeScreen({
             <TextInput
               style={styles.searchInput}
               placeholder="Search devices..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor={colors.light.textSecondary}
               value={localSearch}
               onChangeText={handleSearchChange}
               onSubmitEditing={handleSubmitSearch}
@@ -232,11 +232,11 @@ export function HomeScreen({
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                <Ionicons name="close-circle" size={20} color={colors.light.textMuted} />
               </TouchableOpacity>
             ) : (
               <View style={styles.searchFilterIcon}>
-                <Ionicons name="options-outline" size={18} color="#38BDF8" />
+                <Ionicons name="options-outline" size={18} color={colors.light.primary} />
               </View>
             )}
           </View>
@@ -397,8 +397,8 @@ export function HomeScreen({
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#38BDF8"
-              colors={['#2563EB', '#38BDF8']}
+              tintColor={colors.light.primary}
+              colors={[colors.light.primary, colors.light.primaryHover]}
             />
           }
         />
@@ -430,9 +430,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     marginHorizontal: 16,
     marginTop: 4,
@@ -450,17 +450,17 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ownerSwitchText: {
     fontSize: 12,
-    color: '#1E40AF',
+    color: colors.light.primaryDark,
   },
   ownerSwitchTextBold: {
     fontWeight: '700',
-    color: '#1D4ED8',
+    color: colors.light.primaryDark,
   },
   ownerSwitchCta: {
     width: 22,
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   resetBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 30,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     margin: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '600',
   },

@@ -20,6 +20,7 @@ import { deviceService } from "../../services/deviceService";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { Device } from "../../types";
+import { colors } from "../../theme/colors";
 
 type PostDeviceScreenProps = {
   onBack?: () => void;
@@ -78,7 +79,7 @@ export function PostDeviceScreen({
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
   const [deviceLocation, setDeviceLocation] =
-    useState<DeviceLocation | null>(null);
+    useState(null as DeviceLocation | null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const token = useSelector((state: RootState) => state.auth.token);
@@ -470,7 +471,7 @@ export function PostDeviceScreen({
                   <Ionicons
                     name="cloud-upload-outline"
                     size={27}
-                    color="#2563EB"
+                    color={colors.light.primary}
                   />
                   <Text style={styles.photoTitle}>Add device photos</Text>
                   <Text style={styles.photoHint}>
@@ -569,7 +570,7 @@ export function PostDeviceScreen({
                     {item}
                   </Text>
                   {item === category && (
-                    <Ionicons name="checkmark" size={17} color="#2563EB" />
+                    <Ionicons name="checkmark" size={17} color={colors.light.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -583,7 +584,7 @@ export function PostDeviceScreen({
             value={brand}
             onChangeText={setBrand}
             placeholder="e.g. Apple"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={colors.light.textSecondary}
             style={[
               styles.input,
               submitted && !brand.trim() && styles.inputError,
@@ -600,7 +601,7 @@ export function PostDeviceScreen({
             value={addressText}
             onChangeText={setAddressText}
             placeholder="e.g. 123 Nguyen Trai, Thanh Xuan, Hanoi"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={colors.light.textSecondary}
             style={[
               styles.input,
               submitted && !addressText.trim() && styles.inputError,
@@ -623,7 +624,7 @@ export function PostDeviceScreen({
             <Ionicons
               name={deviceLocation ? "checkmark-circle-outline" : "locate-outline"}
               size={18}
-              color="#2563EB"
+              color={colors.light.primary}
             />
             <Text style={styles.locationButtonText}>
               {isGettingLocation
@@ -783,7 +784,7 @@ export function PostDeviceScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: colors.light.card },
   header: {
     minHeight: 56,
     flexDirection: "row",
@@ -791,10 +792,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-    shadowColor: "#000",
+    borderBottomColor: colors.light.borderSubtle,
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -810,32 +811,32 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: colors.light.borderSubtle,
   },
   headerButton: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: colors.light.borderSubtle,
   },
   headerTitleCol: {
     flex: 1,
   },
-  headerTitle: { color: "#0F172A", fontSize: 16, fontWeight: "700" },
-  headerSubtitle: { color: "#64748B", fontSize: 11, fontWeight: "500", marginTop: 2 },
+  headerTitle: { color: colors.light.textPrimary, fontSize: 16, fontWeight: "700" },
+  headerSubtitle: { color: colors.light.textSecondary, fontSize: 11, fontWeight: "500", marginTop: 2 },
   content: { paddingHorizontal: 16, paddingTop: 23, paddingBottom: 30 },
   intro: { marginBottom: 27 },
-  introTitle: { color: "#0F172A", fontSize: 24, fontWeight: "800" },
+  introTitle: { color: colors.light.textPrimary, fontSize: 24, fontWeight: "800" },
   introText: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 7,
@@ -844,9 +845,9 @@ const styles = StyleSheet.create({
   myDevicesSection: {
     marginBottom: 25,
     padding: 14,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 14,
   },
   myDevicesHeader: {
@@ -855,8 +856,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  myDevicesTitle: { color: "#0F172A", fontSize: 17, fontWeight: "800" },
-  myDevicesDescription: { color: "#64748B", fontSize: 12, marginTop: 3 },
+  myDevicesTitle: { color: colors.light.textPrimary, fontSize: 17, fontWeight: "800" },
+  myDevicesDescription: { color: colors.light.textSecondary, fontSize: 12, marginTop: 3 },
   deviceCountBadge: {
     minWidth: 28,
     height: 28,
@@ -864,48 +865,48 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.light.primaryLight,
   },
-  deviceCountText: { color: "#2563EB", fontSize: 12, fontWeight: "800" },
+  deviceCountText: { color: colors.light.primary, fontSize: 12, fontWeight: "800" },
   deviceListCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
     marginTop: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 10,
   },
   deviceListImage: {
     width: 58,
     height: 58,
     borderRadius: 8,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.light.borderDefault,
   },
   deviceListInfo: { flex: 1, marginLeft: 10 },
-  deviceListName: { color: "#0F172A", fontSize: 13, fontWeight: "800" },
-  deviceListMeta: { color: "#64748B", fontSize: 11, marginTop: 4 },
+  deviceListName: { color: colors.light.textPrimary, fontSize: 13, fontWeight: "800" },
+  deviceListMeta: { color: colors.light.textSecondary, fontSize: 11, marginTop: 4 },
   deviceListStatus: { fontSize: 11, fontWeight: "700", marginTop: 5 },
-  deviceListStatusAvailable: { color: "#059669" },
-  deviceListStatusMuted: { color: "#64748B" },
+  deviceListStatusAvailable: { color: colors.light.success },
+  deviceListStatusMuted: { color: colors.light.textSecondary },
   deviceListMessage: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 12,
   },
   deviceListError: {
-    color: "#DC2626",
+    color: colors.light.danger,
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 12,
   },
   section: { marginBottom: 25 },
   sectionHeading: { marginBottom: 14 },
-  sectionTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800" },
+  sectionTitle: { color: colors.light.textPrimary, fontSize: 18, fontWeight: "800" },
   sectionDescription: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
@@ -917,9 +918,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 14,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     borderStyle: "dashed",
   },
@@ -942,15 +943,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "rgba(15, 23, 42, 0.78)",
   },
-  photoOverlayText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  photoOverlayText: { color: colors.light.white, fontSize: 10, fontWeight: "700" },
   photoTitle: {
-    color: "#2563EB",
+    color: colors.light.primary,
     fontSize: 13,
     fontWeight: "800",
     marginTop: 9,
   },
   photoHint: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 10,
     lineHeight: 14,
     textAlign: "center",
@@ -962,33 +963,33 @@ const styles = StyleSheet.create({
     minHeight: 71,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     borderStyle: "dashed",
   },
   smallPhoto: { width: "100%", height: "100%", borderRadius: 12 },
   fieldLabel: {
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 7,
     marginTop: 14,
   },
-  required: { color: "#DC2626" },
+  required: { color: colors.light.danger },
   input: {
     height: 48,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingHorizontal: 13,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
   },
-  inputError: { borderColor: "#DC2626" },
-  errorText: { color: "#DC2626", fontSize: 11, marginTop: 5 },
+  inputError: { borderColor: colors.light.danger },
+  errorText: { color: colors.light.danger, fontSize: 11, marginTop: 5 },
   locationButton: {
     minHeight: 42,
     flexDirection: "row",
@@ -997,27 +998,27 @@ const styles = StyleSheet.create({
     gap: 7,
     marginBottom: 8,
     borderRadius: 10,
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.light.primaryLight,
   },
   locationButtonDisabled: { opacity: 0.6 },
-  locationButtonText: { color: "#2563EB", fontSize: 12, fontWeight: "700" },
-  locationStatus: { color: "#16A34A", fontSize: 11, marginBottom: 8 },
+  locationButtonText: { color: colors.light.primary, fontSize: 12, fontWeight: "700" },
+  locationStatus: { color: colors.light.success, fontSize: 11, marginBottom: 8 },
   selectInput: {
     height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingHorizontal: 13,
   },
-  selectText: { color: "#0F172A", fontSize: 13 },
+  selectText: { color: colors.light.textPrimary, fontSize: 13 },
   categoryMenu: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     marginTop: 6,
     overflow: "hidden",
@@ -1029,71 +1030,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 13,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+    borderBottomColor: colors.light.borderSubtle,
   },
-  categoryOptionText: { color: "#64748B", fontSize: 13 },
-  categoryOptionActive: { color: "#2563EB", fontWeight: "800" },
+  categoryOptionText: { color: colors.light.textSecondary, fontSize: 13 },
+  categoryOptionActive: { color: colors.light.primary, fontWeight: "800" },
   currencyInput: {
     height: 48,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingLeft: 13,
     paddingRight: 14,
   },
-  currencyInputError: { borderColor: "#DC2626" },
+  currencyInputError: { borderColor: colors.light.danger },
   currencyTextInput: {
     flex: 1,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     paddingVertical: 0,
   },
-  currencyTextInputError: { color: "#DC2626" },
-  currency: { color: "#64748B", fontSize: 12, fontWeight: "800" },
-  helperText: { color: "#64748B", fontSize: 11, lineHeight: 16, marginTop: 7 },
+  currencyTextInputError: { color: colors.light.danger },
+  currency: { color: colors.light.textSecondary, fontSize: 12, fontWeight: "800" },
+  helperText: { color: colors.light.textSecondary, fontSize: 11, lineHeight: 16, marginTop: 7 },
   textareaWrap: {
     minHeight: 145,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     padding: 12,
   },
-  textareaError: { borderColor: "#DC2626" },
+  textareaError: { borderColor: colors.light.danger },
   textarea: {
     flex: 1,
     minHeight: 112,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     lineHeight: 19,
     padding: 0,
   },
-  counter: { color: "#64748B", fontSize: 11, textAlign: "right" },
+  counter: { color: colors.light.textSecondary, fontSize: 11, textAlign: "right" },
   actions: { marginTop: -2 },
   publishButton: {
     height: 53,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.light.primary,
   },
-  publishText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  publishText: { color: colors.light.white, fontSize: 14, fontWeight: "800" },
   draftButton: {
     height: 49,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     marginTop: 10,
   },
-  draftText: { color: "#2563EB", fontSize: 13, fontWeight: "800" },
+  draftText: { color: colors.light.primary, fontSize: 13, fontWeight: "800" },
   successText: {
-    color: "#16A34A",
+    color: colors.light.success,
     fontSize: 12,
     textAlign: "center",
     marginTop: 10,
