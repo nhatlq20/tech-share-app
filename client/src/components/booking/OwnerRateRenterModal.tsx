@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { reviewService, ReviewItem } from '../../services/reviewService';
 
 interface OwnerRateRenterModalProps {
@@ -25,30 +26,36 @@ interface OwnerRateRenterModalProps {
 }
 
 const TRUST_LABELS: Record<number, { label: string; color: string; icon: string; desc: string }> = {
-  1: { label: 'Terrible', color: '#DC2626', icon: 'thumbs-down', desc: 'Severe violation, serious device damage, or missing essential accessories' },
-  2: { label: 'Poor', color: '#F97316', icon: 'warning-outline', desc: 'Dirty condition, minor scratches, returned late without prior notice' },
-  3: { label: 'Fair', color: '#F59E0B', icon: 'remove-circle-outline', desc: 'Slightly late return with prior communication, device in acceptable condition' },
-  4: { label: 'Good', color: '#16A34A', icon: 'thumbs-up-outline', desc: 'Well maintained, polite communication, returned punctually on time' },
-  5: { label: 'Excellent', color: colors.light.primary, icon: 'star', desc: 'Exemplary renter, immaculate condition, all accessories complete, returned early' },
-};
-
-const QUICK_TAGS = [
-  { label: '✓ Clean & pristine condition', good: true },
-  { label: '✓ Returned on time', good: true },
-  { label: '✓ Polite & respectful communication', good: true },
-  { label: '✓ All accessories complete', good: true },
-  { label: '⚠️ Late return', good: false },
-  { label: '⚠️ Stains / minor scratches', good: false },
-  { label: '⚠️ Missing included accessories', good: false },
-  { label: '⚠️ Unresponsive / difficult communication', good: false },
-];
-
-const TRUST_DELTA_INFO: Record<number, string> = {
-  5: '+ 2 Trust Points',
-  4: '+ 1 Trust Point',
-  3: 'No Change',
-  2: '− 5 Trust Points',
-  1: '− 10 Trust Points',
+  1: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[1].label,
+    color: colors.light.error,
+    icon: 'thumbs-down',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[1].desc,
+  },
+  2: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[2].label,
+    color: colors.light.warning,
+    icon: 'warning-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[2].desc,
+  },
+  3: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[3].label,
+    color: colors.light.warning,
+    icon: 'remove-circle-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[3].desc,
+  },
+  4: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[4].label,
+    color: colors.light.success,
+    icon: 'thumbs-up-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[4].desc,
+  },
+  5: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[5].label,
+    color: colors.light.primary,
+    icon: 'star',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[5].desc,
+  },
 };
 
 export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: OwnerRateRenterModalProps) {
@@ -65,7 +72,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
     reviewAny?.deviceId?.title ||
     reviewAny?.device?.name ||
     reviewAny?.device?.title ||
-    'Device';
+    STRINGS.OWNER_RATE_RENTER_MODAL.DEFAULT_DEVICE;
   const trustInfo = TRUST_LABELS[selectedRating];
 
   const toggleTag = (tag: string) => {
@@ -91,7 +98,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
         : (review.bookingId as any)?._id);
 
     if (!targetId) {
-      Alert.alert('Error', 'Unable to find booking details for this review.');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.OWNER_RATE_RENTER_MODAL.ERR_NOT_FOUND);
       return;
     }
 
@@ -104,16 +111,16 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
         renterFeedback: finalFeedback,
       });
 
-      const deltaStr = TRUST_DELTA_INFO[selectedRating];
+      const deltaStr = STRINGS.OWNER_RATE_RENTER_MODAL.DELTA_INFO[selectedRating] || '';
       Alert.alert(
-        'Rating Submitted ✅',
-        `${selectedRating}-star rating recorded.\n${deltaStr} will update immediately on the renter's profile.`
+        STRINGS.OWNER_RATE_RENTER_MODAL.SUCCESS_TITLE,
+        STRINGS.OWNER_RATE_RENTER_MODAL.SUCCESS_MSG(selectedRating, deltaStr)
       );
       onSuccess();
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Unable to submit rating at this time.';
-      Alert.alert('Error', msg);
+      const msg = err?.response?.data?.message || STRINGS.OWNER_RATE_RENTER_MODAL.ERR_SUBMIT;
+      Alert.alert(STRINGS.COMMON.ERROR, msg);
     } finally {
       setSubmitting(false);
     }
@@ -147,8 +154,8 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
               <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Rate Renter Responsibility</Text>
-              <Text style={styles.headerSubtitle}>This feedback impacts the renter's trust score</Text>
+              <Text style={styles.headerTitle}>{STRINGS.OWNER_RATE_RENTER_MODAL.TITLE}</Text>
+              <Text style={styles.headerSubtitle}>{STRINGS.OWNER_RATE_RENTER_MODAL.SUBTITLE}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={20} color={colors.light.textSecondary} />
@@ -164,18 +171,20 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                   style={styles.renterAvatar}
                 />
                 <View style={styles.renterInfo}>
-                  <Text style={styles.renterName}>{renter.name || 'Renter'}</Text>
+                  <Text style={styles.renterName}>{renter.name || STRINGS.OWNER_RATE_RENTER_MODAL.DEFAULT_RENTER}</Text>
                   <Text style={styles.renterDevice} numberOfLines={1}>{deviceName}</Text>
                   <View style={styles.trustScoreRow}>
                     <Ionicons name="shield-checkmark-outline" size={13} color={colors.light.primary} />
-                    <Text style={styles.trustScoreText}>Current trust score: {currentTrustScore}/100</Text>
+                    <Text style={styles.trustScoreText}>
+                      {STRINGS.OWNER_RATE_RENTER_MODAL.CURRENT_TRUST(currentTrustScore)}
+                    </Text>
                   </View>
                 </View>
               </View>
             )}
 
             {/* Star Selector */}
-            <Text style={styles.sectionLabel}>Select Rating Level:</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_RATING_LEVEL}</Text>
             <View style={styles.starSelector}>
               {[1, 2, 3, 4, 5].map((s) => {
                 const info = TRUST_LABELS[s];
@@ -205,16 +214,16 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
               <View style={styles.ratingDescTop}>
                 <Ionicons name={trustInfo.icon as any} size={16} color={trustInfo.color} />
                 <Text style={[styles.ratingDescTitle, { color: trustInfo.color }]}>
-                  {trustInfo.label} — {TRUST_DELTA_INFO[selectedRating]}
+                  {trustInfo.label} — {STRINGS.OWNER_RATE_RENTER_MODAL.DELTA_INFO[selectedRating]}
                 </Text>
               </View>
               <Text style={styles.ratingDescText}>{trustInfo.desc}</Text>
             </View>
 
             {/* Quick Tags */}
-            <Text style={styles.sectionLabel}>Quick Tags:</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_QUICK_TAGS}</Text>
             <View style={styles.tagsWrap}>
-              {QUICK_TAGS.map((tag) => {
+              {STRINGS.OWNER_RATE_RENTER_MODAL.QUICK_TAGS.map((tag) => {
                 const isSelected = selectedTags.includes(tag.label);
                 return (
                   <TouchableOpacity
@@ -240,10 +249,10 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             </View>
 
             {/* Free-form Feedback */}
-            <Text style={styles.sectionLabel}>Additional Comments (optional):</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_COMMENTS}</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Leave specific notes regarding device handling, care, or return..."
+              placeholder={STRINGS.OWNER_RATE_RENTER_MODAL.COMMENTS_PLACEHOLDER}
               placeholderTextColor={colors.light.textSecondary}
               value={feedback}
               onChangeText={setFeedback}
@@ -256,7 +265,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             {/* Action Buttons */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
-                <Text style={styles.cancelBtnText}>Skip</Text>
+                <Text style={styles.cancelBtnText}>{STRINGS.OWNER_RATE_RENTER_MODAL.SKIP_BTN}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitBtn, { backgroundColor: trustInfo.color }]}
@@ -269,7 +278,9 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                 ) : (
                   <>
                     <Ionicons name="shield-checkmark" size={16} color={colors.light.white} />
-                    <Text style={styles.submitBtnText}>Submit Rating ({selectedRating} ★)</Text>
+                    <Text style={styles.submitBtnText}>
+                      {STRINGS.OWNER_RATE_RENTER_MODAL.SUBMIT_BTN(selectedRating)}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>

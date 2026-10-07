@@ -244,13 +244,13 @@ export const adminService = {
        headers: { Authorization: `Bearer ${token}` },
      });
      if (!response.data?.success || !Array.isArray(response.data.data)) {
-       throw new Error(response.data?.message || 'Không thể tải danh sách người dùng.');
+       throw new Error(response.data?.message || 'Unable to load users list.');
      }
      return response.data.data;
    },
 
   /**
-   * Khóa hoặc mở khóa tài khoản
+   * Suspend or unlock user account
    */
   toggleUserStatus: async (
     userId: string,
@@ -264,13 +264,13 @@ export const adminService = {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!response.data?.success) {
-      throw new Error(response.data?.message || 'Không thể cập nhật trạng thái tài khoản.');
+      throw new Error(response.data?.message || 'Unable to update user account status.');
     }
     return response.data;
   },
 
   /**
-   * Lấy danh sách tranh chấp cọc
+   * Get deposit disputes list
    */
   getDisputes: async (status?: string): Promise<DisputeItem[]> => {
     try {
@@ -282,24 +282,23 @@ export const adminService = {
       }
       return FALLBACK_DISPUTES;
     } catch (error) {
-      console.warn('⚠️ [adminService.getDisputes] Dùng dữ liệu fallback:', error);
+      console.warn('⚠️ [adminService.getDisputes] Fallback data used:', error);
       return FALLBACK_DISPUTES;
     }
   },
 
   /**
-   * Ban hành phán quyết tranh chấp cọc
+   * Issue arbitration ruling for deposit dispute
    */
   resolveDispute: async (disputeId: string, payload: ResolveDisputePayload): Promise<any> => {
     try {
       const response = await apiClient.post(`/admin/disputes/${disputeId}/resolve`, payload);
       return response.data;
     } catch (error: any) {
-      console.warn('⚠️ [adminService.resolveDispute] Gọi API thất bại:', error);
-      // Giả lập xử lý thành công offline nếu không có server
+      console.warn('⚠️ [adminService.resolveDispute] API call failed:', error);
       return {
         success: true,
-        message: 'Đã ban hành phán quyết thành công (mô phỏng)!',
+        message: 'Arbitration ruling issued successfully (simulation)!',
         data: {
           disputeId,
           ...payload,
@@ -309,7 +308,7 @@ export const adminService = {
   },
 
   /**
-   * Lấy danh sách hồ sơ eKYC
+   * Get eKYC requests list
    */
   getEkycRequests: async (status?: string): Promise<EkycItem[]> => {
     try {
@@ -321,35 +320,35 @@ export const adminService = {
       }
       return FALLBACK_EKYC;
     } catch (error) {
-      console.warn('⚠️ [adminService.getEkycRequests] Dùng dữ liệu fallback:', error);
+      console.warn('⚠️ [adminService.getEkycRequests] Fallback data used:', error);
       return FALLBACK_EKYC;
     }
   },
 
   /**
-   * Phê duyệt hồ sơ eKYC và cấp Tích xanh
+   * Approve eKYC application and grant verified badge
    */
   approveEkyc: async (requestId: string): Promise<any> => {
     const response = await apiClient.patch(`/admin/ekyc/${requestId}/approve`);
     if (!response.data?.success) {
-      throw new Error(response.data?.message || 'Không thể phê duyệt hồ sơ eKYC.');
+      throw new Error(response.data?.message || 'Unable to approve eKYC application.');
     }
     return response.data;
   },
 
   /**
-   * Từ chối hồ sơ eKYC
+   * Reject eKYC application
    */
   rejectEkyc: async (requestId: string, rejectReason: string): Promise<any> => {
     const response = await apiClient.patch(`/admin/ekyc/${requestId}/reject`, { rejectReason });
     if (!response.data?.success) {
-      throw new Error(response.data?.message || 'Không thể từ chối hồ sơ eKYC.');
+      throw new Error(response.data?.message || 'Unable to reject eKYC application.');
     }
     return response.data;
   },
 
   /**
-   * Lấy danh sách thiết bị kiểm duyệt
+   * Get moderation devices list
    */
   getAdminDevices: async (q?: string, category?: string): Promise<AdminDeviceItem[]> => {
     try {
@@ -362,7 +361,7 @@ export const adminService = {
       }
       return FALLBACK_ADMIN_DEVICES;
     } catch (error) {
-      console.warn('⚠️ [adminService.getAdminDevices] Dùng dữ liệu fallback:', error);
+      console.warn('⚠️ [adminService.getAdminDevices] Fallback data used:', error);
       let list = [...FALLBACK_ADMIN_DEVICES];
       if (q) {
         const lowerQ = q.toLowerCase();
@@ -375,17 +374,17 @@ export const adminService = {
   },
 
   /**
-   * Xóa mềm thiết bị vi phạm chính sách
+   * Soft delete flagged device
    */
   deleteDevice: async (deviceId: string): Promise<any> => {
     try {
       const response = await apiClient.delete(`/admin/devices/${deviceId}`);
       return response.data;
     } catch (error: any) {
-      console.warn('⚠️ [adminService.deleteDevice] Dùng giả lập:', error);
+      console.warn('⚠️ [adminService.deleteDevice] Fallback simulation:', error);
       return {
         success: true,
-        message: 'Đã xóa mềm thiết bị thành công (mô phỏng)!',
+        message: 'Device soft deleted successfully (simulation)!',
       };
     }
   },

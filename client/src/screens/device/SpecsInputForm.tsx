@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 type Specification = {
   id: number;
@@ -67,14 +68,14 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Technical Specifications</Text>
-      <Text style={styles.description}>Add specifications that describe this device.</Text>
+      <Text style={styles.title}>{STRINGS.POST_DEVICE.SPECS_FORM.TITLE}</Text>
+      <Text style={styles.description}>{STRINGS.POST_DEVICE.SPECS_FORM.DESC}</Text>
 
       {specifications.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}><Ionicons name="list-outline" size={22} color={colors.light.primary} /></View>
-          <Text style={styles.emptyTitle}>No specifications added yet.</Text>
-          <Text style={styles.emptyText}>Add technical details to help renters understand your device.</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.POST_DEVICE.SPECS_FORM.EMPTY_TITLE}</Text>
+          <Text style={styles.emptyText}>{STRINGS.POST_DEVICE.SPECS_FORM.EMPTY_DESC}</Text>
         </View>
       ) : (
         specifications.map((specification: Specification) => {
@@ -82,36 +83,40 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
           return (
             <View key={specification.id} style={styles.specCard}>
               <View style={styles.specHeader}>
-                <Text style={styles.specNumber}>SPECIFICATION {specification.id}</Text>
-                <TouchableOpacity onPress={() => removeSpecification(specification.id)} activeOpacity={0.8} accessibilityLabel="Delete specification">
+                <Text style={styles.specNumber}>{STRINGS.POST_DEVICE.SPECS_FORM.SPEC_NUMBER_PREFIX}{specification.id}</Text>
+                <TouchableOpacity
+                  onPress={() => removeSpecification(specification.id)}
+                  activeOpacity={0.8}
+                  accessibilityLabel={STRINGS.POST_DEVICE.SPECS_FORM.DELETE_ACCESSIBILITY}
+                >
                   <Ionicons name="trash-outline" size={18} color={colors.light.textSecondary} />
                 </TouchableOpacity>
               </View>
               <View style={styles.inputRow}>
                 <View style={styles.inputColumn}>
-                  <Text style={styles.fieldLabel}>Specification</Text>
+                  <Text style={styles.fieldLabel}>{STRINGS.POST_DEVICE.SPECS_FORM.LABEL_SPEC}</Text>
                   <TextInput
                     value={specification.name}
                     onChangeText={(text: string) => updateSpecification(specification.id, 'name', text)}
                     onBlur={() => markTouched(specification.id)}
-                    placeholder="e.g. Storage"
+                    placeholder={STRINGS.POST_DEVICE.SPECS_FORM.PLACEHOLDER_SPEC}
                     placeholderTextColor={colors.light.textSecondary}
                     style={[styles.input, invalid && styles.inputError]}
                   />
                 </View>
                 <View style={styles.inputColumn}>
-                  <Text style={styles.fieldLabel}>Value</Text>
+                  <Text style={styles.fieldLabel}>{STRINGS.POST_DEVICE.SPECS_FORM.LABEL_VALUE}</Text>
                   <TextInput
                     value={specification.value}
                     onChangeText={(text: string) => updateSpecification(specification.id, 'value', text)}
                     onBlur={() => markTouched(specification.id)}
-                    placeholder="e.g. 256GB"
+                    placeholder={STRINGS.POST_DEVICE.SPECS_FORM.PLACEHOLDER_VALUE}
                     placeholderTextColor={colors.light.textSecondary}
                     style={[styles.input, invalid && styles.inputError]}
                   />
                 </View>
               </View>
-              {invalid && <Text style={styles.errorText}>Please enter both a specification and value.</Text>}
+              {invalid && <Text style={styles.errorText}>{STRINGS.POST_DEVICE.SPECS_FORM.ERR_ENTER_BOTH}</Text>}
             </View>
           );
         })
@@ -119,7 +124,7 @@ export function SpecsInputForm({ category = 'Smartphone', onChange, validateSign
 
       <TouchableOpacity style={styles.addButton} onPress={addSpecification} activeOpacity={0.8}>
         <Ionicons name="add" size={18} color={colors.light.primary} />
-        <Text style={styles.addButtonText}>Add Specification</Text>
+        <Text style={styles.addButtonText}>{STRINGS.POST_DEVICE.SPECS_FORM.BTN_ADD}</Text>
       </TouchableOpacity>
     </View>
   );

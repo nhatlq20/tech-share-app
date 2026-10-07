@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
 import { theme } from '../../../constants/theme';
+import { STRINGS } from '../../../constants/strings';
 import { adminService } from '../../../services/adminService';
 import type { AdminUser } from '../../../services/adminService';
 
@@ -32,7 +33,7 @@ export function UsersTab() {
 
   const loadUsers = useCallback(async () => {
     if (!token) {
-      setUsersError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      setUsersError(STRINGS.ADMIN.USERS_TAB.INVALID_SESSION);
       setLoadingUsers(false);
       return;
     }
@@ -58,7 +59,7 @@ export function UsersTab() {
           ? error.response.data.message
           : '';
       const message = responseMessage || (error instanceof Error ? error.message : '');
-      setUsersError(message || 'Không thể tải danh sách người dùng. Vui lòng thử lại.');
+      setUsersError(message || STRINGS.ADMIN.USERS_TAB.LOAD_ERROR);
     } finally {
       setLoadingUsers(false);
     }
@@ -81,11 +82,11 @@ export function UsersTab() {
   const confirmLockUser = async () => {
     const reason = lockReason.trim();
     if (!lockingUser || !reason) {
-      Alert.alert('Thiếu lý do', 'Vui lòng nhập lý do khóa tài khoản.');
+      Alert.alert(STRINGS.ADMIN.USERS_TAB.REASON_REQUIRED_TITLE, STRINGS.ADMIN.USERS_TAB.REASON_REQUIRED_MSG);
       return;
     }
     if (!token) {
-      Alert.alert('Lỗi', 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.USERS_TAB.INVALID_SESSION);
       return;
     }
 
@@ -98,10 +99,10 @@ export function UsersTab() {
       );
       setLockingUser(null);
       setLockReason('');
-      Alert.alert('Thành công', 'Đã khóa tài khoản và lưu lý do.');
+      Alert.alert(STRINGS.ADMIN.USERS_TAB.LOCK_SUCCESS_TITLE, STRINGS.ADMIN.USERS_TAB.LOCK_SUCCESS_MSG);
     } catch (error) {
       console.warn('Lock user failed:', error);
-      Alert.alert('Lỗi', 'Không thể khóa tài khoản. Vui lòng thử lại.');
+      Alert.alert(STRINGS.ADMIN.USERS_TAB.LOCK_ERROR_TITLE, STRINGS.ADMIN.USERS_TAB.LOCK_ERROR_MSG);
     }
   };
 
@@ -112,29 +113,33 @@ export function UsersTab() {
       return;
     }
 
-    Alert.alert('Xác nhận mở khóa tài khoản', `Bạn có chắc muốn mở khóa tài khoản "${user.name}"?`, [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Mở khóa',
-        onPress: async () => {
-          try {
-            if (!token) {
-              throw new Error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+    Alert.alert(
+      STRINGS.ADMIN.USERS_TAB.UNLOCK_CONFIRM_TITLE,
+      STRINGS.ADMIN.USERS_TAB.UNLOCK_CONFIRM_MSG(user.name),
+      [
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
+        {
+          text: STRINGS.ADMIN.USERS_TAB.BTN_UNLOCK,
+          onPress: async () => {
+            try {
+              if (!token) {
+                throw new Error(STRINGS.ADMIN.USERS_TAB.INVALID_SESSION);
+              }
+              await adminService.toggleUserStatus(user.id, true, token);
+              setUsersList((prev: UserItem[]) =>
+                prev.map((item: UserItem) =>
+                  item.id === user.id ? { ...item, isActive: true, lockReason: '' } : item
+                )
+              );
+              Alert.alert(STRINGS.COMMON.SUCCESS, STRINGS.ADMIN.USERS_TAB.UNLOCK_SUCCESS_MSG);
+            } catch (error) {
+              console.warn('Unlock user failed:', error);
+              Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.USERS_TAB.UNLOCK_ERROR_MSG);
             }
-            await adminService.toggleUserStatus(user.id, true, token);
-            setUsersList((prev: UserItem[]) =>
-              prev.map((item: UserItem) =>
-                item.id === user.id ? { ...item, isActive: true, lockReason: '' } : item
-              )
-            );
-            Alert.alert('Thành công', 'Đã mở khóa tài khoản thành công.');
-          } catch (error) {
-            console.warn('Unlock user failed:', error);
-            Alert.alert('Lỗi', 'Không thể mở khóa tài khoản. Vui lòng thử lại.');
-          }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   return (
@@ -142,16 +147,16 @@ export function UsersTab() {
       <View style={styles.sectionHeaderTitleRow}>
         <Ionicons name="people-outline" size={16} color={theme.colors.primary[600]} />
         <Text style={styles.sectionHeaderTitle}>
-          Danh sách tài khoản ({filteredUsers.length})
+          {STRINGS.ADMIN.USERS_TAB.TITLE(filteredUsers.length)}
         </Text>
       </View>
 
-      {/* Ô tìm kiếm bo tròn mềm */}
+      {/* Search Input */}
       <View style={styles.searchBarContainer}>
         <Ionicons name="search" size={18} color={theme.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo tên, email, số điện thoại..."
+          placeholder={STRINGS.ADMIN.USERS_TAB.SEARCH_PLACEHOLDER}
           placeholderTextColor={theme.textSecondary}
           value={userSearch}
           onChangeText={setUserSearch}
@@ -166,10 +171,10 @@ export function UsersTab() {
       {/* Role Filter Chips */}
       <View style={styles.roleChipsRow}>
         {[
-          { id: 'all', label: 'Tất cả' },
-          { id: 'renter', label: 'Khách thuê' },
-          { id: 'owner', label: 'Chủ máy' },
-          { id: 'admin', label: 'Quản trị viên' },
+          { id: 'all', label: STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.all },
+          { id: 'renter', label: STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.renter },
+          { id: 'owner', label: STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.owner },
+          { id: 'admin', label: STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.admin },
         ].map(chip => {
           const isActive = selectedRole === chip.id;
           return (
@@ -187,31 +192,35 @@ export function UsersTab() {
         })}
       </View>
 
-      {/* Danh sách người dùng */}
+      {/* User List */}
       {loadingUsers ? (
         <View style={styles.loadingCard}>
           <ActivityIndicator size="small" color={theme.colors.primary[600]} />
-          <Text style={styles.loadingText}>Đang tải dữ liệu người dùng...</Text>
+          <Text style={styles.loadingText}>{STRINGS.ADMIN.USERS_TAB.LOADING_USERS}</Text>
         </View>
       ) : usersError ? (
         <View style={styles.emptyCard}>
           <Ionicons name="cloud-offline-outline" size={44} color={theme.colors.danger[600]} />
-          <Text style={styles.emptyTitle}>Không tải được dữ liệu</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.ADMIN.USERS_TAB.LOAD_FAIL_TITLE}</Text>
           <Text style={styles.emptyDesc}>{usersError}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => void loadUsers()}>
-            <Text style={styles.retryButtonText}>Thử lại</Text>
+            <Text style={styles.retryButtonText}>{STRINGS.ADMIN.USERS_TAB.RETRY}</Text>
           </TouchableOpacity>
         </View>
       ) : filteredUsers.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="people-outline" size={44} color={theme.textSecondary} />
-          <Text style={styles.emptyTitle}>Không tìm thấy thành viên</Text>
-          <Text style={styles.emptyDesc}>Thử tìm kiếm với từ khóa khác.</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.ADMIN.USERS_TAB.EMPTY_TITLE}</Text>
+          <Text style={styles.emptyDesc}>{STRINGS.ADMIN.USERS_TAB.EMPTY_DESC}</Text>
         </View>
       ) : (
         filteredUsers.map((u: UserItem) => {
           const roleLabel =
-            u.role === 'admin' ? 'Admin' : u.role === 'owner' ? 'Chủ thiết bị' : 'Người thuê';
+            u.role === 'admin'
+              ? STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.admin
+              : u.role === 'owner'
+              ? STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.owner
+              : STRINGS.ADMIN.USERS_TAB.ROLE_CHIPS.renter;
           const roleBadgeColor =
             u.role === 'admin'
               ? theme.colors.danger[50]
@@ -237,7 +246,7 @@ export function UsersTab() {
                     )}
                   </View>
                   <Text style={styles.userEmail}>{u.email}</Text>
-                  <Text style={styles.userPhone}>SĐT: {u.phone}</Text>
+                  <Text style={styles.userPhone}>{STRINGS.ADMIN.USERS_TAB.PHONE_LABEL}{u.phone}</Text>
                 </View>
 
                 <View style={[styles.roleBadge, { backgroundColor: roleBadgeColor }]}>
@@ -248,27 +257,27 @@ export function UsersTab() {
               {/* Stats Row */}
               <View style={styles.userStatsRow}>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Trust Score:</Text>
+                  <Text style={styles.statLabel}>{STRINGS.ADMIN.USERS_TAB.TRUST_SCORE_LABEL}</Text>
                   <Text style={styles.statValueTrust}>⭐ {u.trustScore}/100</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Đơn giao dịch:</Text>
-                  <Text style={styles.statValue}>{u.rentalCount} lượt</Text>
+                  <Text style={styles.statLabel}>{STRINGS.ADMIN.USERS_TAB.RENTALS_LABEL}</Text>
+                  <Text style={styles.statValue}>{u.rentalCount} {STRINGS.ADMIN.USERS_TAB.ORDERS_SUFFIX}</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Trạng thái:</Text>
+                  <Text style={styles.statLabel}>{STRINGS.ADMIN.USERS_TAB.STATUS_LABEL}</Text>
                   <Text
                     style={[
                       styles.statStatus,
                       { color: u.isActive ? theme.colors.success[600] : theme.colors.danger[600] },
                     ]}
                   >
-                    {u.isActive ? 'Hoạt động' : 'Bị khóa'}
+                    {u.isActive ? STRINGS.ADMIN.USERS_TAB.STATUS_ACTIVE : STRINGS.ADMIN.USERS_TAB.STATUS_SUSPENDED}
                   </Text>
                 </View>
               </View>
               {!u.isActive && u.lockReason ? (
-                <Text style={styles.lockReasonText}>Lý do khóa: {u.lockReason}</Text>
+                <Text style={styles.lockReasonText}>{STRINGS.ADMIN.USERS_TAB.SUSPENSION_REASON_LABEL}{u.lockReason}</Text>
               ) : null}
 
               {/* Actions */}
@@ -301,7 +310,7 @@ export function UsersTab() {
                         },
                       ]}
                     >
-                      {u.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                      {u.isActive ? STRINGS.ADMIN.USERS_TAB.BTN_SUSPEND : STRINGS.ADMIN.USERS_TAB.BTN_UNLOCK}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -318,15 +327,15 @@ export function UsersTab() {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.lockModal}>
-            <Text style={styles.lockModalTitle}>Khóa tài khoản</Text>
+            <Text style={styles.lockModalTitle}>{STRINGS.ADMIN.USERS_TAB.MODAL_TITLE}</Text>
             <Text style={styles.lockModalDescription}>
-              Nhập lý do khóa tài khoản của {lockingUser?.name || 'người dùng'}.
+              {STRINGS.ADMIN.USERS_TAB.MODAL_DESC(lockingUser?.name || STRINGS.ADMIN.USERS_TAB.MODAL_DEFAULT_USER)}
             </Text>
             <TextInput
               style={styles.lockReasonInput}
               value={lockReason}
               onChangeText={setLockReason}
-              placeholder="Nhập lý do..."
+              placeholder={STRINGS.ADMIN.USERS_TAB.MODAL_PLACEHOLDER}
               placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
@@ -337,13 +346,13 @@ export function UsersTab() {
                 style={[styles.lockModalButton, styles.lockModalCancel]}
                 onPress={() => setLockingUser(null)}
               >
-                <Text style={styles.lockModalCancelText}>Hủy</Text>
+                <Text style={styles.lockModalCancelText}>{STRINGS.ADMIN.USERS_TAB.MODAL_CANCEL}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.lockModalButton, styles.lockModalConfirm]}
                 onPress={() => void confirmLockUser()}
               >
-                <Text style={styles.lockModalConfirmText}>Khóa tài khoản</Text>
+                <Text style={styles.lockModalConfirmText}>{STRINGS.ADMIN.USERS_TAB.MODAL_CONFIRM}</Text>
               </TouchableOpacity>
             </View>
           </View>

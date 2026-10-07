@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { EkycItem } from '../../types';
 import { adminService } from '../../services/adminService';
 
@@ -39,30 +40,30 @@ export function EkycReviewModal({
 
   const handleApprove = async () => {
     Alert.alert(
-      ekyc.verificationPurpose === 'renter' ? 'Xác nhận danh tính người dùng' : 'Xác nhận cấp Tích xanh',
+      ekyc.verificationPurpose === 'renter' ? 'Verify User Identity' : 'Grant Verified Badge',
       ekyc.verificationPurpose === 'renter'
-        ? `Phê duyệt hồ sơ CCCD của ${ekyc.userId?.name || 'người dùng'} để bật quyền thuê thiết bị?`
-        : `Phê duyệt hồ sơ CCCD của ${ekyc.userId?.name || 'người dùng'} và cấp Tích xanh uy tín ngay bây giờ?`,
+        ? `Approve ID documents for ${ekyc.userId?.name || 'this user'} to enable rental permissions?`
+        : `Approve ID documents for ${ekyc.userId?.name || 'this user'} and grant Verified Owner badge now?`,
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Phê duyệt',
+          text: 'Approve',
           onPress: async () => {
             setLoading(true);
             try {
               const res = await adminService.approveEkyc(ekyc._id);
               if (res && res.success) {
                 Alert.alert(
-                  'Thành công! 🎉',
+                  'Success! 🎉',
                   ekyc.verificationPurpose === 'renter'
-                    ? 'Đã xác thực danh tính. Người dùng có thể thuê thiết bị.'
-                    : 'Đã cấp Tích xanh uy tín cho người dùng.'
+                    ? 'Identity verified. User is now eligible to rent devices.'
+                    : 'Verified Owner badge granted successfully.'
                 );
                 onApproved(ekyc._id);
                 onClose();
               }
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể phê duyệt eKYC.');
+              Alert.alert('Error', err.message || 'Unable to approve eKYC.');
             } finally {
               setLoading(false);
             }
@@ -74,7 +75,7 @@ export function EkycReviewModal({
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      Alert.alert('Chưa có lý do', 'Vui lòng nhập lý do từ chối để thông báo cho người dùng.');
+      Alert.alert('Reason Required', 'Please enter a rejection reason to notify the user.');
       return;
     }
 
@@ -82,14 +83,14 @@ export function EkycReviewModal({
     try {
       const res = await adminService.rejectEkyc(ekyc._id, rejectReason.trim());
       if (res && res.success) {
-        Alert.alert('Đã từ chối', 'Đã từ chối hồ sơ và gửi thông báo cho người dùng.');
+        Alert.alert('Application Rejected', 'Application has been rejected and notification sent to user.');
         onRejected(ekyc._id, rejectReason.trim());
         setRejecting(false);
         setRejectReason('');
         onClose();
       }
     } catch (err: any) {
-      Alert.alert('Lỗi', err.message || 'Không thể từ chối eKYC.');
+      Alert.alert('Error', err.message || 'Unable to reject eKYC.');
     } finally {
       setLoading(false);
     }
@@ -108,10 +109,10 @@ export function EkycReviewModal({
               <View>
                 <Text style={styles.modalTitle}>
                   {ekyc.verificationPurpose === 'renter'
-                    ? 'Xác thực người dùng thực'
-                    : 'Kiểm Duyệt Hồ Sơ eKYC'}
+                    ? 'Verify Real User Identity'
+                    : 'Review eKYC Application'}
                 </Text>
-                <Text style={styles.modalSubtitle}>{ekyc.userId?.name || 'Người dùng'}</Text>
+                <Text style={styles.modalSubtitle}>{ekyc.userId?.name || 'User'}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
@@ -120,7 +121,7 @@ export function EkycReviewModal({
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {/* Thông tin User tóm tắt */}
+            {/* User info summary */}
             <View style={styles.userInfoCard}>
               <Image
                 source={{
@@ -131,100 +132,100 @@ export function EkycReviewModal({
                 style={styles.avatarImg}
               />
               <View style={styles.userMetaCol}>
-                <Text style={styles.userName}>{ekyc.fullName || ekyc.userId?.name || 'Tên người dùng'}</Text>
+                <Text style={styles.userName}>{ekyc.fullName || ekyc.userId?.name || 'User'}</Text>
                 <Text style={styles.userSubText}>
                   {ekyc.email || ekyc.userId?.email || ''} • {ekyc.phone || ekyc.userId?.phone || ''}
                 </Text>
                 <View style={styles.trustScorePill}>
                   <Ionicons name="shield-checkmark" size={12} color={colors.light.primary} />
                   <Text style={styles.trustScoreText}>
-                    Điểm uy tín hiện tại: {ekyc.userId?.trustScore || 100}/100
+                    Current Trust Score: {ekyc.userId?.trustScore || 100}/100
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Bảng chi tiết thông tin cá nhân nộp duyệt */}
+            {/* Personal information comparison card */}
             <View style={styles.detailInfoCard}>
               <View style={styles.detailHeaderRow}>
                 <Ionicons name="person-circle-outline" size={16} color={colors.light.primary} />
-                <Text style={styles.detailCardTitle}>THÔNG TIN CÁ NHÂN ĐỐI CHIẾU</Text>
+                <Text style={styles.detailCardTitle}>PERSONAL INFORMATION FOR VERIFICATION</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Họ và tên:</Text>
-                <Text style={styles.infoValue}>{ekyc.fullName || ekyc.userId?.name || 'Chưa cung cấp'}</Text>
+                <Text style={styles.infoLabel}>Full Name:</Text>
+                <Text style={styles.infoValue}>{ekyc.fullName || ekyc.userId?.name || 'Not provided'}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Số CCCD:</Text>
+                <Text style={styles.infoLabel}>ID Card Number:</Text>
                 <Text style={[styles.infoValue, styles.infoValueHighlight]}>
-                  {ekyc.idCardNumber || 'Chưa cung cấp'}
+                  {ekyc.idCardNumber || 'Not provided'}
                 </Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Số điện thoại:</Text>
-                <Text style={styles.infoValue}>{ekyc.phone || ekyc.userId?.phone || 'Chưa cung cấp'}</Text>
+                <Text style={styles.infoLabel}>Phone Number:</Text>
+                <Text style={styles.infoValue}>{ekyc.phone || ekyc.userId?.phone || 'Not provided'}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Email:</Text>
-                <Text style={styles.infoValue}>{ekyc.email || ekyc.userId?.email || 'Chưa cung cấp'}</Text>
+                <Text style={styles.infoValue}>{ekyc.email || ekyc.userId?.email || 'Not provided'}</Text>
               </View>
 
               <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
-                <Text style={styles.infoLabel}>Địa chỉ nhà:</Text>
+                <Text style={styles.infoLabel}>Residential Address:</Text>
                 <Text style={[styles.infoValue, { flex: 1, textAlign: 'right' }]}>
-                  {ekyc.address || ekyc.userId?.address || 'Chưa cung cấp'}
+                  {ekyc.address || ekyc.userId?.address || 'Not provided'}
                 </Text>
               </View>
             </View>
 
-            {/* Thông báo duyệt thủ công */}
+            {/* Manual verification notice */}
             <View style={styles.manualNoticeBox}>
               <Ionicons name="information-circle" size={16} color={colors.light.primary} />
               <Text style={styles.manualNoticeText}>
-                Hồ sơ xét duyệt thủ công: Quản trị viên vui lòng đối chiếu Số CCCD, Họ tên, và Địa chỉ nhà với ảnh 2 mặt Căn cước công dân trước khi phê duyệt.
+                Manual verification required: Administrators must compare the ID Number, Full Name, and Residential Address with both sides of the identity document before approval.
               </Text>
             </View>
 
-            {/* Danh sách ảnh giấy tờ */}
-            <Text style={styles.sectionHeading}>🪪 ẢNH GIẤY TỜ TÙY THÂN</Text>
+            {/* Identity documents list */}
+            <Text style={styles.sectionHeading}>🪪 IDENTITY DOCUMENTS</Text>
 
             <View style={styles.docsList}>
-              {/* Ảnh 1: CCCD Mặt trước */}
+              {/* Photo 1: Front */}
               <View style={styles.docItem}>
-                <Text style={styles.docLabel}>1. Căn cước công dân (Mặt trước)</Text>
+                <Text style={styles.docLabel}>1. Citizen ID Card (Front)</Text>
                 <Image source={{ uri: ekyc.idCardFrontUrl }} style={styles.docImage} />
               </View>
 
-              {/* Ảnh 2: CCCD Mặt sau */}
+              {/* Photo 2: Back */}
               <View style={styles.docItem}>
-                <Text style={styles.docLabel}>2. Căn cước công dân (Mặt sau)</Text>
+                <Text style={styles.docLabel}>2. Citizen ID Card (Back)</Text>
                 <Image source={{ uri: ekyc.idCardBackUrl }} style={styles.docImage} />
               </View>
 
-              {/* Ảnh 3: Chân dung Selfie (chỉ hiển thị nếu có) */}
+              {/* Photo 3: Selfie */}
               {ekyc.selfieUrl ? (
                 <View style={styles.docItem}>
-                  <Text style={styles.docLabel}>3. Ảnh chụp chân dung trực tiếp (Selfie)</Text>
+                  <Text style={styles.docLabel}>{STRINGS.ADMIN.EKYC_MODAL.SELFIE_LABEL}</Text>
                   <Image source={{ uri: ekyc.selfieUrl }} style={styles.docImage} />
                 </View>
               ) : null}
             </View>
 
-            {/* Khối nhập lý do từ chối nếu bấm Từ chối */}
+            {/* Rejection input box */}
             {rejecting && (
               <View style={styles.rejectInputBox}>
-                <Text style={styles.rejectInputLabel}>Lý do từ chối hồ sơ (gửi tới người dùng):</Text>
+                <Text style={styles.rejectInputLabel}>{STRINGS.ADMIN.EKYC_MODAL.REJECT_REASON_LABEL}</Text>
                 <TextInput
                   style={styles.rejectInput}
                   multiline
                   numberOfLines={2}
                   value={rejectReason}
                   onChangeText={setRejectReason}
-                  placeholder="Ví dụ: Ảnh CCCD mặt trước bị mờ số căn cước, vui lòng chụp lại..."
+                  placeholder={STRINGS.ADMIN.EKYC_MODAL.REJECT_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                 />
                 <TouchableOpacity
@@ -233,7 +234,7 @@ export function EkycReviewModal({
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.btnConfirmRejectText}>Xác nhận Từ Chối Hồ Sơ</Text>
+                  <Text style={styles.btnConfirmRejectText}>{STRINGS.ADMIN.EKYC_MODAL.CONFIRM_REJECT}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -250,7 +251,7 @@ export function EkycReviewModal({
                   activeOpacity={0.8}
                 >
                   <Ionicons name="close-circle-outline" size={16} color={colors.light.error} />
-                  <Text style={styles.btnRejectText}>Từ chối</Text>
+                  <Text style={styles.btnRejectText}>{STRINGS.ADMIN.EKYC_MODAL.REJECT}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -260,11 +261,15 @@ export function EkycReviewModal({
                   activeOpacity={0.8}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <ActivityIndicator color={colors.light.white} size="small" />
                   ) : (
                     <>
-                      <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                      <Text style={styles.btnApproveText}>Duyệt & Cấp Tích Xanh</Text>
+                      <Ionicons name="checkmark-circle" size={18} color={colors.light.white} />
+                      <Text style={styles.btnApproveText}>
+                        {ekyc.verificationPurpose === 'renter'
+                          ? STRINGS.ADMIN.EKYC_MODAL.VERIFY_IDENTITY
+                          : STRINGS.ADMIN.EKYC_MODAL.APPROVE_BADGE}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -275,7 +280,7 @@ export function EkycReviewModal({
                 onPress={() => setRejecting(false)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.btnCancelRejectText}>Quay lại</Text>
+                <Text style={styles.btnCancelRejectText}>{STRINGS.ADMIN.EKYC_MODAL.BACK}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -414,7 +419,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.light.borderSubtle,
   },
   infoLabel: {
     fontSize: 12,
@@ -481,9 +486,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light.border,
   },
   rejectInputBox: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.light.dangerLight,
     padding: 12,
     borderRadius: 10,
     marginBottom: 16,
@@ -513,7 +518,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnConfirmRejectText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -553,7 +558,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   btnApproveText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '700',
   },

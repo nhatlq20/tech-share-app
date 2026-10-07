@@ -22,6 +22,7 @@ import { bookingService } from '../../services/bookingService';
 import { apiClient } from '../../config/api';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { useAppSelector } from '../../store';
 import { VoucherInput } from './components/VoucherInput';
 import { PriceBreakdownCard } from './components/PriceBreakdownCard';
@@ -34,7 +35,7 @@ interface BookingCreateScreenProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ';
+  return price.toLocaleString('en-US') + ' VND';
 };
 
 const formatDateTime = (d: Date) => {
@@ -53,7 +54,7 @@ const formatTimeOnly = (d: Date) => {
 };
 
 const getDayOfWeekName = (d: Date) => {
-  const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[d.getDay()];
 };
 
@@ -166,31 +167,31 @@ export function BookingCreateScreen({
 
     if (pickerConfig.type === 'start') {
       if (date < now) {
-        Alert.alert('Lỗi thời gian', 'Thời gian nhận máy không hợp lệ.');
+        Alert.alert(STRINGS.BOOKING_CREATE.INVALID_TIME_TITLE, STRINGS.BOOKING_CREATE.PAST_TIME_MSG);
         return;
       }
 
-      // 1. Kiểm tra thời điểm nhận máy có nằm trong khoảng đang có người thuê không
+      // 1. Check if pickup date falls into a busy period
       const conflict = isDateInBusyRange(date);
       if (conflict) {
-        const fromStr = new Date(conflict.startDate).toLocaleDateString('vi-VN');
-        const toStr = new Date(conflict.endDate).toLocaleDateString('vi-VN');
+        const fromStr = new Date(conflict.startDate).toLocaleDateString('en-US');
+        const toStr = new Date(conflict.endDate).toLocaleDateString('en-US');
         Alert.alert(
-          'Đã có người thuê',
-          `Thiết bị đang có người thuê (${fromStr} - ${toStr}). Vui lòng chọn thời gian nhận sau ngày ${toStr} hoặc thời gian khác!`
+          STRINGS.BOOKING_CREATE.DATES_UNAVAILABLE_TITLE,
+          `The device is currently booked (${fromStr} - ${toStr}). Please choose a pickup date after ${toStr} or select different dates!`
         );
         return;
       }
 
-      // 2. Nếu đã có endDate, kiểm tra khoảng [date, endDate] có bị bao trùm hoặc trùng đơn bận nào không
+      // 2. Check if [date, endDate] overlaps with an existing booking
       if (endDate) {
         const rangeConflict = checkOverlapWithBusy(date, endDate);
         if (rangeConflict) {
-          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('vi-VN');
-          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('vi-VN');
+          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('en-US');
+          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('en-US');
           Alert.alert(
-            'Trùng lịch thuê',
-            `Khoảng thời gian bạn chọn trùng với đơn thuê của người khác (${fromStr} - ${toStr}). Hệ thống sẽ đặt lại ngày trả.`
+            STRINGS.BOOKING_CREATE.SCHEDULE_CONFLICT_TITLE,
+            `The selected duration overlaps with another booking (${fromStr} - ${toStr}). The return date has been reset.`
           );
           setEndDate(null);
         }
@@ -202,19 +203,19 @@ export function BookingCreateScreen({
       }
     } else {
       if (startDate && date <= startDate) {
-        Alert.alert('Lỗi thời gian', 'Thời gian trả không hợp lệ.');
+        Alert.alert(STRINGS.BOOKING_CREATE.INVALID_TIME_TITLE, STRINGS.BOOKING_CREATE.RETURN_BEFORE_PICKUP_MSG);
         return;
       }
 
-      // Kiểm tra khoảng [startDate, date] có bị trùng với đơn đang active không
+      // Check if [startDate, date] conflicts with an active booking
       if (startDate) {
         const rangeConflict = checkOverlapWithBusy(startDate, date);
         if (rangeConflict) {
-          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('vi-VN');
-          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('vi-VN');
+          const fromStr = new Date(rangeConflict.startDate).toLocaleDateString('en-US');
+          const toStr = new Date(rangeConflict.endDate).toLocaleDateString('en-US');
           Alert.alert(
-            'Trùng lịch thuê',
-            `Thiết bị đang có người thuê trong khoảng (${fromStr} - ${toStr}). Vui lòng chọn thời gian trả trước ngày ${fromStr} hoặc chọn khoảng thời gian khác!`
+            STRINGS.BOOKING_CREATE.SCHEDULE_CONFLICT_TITLE,
+            `The device is already booked during (${fromStr} - ${toStr}). Please select a return time before ${fromStr} or choose different dates!`
           );
           return;
         }
@@ -237,7 +238,7 @@ export function BookingCreateScreen({
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.light.primary} />
-        <Text style={styles.loadingText}>Đang tải thông tin thiết bị...</Text>
+        <Text style={styles.loadingText}>{STRINGS.BOOKING_DETAIL.LOADING}</Text>
       </View>
     );
   }
@@ -246,9 +247,9 @@ export function BookingCreateScreen({
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.light.error} />
-        <Text style={styles.errorTitle}>Không tìm thấy thông tin thiết bị</Text>
+        <Text style={styles.errorTitle}>{STRINGS.BOOKING_DETAIL.NOT_FOUND}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Quay lại</Text>
+          <Text style={styles.backBtnText}>{STRINGS.BOOKING_DETAIL.GO_BACK}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -284,34 +285,34 @@ export function BookingCreateScreen({
   const handleConfirm = async () => {
     if (currentUser?.role === 'renter' && !currentUser.isVerified) {
       Alert.alert(
-        'Cần xác thực danh tính',
-        'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+        STRINGS.AUTH_VERIFY_ALERT.TITLE,
+        STRINGS.AUTH_VERIFY_ALERT.MSG,
         [
-          { text: 'Để sau', style: 'cancel' },
-          { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+          { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
+          { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
         ]
       );
       return;
     }
 
     if (!startDate || !endDate) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng chọn thời gian nhận và trả máy.');
+      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DATES_MSG);
       return;
     }
 
     if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập địa chỉ nhận hàng để chủ máy giao thiết bị.');
+      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DELIVERY_ADDRESS_MSG);
       return;
     }
 
-    // Kiểm tra chặn đặt trùng với đơn đang active trên hệ thống
+    // Check overlap with active bookings
     const conflict = checkOverlapWithBusy(startDate, endDate);
     if (conflict) {
-      const fromStr = new Date(conflict.startDate).toLocaleDateString('vi-VN');
-      const toStr = new Date(conflict.endDate).toLocaleDateString('vi-VN');
+      const fromStr = new Date(conflict.startDate).toLocaleDateString('en-US');
+      const toStr = new Date(conflict.endDate).toLocaleDateString('en-US');
       Alert.alert(
-        'Đã có người thuê',
-        `Thiết bị đang có người thuê trong khoảng thời gian (${fromStr} - ${toStr}). Vui lòng chọn khoảng thời gian khác!`
+        STRINGS.BOOKING_CREATE.DEVICE_RENTED_TITLE,
+        `The device is already booked during (${fromStr} - ${toStr}). Please select a different rental period!`
       );
       return;
     }
@@ -329,8 +330,8 @@ export function BookingCreateScreen({
       });
 
       Alert.alert(
-        'Thành công',
-        'Yêu cầu thuê máy đã được gửi đi!',
+        STRINGS.BOOKING_CREATE.SUCCESS_TITLE,
+        STRINGS.BOOKING_CREATE.SUCCESS_MSG,
         [
           {
             text: 'OK',
@@ -349,15 +350,15 @@ export function BookingCreateScreen({
       const responseData = error.response?.data;
       if (responseData?.code === 'RENTER_EKYC_REQUIRED') {
         Alert.alert(
-          'Cần xác thực danh tính',
-          responseData.message || 'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+          STRINGS.AUTH_VERIFY_ALERT.TITLE,
+          responseData.message || STRINGS.AUTH_VERIFY_ALERT.MSG,
           [
-            { text: 'Để sau', style: 'cancel' },
-            { text: 'Xác thực ngay', onPress: onNavigateToVerification },
+            { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
+            { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
           ]
         );
       } else {
-        Alert.alert('Lỗi', responseData?.message || 'Không thể tạo yêu cầu thuê máy.');
+        Alert.alert('Error', responseData?.message || 'Unable to submit booking request.');
       }
     } finally {
       setIsSubmitting(false);
@@ -372,14 +373,14 @@ export function BookingCreateScreen({
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.surface} />
 
       {/* Top Header */}
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
           <Ionicons name="chevron-back" size={22} color={colors.light.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tạo đơn thuê</Text>
+        <Text style={styles.headerTitle}>{STRINGS.BOOKING_CREATE.TITLE}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -398,7 +399,7 @@ export function BookingCreateScreen({
             </View>
             <Text style={styles.deviceTitle} numberOfLines={1}>{device.title}</Text>
             <Text style={styles.dailyRate}>
-              {formatPrice(device.dailyRate)} <Text style={styles.dailyRateUnit}>/ ngày</Text>
+              {formatPrice(device.dailyRate)} <Text style={styles.dailyRateUnit}>/ day</Text>
             </Text>
           </View>
         </View>
@@ -411,27 +412,27 @@ export function BookingCreateScreen({
                 <Ionicons name="calendar-outline" size={16} color={colors.light.primary} />
               </View>
               <View>
-                <Text style={styles.sectionTitle}>Thời gian thuê</Text>
-                <Text style={styles.sectionSubtitle}>Lịch nhận và hoàn trả thiết bị</Text>
+                <Text style={styles.sectionTitle}>{STRINGS.BOOKING_DETAIL.RENTAL_PERIOD}</Text>
+                <Text style={styles.sectionSubtitle}>Pickup & return schedule</Text>
               </View>
             </View>
             {rentalDays > 0 && startDate && endDate && (
               <View style={styles.durationPill}>
                 <Ionicons name="time-outline" size={12} color={colors.light.primary} />
-                <Text style={styles.durationPillText}>{rentalDays} ngày</Text>
+                <Text style={styles.durationPillText}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</Text>
               </View>
             )}
           </View>
 
           {currentActiveBooking && (
             <View style={styles.activeBusyAlertBox}>
-              <Ionicons name="warning" size={16} color="#DC2626" />
+              <Ionicons name="warning" size={16} color={colors.light.error} />
               <Text style={styles.activeBusyAlertText}>
-                Thiết bị đang có người thuê đến ngày{' '}
+                Device is currently rented until{' '}
                 <Text style={{ fontWeight: '700' }}>
-                  {new Date(currentActiveBooking.endDate).toLocaleDateString('vi-VN')}
+                  {new Date(currentActiveBooking.endDate).toLocaleDateString('en-US')}
                 </Text>
-                . Bạn vui lòng chọn ngày nhận sau thời gian này!
+                . Please select a pickup date after this time!
               </Text>
             </View>
           )}
@@ -455,7 +456,7 @@ export function BookingCreateScreen({
                   />
                 </View>
                 <Text style={[styles.dateCardLabel, startDate ? styles.dateCardLabelActive : undefined]}>
-                  Nhận máy
+                  {STRINGS.BOOKING_DETAIL.PICKUP}
                 </Text>
               </View>
 
@@ -467,10 +468,10 @@ export function BookingCreateScreen({
                 </View>
               ) : (
                 <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Chưa chọn</Text>
+                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
                   <View style={styles.dateCardActionBadge}>
                     <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Chọn giờ</Text>
+                    <Text style={styles.dateCardActionText}>Select time</Text>
                   </View>
                 </View>
               )}
@@ -501,7 +502,7 @@ export function BookingCreateScreen({
                   />
                 </View>
                 <Text style={[styles.dateCardLabel, endDate ? styles.dateCardLabelActive : undefined]}>
-                  Trả máy
+                  {STRINGS.BOOKING_DETAIL.RETURN}
                 </Text>
               </View>
 
@@ -513,10 +514,10 @@ export function BookingCreateScreen({
                 </View>
               ) : (
                 <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Chưa chọn</Text>
+                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
                   <View style={styles.dateCardActionBadge}>
                     <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Chọn giờ</Text>
+                    <Text style={styles.dateCardActionText}>Select time</Text>
                   </View>
                 </View>
               )}
@@ -528,7 +529,7 @@ export function BookingCreateScreen({
             <View style={styles.durationSummaryBar}>
               <Ionicons name="checkmark-circle" size={15} color={colors.light.primary} />
               <Text style={styles.durationSummaryText}>
-                Tổng thời gian thuê: <Text style={styles.durationSummaryBold}>{rentalDays} ngày</Text> ({rentalDays * 24} giờ)
+                Total rental duration: <Text style={styles.durationSummaryBold}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</Text> ({rentalDays * 24} hours)
               </Text>
             </View>
           )}
@@ -536,7 +537,7 @@ export function BookingCreateScreen({
 
         {/* ── Delivery Method Section (Phương thức nhận máy) ── */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Phương thức nhận máy</Text>
+          <Text style={styles.sectionTitle}>{STRINGS.BOOKING_CREATE.DELIVERY_METHOD_TITLE}</Text>
 
           <View style={styles.deliveryOptionsContainer}>
             {/* Option 1: Tự đến lấy máy */}
@@ -569,10 +570,10 @@ export function BookingCreateScreen({
                         deliveryMethod === 'pickup' && styles.deliveryOptionTitleSelected,
                       ]}
                     >
-                      Tự đến lấy máy
+                      {STRINGS.BOOKING_CREATE.METHOD_PICKUP}
                     </Text>
                     <Text style={styles.deliveryOptionSubtitle}>
-                      Nhận và kiểm tra thiết bị trực tiếp tại điểm hẹn
+                      Inspect and receive the device directly at pickup location
                     </Text>
                   </View>
                 </View>
@@ -590,7 +591,7 @@ export function BookingCreateScreen({
                 <View style={styles.pickupAddressBox}>
                   <Ionicons name="location-outline" size={16} color={colors.light.primary} />
                   <Text style={styles.pickupAddressText}>
-                    Điểm nhận: {device.addressText || 'Liên hệ trao đổi trực tiếp với chủ máy sau khi đơn được duyệt'}
+                    {STRINGS.BOOKING_CREATE.PICKUP_ADDRESS_LABEL} {device.addressText || 'Coordinate directly with owner after booking is approved'}
                   </Text>
                 </View>
               )}
@@ -626,10 +627,10 @@ export function BookingCreateScreen({
                         deliveryMethod === 'delivery' && styles.deliveryOptionTitleSelected,
                       ]}
                     >
-                      Giao hàng tận nơi
+                      {STRINGS.BOOKING_CREATE.METHOD_DELIVERY}
                     </Text>
                     <Text style={styles.deliveryOptionSubtitle}>
-                      Chủ máy hoặc Shipper giao thiết bị đến địa chỉ của bạn
+                      Owner or courier delivers the device directly to your address
                     </Text>
                   </View>
                 </View>
@@ -646,13 +647,13 @@ export function BookingCreateScreen({
               {deliveryMethod === 'delivery' && (
                 <View style={styles.deliveryInputBox}>
                   <Text style={styles.deliveryInputLabel}>
-                    Địa chỉ nhận hàng <Text style={{ color: colors.light.error }}>*</Text>:
+                    {STRINGS.BOOKING_CREATE.DELIVERY_ADDRESS_LABEL} <Text style={{ color: colors.light.error }}>*</Text>:
                   </Text>
                   <View style={styles.deliveryInputWrapper}>
                     <Ionicons name="location" size={18} color={colors.light.primary} style={{ marginTop: 2 }} />
                     <TextInput
                       style={styles.deliveryAddressInput}
-                      placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện..."
+                      placeholder={STRINGS.BOOKING_CREATE.DELIVERY_ADDRESS_PLACEHOLDER}
                       placeholderTextColor={colors.light.textSecondary}
                       value={deliveryAddress}
                       onChangeText={(text: string) => setDeliveryAddress(text)}
@@ -685,7 +686,7 @@ export function BookingCreateScreen({
       {/* Bottom Sticky Action Bar */}
       <View style={styles.bottomBar}>
         <View>
-          <Text style={styles.bottomPriceSub}>Tổng thanh toán</Text>
+          <Text style={styles.bottomPriceSub}>{STRINGS.BOOKING_CREATE.TOTAL_PAYMENT}</Text>
           <Text style={styles.bottomPriceMain}>
             {rentalDays > 0 ? formatPrice(totalAmount) : '---'}
           </Text>
@@ -698,10 +699,10 @@ export function BookingCreateScreen({
           activeOpacity={0.8}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.light.white} />
           ) : (
             <Text style={[styles.confirmBtnText, isConfirmDisabled && styles.confirmBtnTextDisabled]}>
-              Xác nhận đặt thuê
+              {STRINGS.BOOKING_CREATE.CONFIRM_BOOKING}
             </Text>
           )}
         </TouchableOpacity>
@@ -836,8 +837,8 @@ const CustomDateTimePicker = ({
     const ymd = getLocalYMD(finalDate);
     if (markedDates[ymd]?.disabled) {
       Alert.alert(
-        'Không thể chọn ngày này',
-        'Thiết bị đã có người thuê trong ngày bạn chọn. Vui lòng chọn ngày khác trên lịch!'
+        STRINGS.BOOKING_CREATE.DATE_UNAVAILABLE_TITLE,
+        STRINGS.BOOKING_CREATE.DATE_UNAVAILABLE_MSG
       );
       return;
     }
@@ -870,7 +871,7 @@ const CustomDateTimePicker = ({
             disableTouchEvent: true,
             marked: true,
             dotColor: colors.light.error,
-            textColor: '#CBD5E1',
+            textColor: colors.light.textMuted,
           };
           curr.setDate(curr.getDate() + 1);
         }
@@ -882,7 +883,7 @@ const CustomDateTimePicker = ({
       ...(marks[currentDateStr] || {}),
       selected: true,
       selectedColor: colors.light.primary,
-      textColor: '#FFFFFF',
+      textColor: colors.light.white,
     };
 
     return marks;
@@ -904,12 +905,12 @@ const CustomDateTimePicker = ({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>
-                  {type === 'start' ? 'Thời gian nhận máy' : 'Thời gian trả máy'}
+                  {type === 'start' ? STRINGS.BOOKING_CREATE.PICKUP_TIME_TITLE : STRINGS.BOOKING_CREATE.RETURN_TIME_TITLE}
                 </Text>
                 <Text style={styles.modalSubtitle}>
                   {type === 'start'
-                    ? 'Chọn ngày & giờ bạn muốn nhận thiết bị'
-                    : 'Chọn ngày & giờ bạn sẽ trả thiết bị'}
+                    ? STRINGS.BOOKING_CREATE.PICKUP_TIME_SUB
+                    : STRINGS.BOOKING_CREATE.RETURN_TIME_SUB}
                 </Text>
               </View>
             </View>
@@ -927,7 +928,7 @@ const CustomDateTimePicker = ({
             {/* Live Selection Preview Bar */}
             <View style={styles.modalPreviewBar}>
               <View style={styles.modalPreviewCol}>
-                <Text style={styles.modalPreviewLabel}>Ngày đã chọn</Text>
+                <Text style={styles.modalPreviewLabel}>{STRINGS.BOOKING_CREATE.SELECTED_DATE}</Text>
                 <View style={styles.modalPreviewValRow}>
                   <Ionicons name="calendar" size={14} color={colors.light.primary} />
                   <Text style={styles.modalPreviewValText}>
@@ -937,7 +938,7 @@ const CustomDateTimePicker = ({
               </View>
               <View style={styles.modalPreviewDivider} />
               <View style={styles.modalPreviewCol}>
-                <Text style={styles.modalPreviewLabel}>Giờ hẹn</Text>
+                <Text style={styles.modalPreviewLabel}>{STRINGS.BOOKING_CREATE.SELECTED_TIME}</Text>
                 <View style={styles.modalPreviewValRow}>
                   <Ionicons name="time" size={14} color={colors.light.primary} />
                   <Text style={styles.modalPreviewValTime}>
@@ -955,8 +956,8 @@ const CustomDateTimePicker = ({
                 onDayPress={(day: any) => {
                   if (markedDates[day.dateString]?.disabled) {
                     Alert.alert(
-                      'Không thể chọn ngày này',
-                      'Thiết bị đã có người thuê trong ngày này. Vui lòng chọn ngày khác!'
+                      STRINGS.BOOKING_CREATE.DATE_UNAVAILABLE_TITLE,
+                      STRINGS.BOOKING_CREATE.DATE_UNAVAILABLE_MSG
                     );
                     return;
                   }
@@ -965,14 +966,14 @@ const CustomDateTimePicker = ({
                 }}
                 markedDates={markedDates}
                 theme={{
-                  backgroundColor: '#FFFFFF',
-                  calendarBackground: '#FFFFFF',
+                  backgroundColor: colors.light.surface,
+                  calendarBackground: colors.light.surface,
                   textSectionTitleColor: colors.light.textSecondary,
                   selectedDayBackgroundColor: colors.light.primary,
-                  selectedDayTextColor: '#FFFFFF',
+                  selectedDayTextColor: colors.light.white,
                   todayTextColor: colors.light.primary,
                   dayTextColor: colors.light.textPrimary,
-                  textDisabledColor: '#CBD5E1',
+                  textDisabledColor: colors.light.textMuted,
                   monthTextColor: colors.light.textPrimary,
                   arrowColor: colors.light.primary,
                   textDayFontWeight: '600',
@@ -989,11 +990,11 @@ const CustomDateTimePicker = ({
             <View style={styles.calendarLegendRow}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.light.primary }]} />
-                <Text style={styles.legendText}>Ngày bạn chọn</Text>
+                <Text style={styles.legendText}>{STRINGS.BOOKING_CREATE.SELECTED_DATE}</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#F87171' }]} />
-                <Text style={styles.legendText}>Đã có người thuê</Text>
+                <View style={[styles.legendDot, { backgroundColor: colors.light.error }]} />
+                <Text style={styles.legendText}>{STRINGS.BOOKING_CREATE.ALREADY_BOOKED}</Text>
               </View>
             </View>
 
@@ -1002,13 +1003,13 @@ const CustomDateTimePicker = ({
               <View style={styles.timeSectionHeaderRow}>
                 <Ionicons name="time-outline" size={16} color={colors.light.primary} />
                 <Text style={styles.timeSectionTitle}>
-                  {type === 'start' ? 'Giờ nhận máy' : 'Giờ trả máy'}
+                  {type === 'start' ? STRINGS.BOOKING_CREATE.PICKUP_TIME_TITLE : STRINGS.BOOKING_CREATE.RETURN_TIME_TITLE}
                 </Text>
               </View>
 
               {/* Quick Preset Buttons */}
               <View style={styles.presetContainer}>
-                <Text style={styles.presetLabel}>Gợi ý khung giờ:</Text>
+                <Text style={styles.presetLabel}>{STRINGS.BOOKING_CREATE.TIME_SUGGESTIONS}</Text>
                 <View style={styles.presetChipsRow}>
                   {quickTimePresets.map((preset) => {
                     const [h, m] = preset.split(':');
@@ -1043,7 +1044,7 @@ const CustomDateTimePicker = ({
               {/* Scroll Picker with Column Titles */}
               <View style={styles.timePickerCard}>
                 <View style={styles.timePickerCol}>
-                  <Text style={styles.timePickerColTitle}>Giờ</Text>
+                  <Text style={styles.timePickerColTitle}>{STRINGS.BOOKING_CREATE.HOUR}</Text>
                   <TimeScrollPicker
                     items={hoursList}
                     selectedValue={hours}
@@ -1055,7 +1056,7 @@ const CustomDateTimePicker = ({
                 <Text style={styles.timeColon}>:</Text>
 
                 <View style={styles.timePickerCol}>
-                  <Text style={styles.timePickerColTitle}>Phút</Text>
+                  <Text style={styles.timePickerColTitle}>{STRINGS.BOOKING_CREATE.MINUTE}</Text>
                   <TimeScrollPicker
                     items={minutesList}
                     selectedValue={minutes}
@@ -1070,11 +1071,11 @@ const CustomDateTimePicker = ({
           {/* Modal Actions */}
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.modalBtnCancel} onPress={onClose} activeOpacity={0.7}>
-              <Text style={styles.modalBtnTextCancel}>Hủy</Text>
+              <Text style={styles.modalBtnTextCancel}>{STRINGS.BOOKING_CREATE.CANCEL_BTN}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirm} activeOpacity={0.8}>
-              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.modalBtnTextConfirm}>Xác nhận</Text>
+              <Ionicons name="checkmark-circle" size={17} color={colors.light.white} style={{ marginRight: 6 }} />
+              <Text style={styles.modalBtnTextConfirm}>{STRINGS.BOOKING_CREATE.CONFIRM_BTN}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1086,11 +1087,11 @@ const CustomDateTimePicker = ({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -1114,7 +1115,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   backBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '600',
   },
   header: {
@@ -1124,7 +1125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 44 : 14,
     paddingBottom: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.light.border,
   },
@@ -1151,14 +1152,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 14,
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -1168,7 +1169,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.borderSubtle,
   },
   deviceInfo: {
     flex: 1,
@@ -1216,11 +1217,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 14,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -1276,16 +1277,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.light.error,
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   activeBusyAlertText: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.light.error,
     flex: 1,
     lineHeight: 16,
   },
@@ -1371,7 +1372,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1392,12 +1393,12 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,
@@ -1454,7 +1455,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -1486,7 +1487,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
   },
   radioCircleSelected: {
     borderColor: colors.light.primary,
@@ -1501,7 +1502,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     padding: 10,
     borderRadius: 8,
     marginTop: 10,
@@ -1529,7 +1530,7 @@ const styles = StyleSheet.create({
   deliveryInputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.light.border,
@@ -1550,7 +1551,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderTopWidth: 1,
     borderTopColor: colors.light.border,
     paddingHorizontal: 16,
@@ -1559,7 +1560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -1581,15 +1582,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   confirmBtnDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.light.borderDefault,
   },
   confirmBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
   },
   confirmBtnTextDisabled: {
-    color: '#94A3B8',
+    color: colors.light.textMuted,
   },
   modalOverlay: {
     flex: 1,
@@ -1598,11 +1599,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 20,
     padding: 16,
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -1761,7 +1762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderWidth: 1,
     borderColor: colors.light.border,
   },
@@ -1775,14 +1776,14 @@ const styles = StyleSheet.create({
     color: colors.light.textPrimary,
   },
   presetChipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '700',
   },
   timePickerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 10,
     paddingVertical: 6,
     borderWidth: 1,
@@ -1838,7 +1839,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   modalBtnTextConfirm: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '700',
     fontSize: 14,
   },

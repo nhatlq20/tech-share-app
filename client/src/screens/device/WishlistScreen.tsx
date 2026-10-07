@@ -22,6 +22,7 @@ import {
 } from '../../store/slices/wishlistSlice';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { DeviceCard } from '../../components/device/DeviceCard';
 import { API_BASE_URL } from '../../config/api';
 
@@ -32,7 +33,7 @@ interface WishlistScreenProps {
 }
 
 const formatPrice = (price: number): string => {
-  return price.toLocaleString('vi-VN') + ' đ';
+  return price.toLocaleString('en-US') + STRINGS.WISHLIST.CURRENCY_VND;
 };
 
 const resolveImageUri = (url?: string): string => {
@@ -127,7 +128,7 @@ export function WishlistScreen({
                 isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
               ]}
             >
-              {isAvailable ? 'Sẵn sàng' : 'Đang thuê'}
+              {isAvailable ? STRINGS.WISHLIST.AVAILABLE : STRINGS.WISHLIST.RENTED}
             </Text>
           </View>
         </View>
@@ -137,7 +138,7 @@ export function WishlistScreen({
           {/* Top row: Brand + Favorite button */}
           <View style={styles.listHeaderRow}>
             <View style={styles.brandBadge}>
-              <Text style={styles.brandText}>{item.brand || 'TECH'}</Text>
+              <Text style={styles.brandText}>{item.brand || STRINGS.WISHLIST.DEFAULT_BRAND}</Text>
             </View>
 
             <TouchableOpacity
@@ -146,7 +147,7 @@ export function WishlistScreen({
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="heart" size={18} color="#EF4444" />
+              <Ionicons name="heart" size={18} color={colors.light.danger} />
             </TouchableOpacity>
           </View>
 
@@ -169,15 +170,15 @@ export function WishlistScreen({
           {/* Bottom row: Price & View button */}
           <View style={styles.listFooter}>
             <View>
-              <Text style={styles.priceSub}>Giá thuê</Text>
+              <Text style={styles.priceSub}>{STRINGS.WISHLIST.DAILY_RATE}</Text>
               <Text style={styles.priceValue}>
                 {formatPrice(item.dailyRate)}
-                <Text style={styles.priceUnit}>/ngày</Text>
+                <Text style={styles.priceUnit}>{STRINGS.WISHLIST.PER_DAY}</Text>
               </Text>
             </View>
 
             <View style={styles.arrowCircleBtn}>
-              <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={14} color={colors.light.white} />
             </View>
           </View>
         </View>
@@ -202,11 +203,11 @@ export function WishlistScreen({
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconCircle}>
-          <Ionicons name="heart-dislike-outline" size={44} color="#94A3B8" />
+          <Ionicons name="heart-dislike-outline" size={44} color={colors.light.textMuted} />
         </View>
-        <Text style={styles.emptyTitle}>Chưa có thiết bị yêu thích</Text>
+        <Text style={styles.emptyTitle}>{STRINGS.WISHLIST.EMPTY_TITLE}</Text>
         <Text style={styles.emptySubtitle}>
-          Hãy chạm vào biểu tượng trái tim trên các thiết bị bạn quan tâm để lưu lại và xem nhanh tại đây!
+          {STRINGS.WISHLIST.EMPTY_SUBTITLE}
         </Text>
         {onNavigateToHome && (
           <TouchableOpacity
@@ -214,8 +215,8 @@ export function WishlistScreen({
             onPress={onNavigateToHome}
             activeOpacity={0.8}
           >
-            <Ionicons name="compass-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.exploreBtnText}>Khám phá thiết bị ngay</Text>
+            <Ionicons name="compass-outline" size={18} color={colors.light.white} />
+            <Text style={styles.exploreBtnText}>{STRINGS.WISHLIST.EXPLORE_DEVICES}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -224,7 +225,7 @@ export function WishlistScreen({
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.surface} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
@@ -233,7 +234,7 @@ export function WishlistScreen({
         </TouchableOpacity>
 
         <View style={styles.headerTitleBox}>
-          <Text style={styles.headerTitle}>Danh sách Yêu thích</Text>
+          <Text style={styles.headerTitle}>{STRINGS.WISHLIST.TITLE}</Text>
           {wishlist.length > 0 && (
             <View style={styles.countBadge}>
               <Text style={styles.countBadgeText}>{wishlist.length}</Text>
@@ -255,7 +256,7 @@ export function WishlistScreen({
               <Ionicons
                 name="grid"
                 size={16}
-                color={viewMode === 'grid' ? colors.light.primary : '#94A3B8'}
+                color={viewMode === 'grid' ? colors.light.primary : colors.light.textMuted}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -269,7 +270,7 @@ export function WishlistScreen({
               <Ionicons
                 name="list"
                 size={16}
-                color={viewMode === 'list' ? colors.light.primary : '#94A3B8'}
+                color={viewMode === 'list' ? colors.light.primary : colors.light.textMuted}
               />
             </TouchableOpacity>
           </View>
@@ -283,14 +284,14 @@ export function WishlistScreen({
         <View style={styles.subHeader}>
           <View style={styles.subHeaderLeft}>
             <View style={styles.subHeaderIconBox}>
-              <Ionicons name="heart" size={13} color="#EF4444" />
+              <Ionicons name="heart" size={13} color={colors.light.danger} />
             </View>
             <Text style={styles.subHeaderText}>
-              Đã lưu <Text style={styles.subHeaderHighlight}>{wishlist.length}</Text> thiết bị vào bộ sưu tập
+              {STRINGS.WISHLIST.SAVED_COUNT_PREFIX}<Text style={styles.subHeaderHighlight}>{wishlist.length}</Text>{STRINGS.WISHLIST.SAVED_COUNT_SUFFIX}
             </Text>
           </View>
           <Text style={styles.subHeaderHint}>
-            {viewMode === 'grid' ? 'Lưới 2 cột' : 'Danh sách'}
+            {viewMode === 'grid' ? STRINGS.WISHLIST.GRID_VIEW : STRINGS.WISHLIST.LIST_VIEW}
           </Text>
         </View>
       )}
@@ -298,7 +299,7 @@ export function WishlistScreen({
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.light.primary} />
-          <Text style={styles.loadingText}>Đang tải danh sách yêu thích...</Text>
+          <Text style={styles.loadingText}>{STRINGS.WISHLIST.LOADING}</Text>
         </View>
       ) : (
         <FlatList
@@ -331,23 +332,23 @@ export function WishlistScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.light.border,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     color: colors.light.textPrimary,
   },
   countBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.light.dangerLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -370,11 +371,11 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444',
+    color: colors.light.danger,
   },
   viewModeSwitch: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     borderRadius: 10,
     padding: 3,
     gap: 2,
@@ -385,8 +386,8 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   modeBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: colors.light.surface,
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -398,9 +399,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.light.borderDefault,
   },
   subHeaderLeft: {
     flexDirection: 'row',
@@ -411,21 +412,21 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   subHeaderText: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.light.textSecondary,
   },
   subHeaderHighlight: {
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.light.textPrimary,
   },
   subHeaderHint: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.light.textMuted,
     fontWeight: '500',
   },
   listContent: {
@@ -442,14 +443,14 @@ const styles = StyleSheet.create({
 
   // ─── COMPACT LIST CARD STYLES ───
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.light.borderDefault,
     padding: 12,
     flexDirection: 'row',
-    shadowColor: '#0F172A',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -459,11 +460,11 @@ const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.light.background,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.light.border,
   },
   listImage: {
     width: '100%',

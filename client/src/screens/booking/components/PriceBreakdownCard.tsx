@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../../theme/colors';
+import { STRINGS } from '../../../constants/strings';
 
 interface PriceBreakdownCardProps {
   rentalDays: number;
@@ -17,7 +18,7 @@ export const PriceBreakdownCard = ({ rentalDays, dailyRate, depositValue, vouche
   if (rentalDays <= 0) return null;
 
   const formatPrice = (price: number) => {
-    return Math.round(price).toLocaleString('vi-VN') + ' đ';
+    return Math.round(price).toLocaleString('en-US') + ' VND';
   };
 
   const baseRentalFee = rentalDays * dailyRate;
@@ -55,36 +56,36 @@ export const PriceBreakdownCard = ({ rentalDays, dailyRate, depositValue, vouche
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Chi tiết thanh toán</Text>
+      <Text style={styles.title}>{STRINGS.PRICE_BREAKDOWN.TITLE}</Text>
       
       <View style={styles.row}>
-        <Text style={styles.label}>Phí thuê ({rentalDays} ngày)</Text>
+        <Text style={styles.label}>{STRINGS.PRICE_BREAKDOWN.BASE_RENTAL(rentalDays)}</Text>
         <Text style={styles.value}>{formatPrice(baseRentalFee)}</Text>
       </View>
 
       {longTermDiscountPercent > 0 && (
         <View style={styles.row}>
-          <Text style={[styles.label, styles.discountLabel]}>Giảm giá thuê dài ngày ({longTermDiscountPercent}%)</Text>
+          <Text style={[styles.label, styles.discountLabel]}>{STRINGS.PRICE_BREAKDOWN.LONG_TERM_DISCOUNT(longTermDiscountPercent)}</Text>
           <Text style={[styles.value, styles.discountValue]}>- {formatPrice(longTermDiscountAmount)}</Text>
         </View>
       )}
 
       {voucherDiscountAmount > 0 && (
         <View style={styles.row}>
-          <Text style={[styles.label, styles.discountLabel]}>Voucher giảm giá</Text>
+          <Text style={[styles.label, styles.discountLabel]}>{STRINGS.PRICE_BREAKDOWN.DISCOUNT_VOUCHER}</Text>
           <Text style={[styles.value, styles.discountValue]}>- {formatPrice(voucherDiscountAmount)}</Text>
         </View>
       )}
 
       <View style={styles.row}>
-        <Text style={styles.label}>Tiền cọc (hoàn trả sau)</Text>
+        <Text style={styles.label}>{STRINGS.PRICE_BREAKDOWN.SECURITY_DEPOSIT}</Text>
         <Text style={styles.value}>{formatPrice(depositValue)}</Text>
       </View>
       
       <View style={styles.divider} />
       
       <View style={styles.row}>
-        <Text style={styles.totalLabel}>Tổng thanh toán</Text>
+        <Text style={styles.totalLabel}>{STRINGS.PRICE_BREAKDOWN.TOTAL_PAYMENT}</Text>
         <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
       </View>
     </View>
@@ -96,11 +97,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,

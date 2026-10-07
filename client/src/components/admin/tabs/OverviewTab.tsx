@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../constants/theme';
+import { STRINGS } from '../../../constants/strings';
 import { AdminAnalytics, DisputeItem, EkycItem } from '../../../types';
 
 interface OverviewTabProps {
@@ -27,79 +28,99 @@ export function OverviewTab({
 
   return (
     <>
-      {/* 4 Thẻ KPI (Grid 2x2 bo tròn mềm, icon tròn pastel) */}
+      {/* 4 KPI Cards (2x2 Grid) */}
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeaderTitleRow}>
           <Ionicons name="stats-chart" size={16} color={theme.colors.primary[600]} />
-          <Text style={styles.sectionHeaderTitle}>Chỉ số hoạt động toàn sàn</Text>
+          <Text style={styles.sectionHeaderTitle}>
+            {STRINGS.ADMIN.OVERVIEW_TAB.SECTION_PLATFORM_PERF}
+          </Text>
         </View>
 
         <View style={styles.kpiGrid}>
-          {/* Card 1: Doanh thu sàn */}
+          {/* Card 1: Gross Rental Volume */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiIconWrapperRevenue}>
               <Ionicons name="cash-outline" size={22} color={theme.colors.success[600]} />
             </View>
-            <Text style={styles.kpiLabel}>Doanh thu GD sàn</Text>
+            <Text style={styles.kpiLabel}>{STRINGS.ADMIN.OVERVIEW_TAB.KPI_GROSS_REVENUE}</Text>
             <Text style={styles.kpiValue}>
-              {(analytics.totalRentalRevenue || 1350000).toLocaleString('vi-VN')} đ
+              {(analytics.totalRentalRevenue || 1350000).toLocaleString('en-US')} {STRINGS.COMMON.CURRENCY_SUFFIX}
             </Text>
             <View style={styles.kpiBadgeGreen}>
               <Ionicons name="trending-up" size={12} color={theme.colors.success[600]} />
-              <Text style={styles.kpiBadgeGreenText}>+18.4% tháng này</Text>
+              <Text style={styles.kpiBadgeGreenText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.KPI_REVENUE_GROWTH}
+              </Text>
             </View>
           </View>
 
-          {/* Card 2: Thành viên */}
+          {/* Card 2: Users */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiIconWrapperUsers}>
               <Ionicons name="people-outline" size={22} color={theme.colors.primary[600]} />
             </View>
-            <Text style={styles.kpiLabel}>Thành viên</Text>
-            <Text style={styles.kpiValue}>{analytics.totalUsers} Tài khoản</Text>
+            <Text style={styles.kpiLabel}>{STRINGS.ADMIN.OVERVIEW_TAB.KPI_USERS}</Text>
+            <Text style={styles.kpiValue}>
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_USERS_COUNT(analytics.totalUsers)}
+            </Text>
             <Text style={styles.kpiSubLabel}>
-              {analytics.verifiedUsers} Tích xanh • 11 Active
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_USERS_SUB(analytics.verifiedUsers)}
             </Text>
           </View>
 
-          {/* Card 3: Thiết bị */}
+          {/* Card 3: Devices */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiIconWrapperDevices}>
               <Ionicons name="hardware-chip-outline" size={22} color={theme.colors.warning[600]} />
             </View>
-            <Text style={styles.kpiLabel}>Tổng thiết bị</Text>
-            <Text style={styles.kpiValue}>{analytics.totalDevices} Máy</Text>
+            <Text style={styles.kpiLabel}>{STRINGS.ADMIN.OVERVIEW_TAB.KPI_DEVICES}</Text>
+            <Text style={styles.kpiValue}>
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_DEVICES_COUNT(analytics.totalDevices)}
+            </Text>
             <Text style={styles.kpiSubLabel}>
-              {analytics.rentedDevices || 2} Đang thuê • {analytics.availableDevices || 8} Sẵn sàng
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_DEVICES_SUB(
+                analytics.rentedDevices || 2,
+                analytics.availableDevices || 8
+              )}
             </Text>
           </View>
 
-          {/* Card 4: Đơn thuê active */}
+          {/* Card 4: Rental Orders */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiIconWrapperOrders}>
               <Ionicons name="receipt-outline" size={22} color={theme.colors.indigo[600]} />
             </View>
-            <Text style={styles.kpiLabel}>Đơn đặt thuê</Text>
+            <Text style={styles.kpiLabel}>{STRINGS.ADMIN.OVERVIEW_TAB.KPI_ORDERS}</Text>
             <Text style={styles.kpiValue}>
-              {(analytics.activeBookings || 0) + (analytics.completedBookingsCount || 0)} Đơn
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_ORDERS_COUNT(
+                (analytics.activeBookings || 0) + (analytics.completedBookingsCount || 0)
+              )}
             </Text>
             <Text style={styles.kpiSubLabel}>
-              {analytics.activeBookings || 1} Hoạt động • {analytics.completedBookingsCount || 1} Hoàn tất
+              {STRINGS.ADMIN.OVERVIEW_TAB.KPI_ORDERS_SUB(
+                analytics.activeBookings || 1,
+                analytics.completedBookingsCount || 1
+              )}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Khối việc cần xử lý (Empty State đơn mảnh tinh tế) */}
+      {/* Action Items Block */}
       <View style={styles.sectionBlock}>
         <View style={styles.sectionTitleRow}>
           <View style={styles.sectionHeaderTitleRow}>
             <Ionicons name="alert-circle-outline" size={17} color={theme.colors.primary[600]} />
-            <Text style={styles.sectionHeaderTitle}>Tác vụ cần xử lý</Text>
+            <Text style={styles.sectionHeaderTitle}>
+              {STRINGS.ADMIN.OVERVIEW_TAB.SECTION_ACTION_ITEMS}
+            </Text>
           </View>
           {totalPendingTasks > 0 && (
             <View style={styles.urgentCountPill}>
-              <Text style={styles.urgentCountPillText}>{totalPendingTasks} việc</Text>
+              <Text style={styles.urgentCountPillText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.PENDING_PILL(totalPendingTasks)}
+              </Text>
             </View>
           )}
         </View>
@@ -108,12 +129,12 @@ export function OverviewTab({
           <View style={styles.emptyTaskCard}>
             <Ionicons name="checkmark-circle" size={24} color={theme.colors.success[500]} />
             <Text style={styles.emptyTaskText}>
-              Hệ thống vận hành trơn tru • Không có tranh chấp hay hồ sơ tồn đọng
+              {STRINGS.ADMIN.OVERVIEW_TAB.EMPTY_TASKS}
             </Text>
           </View>
         ) : (
           <>
-            {/* Ca Tranh chấp cọc nếu có */}
+            {/* Deposit Dispute item */}
             {pendingDisputesCount > 0 && (
               <TouchableOpacity
                 style={styles.urgentCard}
@@ -133,22 +154,27 @@ export function OverviewTab({
                 <View style={styles.urgentInfoCol}>
                   <View style={styles.urgentHeaderRow}>
                     <Text style={styles.urgentTitle}>
-                      Tranh chấp cọc: Đơn #{disputes[0]?.bookingId?.bookingCode || 'TS-20260901'}
+                      {STRINGS.ADMIN.OVERVIEW_TAB.DISPUTE_CARD_TITLE(
+                        disputes[0]?.bookingId?.bookingCode || 'TS-20260901'
+                      )}
                     </Text>
                     <View style={styles.badgePendingRed}>
-                      <Text style={styles.badgePendingRedText}>Khẩn cấp</Text>
+                      <Text style={styles.badgePendingRedText}>
+                        {STRINGS.ADMIN.OVERVIEW_TAB.URGENT_BADGE}
+                      </Text>
                     </View>
                   </View>
                   <Text style={styles.urgentDesc} numberOfLines={2}>
-                    {disputes[0]?.reason ||
-                      'Chủ máy yêu cầu giữ tiền cọc do thiết bị trầy xước viền kim loại.'}
+                    {disputes[0]?.reason || STRINGS.ADMIN.OVERVIEW_TAB.DISPUTE_DEFAULT_DESC}
                   </Text>
-                  <Text style={styles.urgentActionLink}>Bấm để đối chiếu ảnh & xử lý cọc →</Text>
+                  <Text style={styles.urgentActionLink}>
+                    {STRINGS.ADMIN.OVERVIEW_TAB.DISPUTE_ACTION_LINK}
+                  </Text>
                 </View>
               </TouchableOpacity>
             )}
 
-            {/* Ca Duyệt eKYC nếu có */}
+            {/* eKYC Verification item */}
             {pendingEkycCount > 0 && (
               <TouchableOpacity
                 style={styles.urgentCard}
@@ -168,10 +194,12 @@ export function OverviewTab({
                 <View style={styles.urgentInfoCol}>
                   <View style={styles.urgentHeaderRow}>
                     <Text style={styles.urgentTitle}>
-                      {pendingEkycCount} Hồ sơ eKYC gửi yêu cầu cấp Tích xanh
+                      {STRINGS.ADMIN.OVERVIEW_TAB.EKYC_CARD_TITLE(pendingEkycCount)}
                     </Text>
                     <View style={styles.badgePendingBlue}>
-                      <Text style={styles.badgePendingBlueText}>Chờ duyệt</Text>
+                      <Text style={styles.badgePendingBlueText}>
+                        {STRINGS.ADMIN.OVERVIEW_TAB.PENDING_BADGE}
+                      </Text>
                     </View>
                   </View>
                   <Text style={styles.urgentDesc} numberOfLines={2}>
@@ -179,10 +207,12 @@ export function OverviewTab({
                       .filter(r => r.status === 'pending')
                       .map(r => r.userId?.name)
                       .filter(Boolean)
-                      .join(', ')}{' '}
-                    đã gửi ảnh CCCD và video chân dung.
+                      .join(', ')}
+                    {STRINGS.ADMIN.OVERVIEW_TAB.EKYC_CARD_DESC_SUFFIX}
                   </Text>
-                  <Text style={styles.urgentActionLink}>Kiểm tra tính hợp lệ & cấp Tích xanh →</Text>
+                  <Text style={styles.urgentActionLink}>
+                    {STRINGS.ADMIN.OVERVIEW_TAB.EKYC_ACTION_LINK}
+                  </Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -190,18 +220,22 @@ export function OverviewTab({
         )}
       </View>
 
-      {/* Biểu đồ phân bổ danh mục */}
+      {/* Category breakdown */}
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeaderTitleRow}>
           <Ionicons name="trending-up" size={16} color={theme.colors.primary[600]} />
-          <Text style={styles.sectionHeaderTitle}>Phân bổ danh mục thuê</Text>
+          <Text style={styles.sectionHeaderTitle}>
+            {STRINGS.ADMIN.OVERVIEW_TAB.SECTION_CATEGORY_BREAKDOWN}
+          </Text>
         </View>
 
         <View style={styles.chartContainer}>
           <View style={styles.chartRow}>
             <View style={styles.chartLabelCol}>
               <Ionicons name="camera-outline" size={16} color={theme.colors.indigo[600]} />
-              <Text style={styles.chartLabelText}>Máy ảnh & Lens</Text>
+              <Text style={styles.chartLabelText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.CAT_CAMERAS}
+              </Text>
             </View>
             <View style={styles.progressBarBg}>
               <View
@@ -217,7 +251,9 @@ export function OverviewTab({
           <View style={styles.chartRow}>
             <View style={styles.chartLabelCol}>
               <Ionicons name="laptop-outline" size={16} color={theme.colors.primary[600]} />
-              <Text style={styles.chartLabelText}>Laptop Đồ họa</Text>
+              <Text style={styles.chartLabelText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.CAT_LAPTOPS}
+              </Text>
             </View>
             <View style={styles.progressBarBg}>
               <View
@@ -233,7 +269,9 @@ export function OverviewTab({
           <View style={styles.chartRow}>
             <View style={styles.chartLabelCol}>
               <Ionicons name="phone-portrait-outline" size={16} color={theme.colors.success[600]} />
-              <Text style={styles.chartLabelText}>Smartphone</Text>
+              <Text style={styles.chartLabelText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.CAT_SMARTPHONES}
+              </Text>
             </View>
             <View style={styles.progressBarBg}>
               <View
@@ -249,7 +287,9 @@ export function OverviewTab({
           <View style={styles.chartRow}>
             <View style={styles.chartLabelCol}>
               <Ionicons name="game-controller-outline" size={16} color={theme.colors.warning[600]} />
-              <Text style={styles.chartLabelText}>Gaming & Drone</Text>
+              <Text style={styles.chartLabelText}>
+                {STRINGS.ADMIN.OVERVIEW_TAB.CAT_GAMING}
+              </Text>
             </View>
             <View style={styles.progressBarBg}>
               <View

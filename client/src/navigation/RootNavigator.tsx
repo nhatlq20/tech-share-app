@@ -12,6 +12,7 @@ import { wishlistService } from '../services/wishlistService';
 import { socketService } from '../services/socketService';
 import { theme } from '../constants/theme';
 import { colors } from '../theme/colors';
+import { STRINGS } from '../constants/strings';
 import { AdminDrawerNavigator } from './AdminDrawerNavigator';
 import { OwnerDrawerNavigator } from './OwnerDrawerNavigator';
 import { MainBottomTabNavigator } from './MainBottomTabNavigator';
@@ -77,12 +78,12 @@ const DeviceDetailRoute = ({ route, navigation }: any) => {
       onBookNow={(deviceId) => {
         if (user?.role === 'renter' && !user.isVerified) {
           Alert.alert(
-            'Cần xác thực danh tính',
-            'Bạn cần hoàn tất Xác thực người dùng thực trước khi thuê thiết bị.',
+            STRINGS.AUTH_VERIFY_ALERT.TITLE,
+            STRINGS.AUTH_VERIFY_ALERT.MSG,
             [
-              { text: 'Để sau', style: 'cancel' },
+              { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
               {
-                text: 'Xác thực ngay',
+                text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW,
                 onPress: () => navigation.navigate('MainTabs', { screen: 'Profile' }),
               },
             ]

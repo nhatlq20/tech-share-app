@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../constants/theme';
+import { colors } from '../../../theme/colors';
+import { STRINGS } from '../../../constants/strings';
 import { adminService } from '../../../services/adminService';
 
 export interface VoucherItem {
@@ -55,7 +57,7 @@ export function VouchersTab() {
       const data = await adminService.getVouchers();
       setVouchers(data || []);
     } catch (err) {
-      console.warn('Lỗi tải voucher:', err);
+      console.warn('Failed to load vouchers:', err);
     } finally {
       setLoading(false);
     }
@@ -89,11 +91,11 @@ export function VouchersTab() {
 
   const handleSave = async () => {
     if (!form.code.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mã voucher');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.VOUCHERS_TAB.ERR_CODE_REQUIRED);
       return;
     }
     if (!form.value || Number(form.value) <= 0) {
-      Alert.alert('Lỗi', 'Vui lòng nhập giá trị giảm giá hợp lệ');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.VOUCHERS_TAB.ERR_VALUE_INVALID);
       return;
     }
 
@@ -113,15 +115,18 @@ export function VouchersTab() {
       setSaving(true);
       if (editingVoucher) {
         await adminService.updateVoucher(editingVoucher._id, payload);
-        Alert.alert('Thành công', 'Cập nhật voucher thành công');
+        Alert.alert(STRINGS.COMMON.SUCCESS, STRINGS.ADMIN.VOUCHERS_TAB.SAVE_SUCCESS_UPDATE);
       } else {
         await adminService.createVoucher(payload);
-        Alert.alert('Thành công', 'Tạo voucher mới thành công');
+        Alert.alert(STRINGS.COMMON.SUCCESS, STRINGS.ADMIN.VOUCHERS_TAB.SAVE_SUCCESS_CREATE);
       }
       setModalVisible(false);
       loadVouchers();
     } catch (err: any) {
-      Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể lưu voucher');
+      Alert.alert(
+        STRINGS.COMMON.ERROR,
+        err?.response?.data?.message || STRINGS.ADMIN.VOUCHERS_TAB.SAVE_ERROR_DEFAULT
+      );
     } finally {
       setSaving(false);
     }
@@ -129,20 +134,20 @@ export function VouchersTab() {
 
   const handleDelete = (v: VoucherItem) => {
     Alert.alert(
-      'Xác nhận xóa',
-      `Bạn có chắc muốn xóa voucher "${v.code}"?`,
+      STRINGS.ADMIN.VOUCHERS_TAB.DELETE_CONFIRM_TITLE,
+      STRINGS.ADMIN.VOUCHERS_TAB.DELETE_CONFIRM_MSG(v.code),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
         {
-          text: 'Xóa',
+          text: STRINGS.ADMIN.VOUCHERS_TAB.BTN_DELETE,
           style: 'destructive',
           onPress: async () => {
             try {
               await adminService.deleteVoucher(v._id);
-              Alert.alert('Thành công', `Đã xóa voucher "${v.code}"`);
+              Alert.alert(STRINGS.COMMON.SUCCESS, STRINGS.ADMIN.VOUCHERS_TAB.DELETE_SUCCESS_MSG(v.code));
               loadVouchers();
             } catch (err: any) {
-              Alert.alert('Lỗi', 'Không thể xóa voucher');
+              Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.VOUCHERS_TAB.DELETE_ERROR_MSG);
             }
           },
         },
@@ -159,7 +164,7 @@ export function VouchersTab() {
         )
       );
     } catch (err) {
-      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái voucher');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.ADMIN.VOUCHERS_TAB.STATUS_UPDATE_ERROR);
     }
   };
 
@@ -167,7 +172,7 @@ export function VouchersTab() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-        <Text style={styles.loadingText}>Đang tải danh sách voucher...</Text>
+        <Text style={styles.loadingText}>{STRINGS.ADMIN.VOUCHERS_TAB.LOADING_TEXT}</Text>
       </View>
     );
   }
@@ -177,7 +182,9 @@ export function VouchersTab() {
       <View style={styles.sectionTitleRow}>
         <View style={styles.sectionTitleLeft}>
           <Ionicons name="pricetags-outline" size={16} color={theme.colors.primary[600]} />
-          <Text style={styles.sectionHeaderTitle}>Mã khuyến mãi ({vouchers.length})</Text>
+          <Text style={styles.sectionHeaderTitle}>
+            {STRINGS.ADMIN.VOUCHERS_TAB.TITLE(vouchers.length)}
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -186,15 +193,17 @@ export function VouchersTab() {
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={16} color={theme.colors.white} />
-          <Text style={styles.btnCreateVoucherText}>Tạo mã</Text>
+          <Text style={styles.btnCreateVoucherText}>
+            {STRINGS.ADMIN.VOUCHERS_TAB.CREATE_CODE_BTN}
+          </Text>
         </TouchableOpacity>
       </View>
 
       {vouchers.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="ticket-outline" size={48} color={theme.colors.slate[400]} />
-          <Text style={styles.emptyText}>Chưa có voucher nào</Text>
-          <Text style={styles.emptySubtext}>Bấm "Tạo mã" để thêm voucher mới</Text>
+          <Text style={styles.emptyText}>{STRINGS.ADMIN.VOUCHERS_TAB.EMPTY_TITLE}</Text>
+          <Text style={styles.emptySubtext}>{STRINGS.ADMIN.VOUCHERS_TAB.EMPTY_SUBTITLE}</Text>
         </View>
       ) : (
         vouchers.map((v: VoucherItem) => (
@@ -227,7 +236,7 @@ export function VouchersTab() {
                     },
                   ]}
                 >
-                  {v.isActive ? 'Đang kích hoạt' : 'Tạm dừng'}
+                  {v.isActive ? STRINGS.ADMIN.VOUCHERS_TAB.STATUS_ACTIVE : STRINGS.ADMIN.VOUCHERS_TAB.STATUS_PAUSED}
                 </Text>
               </View>
             </View>
@@ -235,21 +244,21 @@ export function VouchersTab() {
             {/* Specs Grid */}
             <View style={styles.specsRow}>
               <View style={styles.specItem}>
-                <Text style={styles.specLabel}>Mức giảm:</Text>
+                <Text style={styles.specLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_DISCOUNT}</Text>
                 <Text style={styles.specValuePrimary}>
                   {v.type === 'percent'
                     ? `${v.value}%`
-                    : `${v.value.toLocaleString('vi-VN')} đ`}
+                    : `${v.value.toLocaleString('en-US')} ${STRINGS.COMMON.CURRENCY_SUFFIX}`}
                 </Text>
               </View>
 
               <View style={styles.specItem}>
-                <Text style={styles.specLabel}>Thuê tối thiểu:</Text>
-                <Text style={styles.specValue}>{v.minDays} ngày</Text>
+                <Text style={styles.specLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_MIN_RENTAL}</Text>
+                <Text style={styles.specValue}>{v.minDays} {STRINGS.ADMIN.VOUCHERS_TAB.DAYS_SUFFIX}</Text>
               </View>
 
               <View style={styles.specItem}>
-                <Text style={styles.specLabel}>Đã dùng:</Text>
+                <Text style={styles.specLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_USED}</Text>
                 <Text style={styles.specValue}>
                   {v.usedCount}/{v.usageLimit || '∞'}
                 </Text>
@@ -258,7 +267,7 @@ export function VouchersTab() {
 
             {v.maxDiscount && v.type === 'percent' && (
               <Text style={styles.maxDiscountNote}>
-                Giảm tối đa: {v.maxDiscount.toLocaleString('vi-VN')} đ
+                {STRINGS.ADMIN.VOUCHERS_TAB.MAX_DISCOUNT_NOTE(v.maxDiscount.toLocaleString('en-US'))}
               </Text>
             )}
 
@@ -268,7 +277,9 @@ export function VouchersTab() {
                 <View style={styles.expiryRow}>
                   <Ionicons name="calendar-outline" size={13} color={theme.textSecondary} />
                   <Text style={styles.expiryText}>
-                    Hạn: {new Date(v.expiryDate).toLocaleDateString('vi-VN')}
+                    {STRINGS.ADMIN.VOUCHERS_TAB.EXPIRES_LABEL(
+                      new Date(v.expiryDate).toLocaleDateString('en-US')
+                    )}
                   </Text>
                 </View>
               )}
@@ -305,7 +316,7 @@ export function VouchersTab() {
                       },
                     ]}
                   >
-                    {v.isActive ? 'Tạm dừng' : 'Kích hoạt'}
+                    {v.isActive ? STRINGS.ADMIN.VOUCHERS_TAB.ACTION_PAUSE : STRINGS.ADMIN.VOUCHERS_TAB.ACTION_ACTIVATE}
                   </Text>
                 </TouchableOpacity>
 
@@ -322,25 +333,27 @@ export function VouchersTab() {
         ))
       )}
 
-      {/* Modal Tạo/Sửa Voucher */}
+      {/* Modal Create/Edit Voucher */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>
-                {editingVoucher ? 'Sửa Voucher' : 'Tạo Voucher mới'}
+                {editingVoucher
+                  ? STRINGS.ADMIN.VOUCHERS_TAB.MODAL_TITLE_EDIT
+                  : STRINGS.ADMIN.VOUCHERS_TAB.MODAL_TITLE_CREATE}
               </Text>
 
-              <Text style={styles.inputLabel}>Mã Voucher *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_CODE}</Text>
               <TextInput
                 style={styles.input}
                 value={form.code}
                 onChangeText={(t: string) => setForm({ ...form, code: t.toUpperCase() })}
-                placeholder="VD: SUMMER2026"
+                placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_CODE}
                 autoCapitalize="characters"
               />
 
-              <Text style={styles.inputLabel}>Loại giảm giá *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_DISCOUNT_TYPE}</Text>
               <View style={styles.typeRow}>
                 <TouchableOpacity
                   style={[
@@ -355,7 +368,7 @@ export function VouchersTab() {
                       form.type === 'percent' && styles.typeBtnTextActive,
                     ]}
                   >
-                    Phần trăm (%)
+                    {STRINGS.ADMIN.VOUCHERS_TAB.TYPE_PERCENT}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -371,72 +384,80 @@ export function VouchersTab() {
                       form.type === 'fixed' && styles.typeBtnTextActive,
                     ]}
                   >
-                    Cố định (VNĐ)
+                    {STRINGS.ADMIN.VOUCHERS_TAB.TYPE_FIXED}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <Text style={styles.inputLabel}>
-                Giá trị giảm {form.type === 'percent' ? '(%)' : '(VNĐ)'} *
+                {STRINGS.ADMIN.VOUCHERS_TAB.LABEL_DISCOUNT_VALUE(
+                  form.type === 'percent' ? '%' : STRINGS.COMMON.CURRENCY_SUFFIX
+                )}
               </Text>
               <TextInput
                 style={styles.input}
                 value={form.value}
                 onChangeText={(t: string) => setForm({ ...form, value: t })}
-                placeholder={form.type === 'percent' ? 'VD: 10' : 'VD: 50000'}
+                placeholder={
+                  form.type === 'percent'
+                    ? STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_PERCENT
+                    : STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_FIXED
+                }
                 keyboardType="numeric"
               />
 
               {form.type === 'percent' && (
                 <>
-                  <Text style={styles.inputLabel}>Giảm tối đa (VNĐ)</Text>
+                  <Text style={styles.inputLabel}>
+                    {STRINGS.ADMIN.VOUCHERS_TAB.LABEL_MAX_DISCOUNT}
+                  </Text>
                   <TextInput
                     style={styles.input}
                     value={form.maxDiscount}
                     onChangeText={(t: string) => setForm({ ...form, maxDiscount: t })}
-                    placeholder="VD: 100000"
+                    placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_MAX_DISCOUNT}
                     keyboardType="numeric"
                   />
                 </>
               )}
 
-              <Text style={styles.inputLabel}>Thuê tối thiểu (ngày)</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_MIN_DAYS}</Text>
               <TextInput
                 style={styles.input}
                 value={form.minDays}
                 onChangeText={(t: string) => setForm({ ...form, minDays: t })}
-                placeholder="VD: 1"
+                placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_MIN_DAYS}
                 keyboardType="numeric"
               />
 
-              <Text style={styles.inputLabel}>Giới hạn lượt dùng</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_USAGE_LIMIT}</Text>
               <TextInput
                 style={styles.input}
                 value={form.usageLimit}
                 onChangeText={(t: string) => setForm({ ...form, usageLimit: t })}
-                placeholder="Để trống = không giới hạn"
+                placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_USAGE_LIMIT}
                 keyboardType="numeric"
               />
 
-              <Text style={styles.inputLabel}>Giới hạn mỗi người</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_PER_USER_LIMIT}</Text>
               <TextInput
                 style={styles.input}
                 value={form.perUserLimit}
                 onChangeText={(t: string) => setForm({ ...form, perUserLimit: t })}
-                placeholder="VD: 1"
+                placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_PER_USER}
                 keyboardType="numeric"
               />
 
-              <Text style={styles.inputLabel}>Ngày hết hạn (YYYY-MM-DD)</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_EXPIRY_DATE}</Text>
               <TextInput
                 style={styles.input}
                 value={form.expiryDate}
                 onChangeText={(t: string) => setForm({ ...form, expiryDate: t })}
-                placeholder="VD: 2026-12-31"
+                placeholder={STRINGS.ADMIN.VOUCHERS_TAB.PLACEHOLDER_EXPIRY_DATE}
               />
 
               <View style={styles.switchRow}>
-                <Text style={styles.inputLabel}>Kích hoạt ngay</Text>
+                <Text style={styles.inputLabel}>{STRINGS.ADMIN.VOUCHERS_TAB.LABEL_ACTIVATE_NOW}</Text>
                 <Switch
                   value={form.isActive}
                   onValueChange={(val: boolean) => setForm({ ...form, isActive: val })}
@@ -449,7 +470,7 @@ export function VouchersTab() {
                   style={styles.btnCancel}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={styles.btnCancelText}>Hủy</Text>
+                  <Text style={styles.btnCancelText}>{STRINGS.ADMIN.VOUCHERS_TAB.BTN_CANCEL}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btnSave, saving && { opacity: 0.6 }]}
@@ -457,10 +478,12 @@ export function VouchersTab() {
                   disabled={saving}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={colors.light.white} />
                   ) : (
                     <Text style={styles.btnSaveText}>
-                      {editingVoucher ? 'Cập nhật' : 'Tạo mới'}
+                      {editingVoucher
+                        ? STRINGS.ADMIN.VOUCHERS_TAB.BTN_UPDATE
+                        : STRINGS.ADMIN.VOUCHERS_TAB.BTN_CREATE}
                     </Text>
                   )}
                 </TouchableOpacity>

@@ -12,6 +12,7 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { Booking } from '../../services/bookingService';
 
 interface HandoverQrModalProps {
@@ -24,7 +25,7 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
   if (!booking) return null;
 
   const device = booking.deviceId || {};
-  const deviceName = device.name || device.title || 'Thiết bị';
+  const deviceName = device.name || device.title || 'Device';
   const qrCodeValue = JSON.stringify({
     type: 'TECHSHARE_HANDOVER',
     bookingId: booking._id,
@@ -33,7 +34,10 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
   });
 
   const handleCopyCode = () => {
-    Alert.alert('Mã đơn thuê', `#${booking.bookingCode}\n\nMã xác thực: ${booking.qrToken || 'Chưa có'}`);
+    Alert.alert(
+      STRINGS.HANDOVER_QR.ALERT_TITLE,
+      `#${booking.bookingCode}\n\n${STRINGS.HANDOVER_QR.ALERT_TOKEN_PREFIX}${booking.qrToken || 'None'}`
+    );
   };
 
   const QRCodeComponent: any = QRCode;
@@ -53,8 +57,8 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
               <Ionicons name="qr-code" size={20} color={colors.light.primary} />
             </View>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.modalTitle}>Mã QR Bàn giao</Text>
-              <Text style={styles.modalSubtitle}>Xuất trình khi nhận máy</Text>
+              <Text style={styles.modalTitle}>{STRINGS.HANDOVER_QR.TITLE}</Text>
+              <Text style={styles.modalSubtitle}>{STRINGS.HANDOVER_QR.SUBTITLE}</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
               <Ionicons name="close" size={20} color={colors.light.textSecondary} />
@@ -64,7 +68,7 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
           {/* Badge trạng thái */}
           <View style={styles.statusBadge}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Sẵn sàng đối soát bàn giao</Text>
+            <Text style={styles.statusText}>{STRINGS.HANDOVER_QR.STATUS_READY}</Text>
           </View>
 
           {/* QR Code Frame */}
@@ -73,8 +77,8 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
               <QRCodeComponent
                 value={qrCodeValue}
                 size={210}
-                color="#0F172A"
-                backgroundColor="#FFFFFF"
+                color={colors.light.textPrimary}
+                backgroundColor={colors.light.white}
               />
             </View>
           </View>
@@ -82,7 +86,7 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
           {/* Booking Info Box */}
           <View style={styles.infoBox}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Mã đơn thuê:</Text>
+              <Text style={styles.infoLabel}>{STRINGS.HANDOVER_QR.BOOKING_CODE_LABEL}</Text>
               <TouchableOpacity onPress={handleCopyCode} style={styles.copyRow}>
                 <Text style={styles.bookingCodeText}>#{booking.bookingCode}</Text>
                 <Ionicons name="copy-outline" size={14} color={colors.light.primary} />
@@ -90,16 +94,16 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Thiết bị:</Text>
+              <Text style={styles.infoLabel}>{STRINGS.HANDOVER_QR.DEVICE_LABEL}</Text>
               <Text style={styles.infoValue} numberOfLines={1}>
                 {deviceName}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Thời gian:</Text>
+              <Text style={styles.infoLabel}>{STRINGS.HANDOVER_QR.DURATION_LABEL}</Text>
               <Text style={styles.infoValue}>
-                {booking.totalDays} ngày thuê
+                {STRINGS.HANDOVER_QR.DURATION_DAYS(booking.totalDays)}
               </Text>
             </View>
           </View>
@@ -108,13 +112,13 @@ export function HandoverQrModal({ visible, booking, onClose }: HandoverQrModalPr
           <View style={styles.hintBox}>
             <Ionicons name="shield-checkmark-outline" size={16} color={colors.light.success} />
             <Text style={styles.hintText}>
-              Đưa mã QR này cho Chủ máy quét xác nhận khi hai bên gặp mặt trực tiếp để nhận thiết bị.
+              {STRINGS.HANDOVER_QR.HINT_TEXT}
             </Text>
           </View>
 
           {/* Nút đóng */}
           <TouchableOpacity style={styles.doneBtn} onPress={onClose} activeOpacity={0.85}>
-            <Text style={styles.doneBtnText}>Đóng</Text>
+            <Text style={styles.doneBtnText}>{STRINGS.HANDOVER_QR.CLOSE}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

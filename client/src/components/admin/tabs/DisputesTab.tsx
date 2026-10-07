@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../constants/theme';
+import { STRINGS } from '../../../constants/strings';
 import { DisputeItem } from '../../../types';
 
 interface DisputesTabProps {
@@ -15,7 +16,7 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
       <View style={styles.sectionHeaderTitleRow}>
         <Ionicons name="scale-outline" size={16} color={theme.colors.danger[600]} />
         <Text style={styles.sectionHeaderTitle}>
-          Danh sách tranh chấp cọc ({disputes.length})
+          {STRINGS.ADMIN.DISPUTES_TAB.TITLE(disputes.length)}
         </Text>
       </View>
 
@@ -26,9 +27,9 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
             size={48}
             color={theme.colors.success[600]}
           />
-          <Text style={styles.emptyTitle}>Không có tranh chấp nào</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.ADMIN.DISPUTES_TAB.EMPTY_TITLE}</Text>
           <Text style={styles.emptyDesc}>
-            Sàn giao dịch hoạt động thuận lợi, không phát sinh khiếu nại cọc.
+            {STRINGS.ADMIN.DISPUTES_TAB.EMPTY_DESC}
           </Text>
         </View>
       ) : (
@@ -41,7 +42,7 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
               {/* Header card */}
               <View style={styles.disputeCardHeader}>
                 <View style={styles.disputeCodeRow}>
-                  <Text style={styles.disputeCode}>#{booking?.bookingCode || 'TS-ĐƠN'}</Text>
+                  <Text style={styles.disputeCode}>#{booking?.bookingCode || 'TS-ORDER'}</Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -54,46 +55,48 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
                         isResolved ? styles.statusBadgeTextGreen : styles.statusBadgeTextRed,
                       ]}
                     >
-                      {isResolved ? 'Đã phân xử' : 'Chờ phán quyết'}
+                      {isResolved
+                        ? STRINGS.ADMIN.DISPUTES_TAB.STATUS_RESOLVED
+                        : STRINGS.ADMIN.DISPUTES_TAB.STATUS_PENDING}
                     </Text>
                   </View>
                 </View>
                 <Text style={styles.disputeDeviceName}>
-                  {booking?.deviceId?.name || 'Thiết bị công nghệ'}
+                  {booking?.deviceId?.name || STRINGS.ADMIN.DISPUTES_TAB.DEFAULT_DEVICE}
                 </Text>
               </View>
 
-              {/* Chi tiết bên khiếu nại */}
+              {/* Dispute parties */}
               <View style={styles.disputePartyInfo}>
                 <View style={styles.disputePartyCol}>
-                  <Text style={styles.partyLabel}>Chủ máy yêu cầu:</Text>
+                  <Text style={styles.partyLabel}>{STRINGS.ADMIN.DISPUTES_TAB.CLAIMANT_LABEL}</Text>
                   <Text style={styles.partyValue}>
-                    {booking?.ownerId?.name || dispute.raisedBy?.name}
+                    {booking?.ownerId?.name || dispute.raisedBy?.name || STRINGS.ADMIN.DISPUTES_TAB.DEFAULT_OWNER}
                   </Text>
                 </View>
                 <View style={styles.disputePartyCol}>
-                  <Text style={styles.partyLabel}>Khách thuê:</Text>
-                  <Text style={styles.partyValue}>{booking?.renterId?.name || 'Khách'}</Text>
+                  <Text style={styles.partyLabel}>{STRINGS.ADMIN.DISPUTES_TAB.RENTER_LABEL}</Text>
+                  <Text style={styles.partyValue}>{booking?.renterId?.name || STRINGS.ADMIN.DISPUTES_TAB.DEFAULT_RENTER}</Text>
                 </View>
               </View>
 
-              {/* Tài chính tranh chấp */}
+              {/* Financial info */}
               <View style={styles.disputeFinanceRow}>
                 <View style={styles.financeBox}>
-                  <Text style={styles.financeLabel}>Tiền cọc Escrow:</Text>
+                  <Text style={styles.financeLabel}>{STRINGS.ADMIN.DISPUTES_TAB.ESCROW_DEPOSIT_LABEL}</Text>
                   <Text style={styles.financeValueBlue}>
-                    {(booking?.depositFee || 0).toLocaleString('vi-VN')} đ
+                    {(booking?.depositFee || 0).toLocaleString('en-US')} {STRINGS.COMMON.CURRENCY_SUFFIX}
                   </Text>
                 </View>
                 <View style={styles.financeBox}>
-                  <Text style={styles.financeLabel}>Đòi trừ cọc:</Text>
+                  <Text style={styles.financeLabel}>{STRINGS.ADMIN.DISPUTES_TAB.CLAIMED_DEDUCTION_LABEL}</Text>
                   <Text style={styles.financeValueRed}>
-                    {(dispute.requestedDeductAmount || 0).toLocaleString('vi-VN')} đ
+                    {(dispute.requestedDeductAmount || 0).toLocaleString('en-US')} {STRINGS.COMMON.CURRENCY_SUFFIX}
                   </Text>
                 </View>
               </View>
 
-              {/* Lý do khiếu nại */}
+              {/* Dispute reason */}
               <View style={styles.disputeReasonRow}>
                 <Ionicons
                   name="chatbubble-ellipses-outline"
@@ -101,11 +104,11 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
                   color={theme.textSecondary}
                 />
                 <Text style={styles.disputeReasonText} numberOfLines={2}>
-                  Lý do: "{dispute.reason}"
+                  {STRINGS.ADMIN.DISPUTES_TAB.REASON_PREFIX(dispute.reason)}
                 </Text>
               </View>
 
-              {/* Nút hành động */}
+              {/* Action buttons */}
               {!isResolved ? (
                 <TouchableOpacity
                   style={styles.btnResolveGavel}
@@ -113,7 +116,9 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="scale" size={16} color={theme.colors.white} />
-                  <Text style={styles.btnResolveGavelText}>Đối chiếu ảnh & Phán quyết cọc</Text>
+                  <Text style={styles.btnResolveGavelText}>
+                    {STRINGS.ADMIN.DISPUTES_TAB.REVIEW_ARBITRATE_BTN}
+                  </Text>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.resolvedNotice}>
@@ -123,8 +128,10 @@ export function DisputesTab({ disputes, onOpenDispute }: DisputesTabProps) {
                     color={theme.colors.success[600]}
                   />
                   <Text style={styles.resolvedNoticeText}>
-                    Phán quyết: {dispute.adminDecision} (Khấu trừ{' '}
-                    {(dispute.finalDeductAmount || 0).toLocaleString('vi-VN')} đ)
+                    {STRINGS.ADMIN.DISPUTES_TAB.RULING_NOTICE(
+                      dispute.adminDecision || '',
+                      (dispute.finalDeductAmount || 0).toLocaleString('en-US')
+                    )}
                   </Text>
                 </View>
               )}
