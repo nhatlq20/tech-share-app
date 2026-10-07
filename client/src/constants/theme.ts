@@ -70,6 +70,9 @@ export const theme = {
     white: palette.white,
     black: palette.black,
     shadow: palette.shadow,
+    overlay: 'rgba(15, 23, 42, 0.55)',
+    backdrop: 'rgba(15, 23, 42, 0.45)',
+    transparent: 'transparent',
 
     // Flat semantic tokens on colors
     primaryDefault: palette.primary,
@@ -110,6 +113,9 @@ export const theme = {
   white: palette.white,
   black: palette.black,
   shadow: palette.shadow,
+  overlay: 'rgba(15, 23, 42, 0.55)',
+  backdrop: 'rgba(15, 23, 42, 0.45)',
+  transparent: 'transparent',
   success: palette.success,
   successLight: palette.successLight,
   warning: palette.warning,
