@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { theme, STRINGS, CONFIG } from '../../constants';
 import { OwnerApprovalCard } from '../../components/booking/OwnerApprovalCard';
 import { OwnerRateRenterModal } from '../../components/booking/OwnerRateRenterModal';
 import { OwnerQrScannerModal } from '../../components/booking/OwnerQrScannerModal';
@@ -34,13 +34,7 @@ interface BookingManageScreenProps {
   onNavigateToNotifications?: () => void;
 }
 
-const REJECT_REASONS = [
-  'Device under maintenance or unavailable',
-  'Unexpected personal scheduling conflict',
-  'Inconvenient pickup/handover time or location',
-  'Renter unresponsive to verification requests',
-  'Other reason',
-];
+const REJECT_REASONS = STRINGS.BOOKING_MANAGE.REJECT_REASONS;
 
 export function BookingManageScreen({
   route,
@@ -182,28 +176,28 @@ export function BookingManageScreen({
 
   // ── ACTION 1: APPROVE BOOKING ──
   const handleApproveBooking = (booking: Booking) => {
-    const renterName = (booking.renterId as any)?.name || 'renter';
+    const renterName = (booking.renterId as any)?.name || STRINGS.BOOKING_MANAGE.DEFAULT_RENTER_NAME;
     Alert.alert(
-      'Confirm Approval 📦',
-      `Approve booking #${booking.bookingCode} for ${renterName}?\n\nInstant confirmation notification will be sent to the renter.`,
+      STRINGS.BOOKING_MANAGE.CONFIRM_APPROVE_TITLE,
+      STRINGS.BOOKING_MANAGE.CONFIRM_APPROVE_MSG(booking.bookingCode, renterName),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
         {
-          text: 'Approve Now',
+          text: STRINGS.BOOKING_MANAGE.APPROVE_NOW,
           style: 'default',
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.updateBookingStatusByOwner(booking._id, 'approved');
               Alert.alert(
-                'Approved Successfully! 🎉',
-                `Booking #${booking.bookingCode} is approved. Please prepare the device for handover.`
+                STRINGS.BOOKING_MANAGE.APPROVE_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.APPROVE_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
               Alert.alert(
-                'Error',
-                err?.response?.data?.message || 'Unable to approve booking at this time.'
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.APPROVE_ERROR_DEFAULT
               );
             } finally {
               setIsUpdatingOrder(false);
@@ -226,7 +220,7 @@ export function BookingManageScreen({
   const handleConfirmReject = async () => {
     if (!selectedBookingToReject) return;
     const finalReason =
-      selectedRejectReason === 'Other reason' && customRejectReason.trim()
+      selectedRejectReason === STRINGS.BOOKING_MANAGE.OTHER_REASON && customRejectReason.trim()
         ? customRejectReason.trim()
         : selectedRejectReason;
 
@@ -238,16 +232,16 @@ export function BookingManageScreen({
         finalReason
       );
       Alert.alert(
-        'Booking Rejected',
-        `Booking #${selectedBookingToReject.bookingCode} has been rejected.`
+        STRINGS.BOOKING_MANAGE.REJECT_SUCCESS_TITLE,
+        STRINGS.BOOKING_MANAGE.REJECT_SUCCESS_MSG(selectedBookingToReject.bookingCode)
       );
       setRejectModalVisible(false);
       setSelectedBookingToReject(null);
       await fetchOwnerBookings();
     } catch (err: any) {
       Alert.alert(
-        'Error',
-        err?.response?.data?.message || 'Unable to reject booking at this time.'
+        STRINGS.COMMON.ERROR,
+        err?.response?.data?.message || STRINGS.BOOKING_MANAGE.REJECT_ERROR_DEFAULT
       );
     } finally {
       setIsUpdatingOrder(false);
@@ -259,29 +253,29 @@ export function BookingManageScreen({
     const deviceName =
       (booking.deviceId as any)?.name ||
       (booking.deviceId as any)?.title ||
-      'device';
-    const renterName = (booking.renterId as any)?.name || 'renter';
+      STRINGS.BOOKING_MANAGE.DEFAULT_DEVICE_NAME;
+    const renterName = (booking.renterId as any)?.name || STRINGS.BOOKING_MANAGE.DEFAULT_RENTER_NAME;
 
     Alert.alert(
-      'Device Handover 📱',
-      `Confirm handover of "${deviceName}" to ${renterName}?\n\nThe booking will activate and the rental period begins now.`,
+      STRINGS.BOOKING_MANAGE.HANDOVER_TITLE,
+      STRINGS.BOOKING_MANAGE.HANDOVER_MSG(deviceName, renterName),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
         {
-          text: 'Confirm Handover',
+          text: STRINGS.BOOKING_MANAGE.CONFIRM_HANDOVER,
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.handoverBooking(booking._id);
               Alert.alert(
-                'Handover Successful 🎉',
-                `Device handed over. Booking #${booking.bookingCode} is now active.`
+                STRINGS.BOOKING_MANAGE.HANDOVER_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.HANDOVER_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
               Alert.alert(
-                'Error',
-                err?.response?.data?.message || 'Unable to handover booking at this time.'
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.HANDOVER_ERROR_DEFAULT
               );
             } finally {
               setIsUpdatingOrder(false);
@@ -297,30 +291,30 @@ export function BookingManageScreen({
     const deviceName =
       (booking.deviceId as any)?.name ||
       (booking.deviceId as any)?.title ||
-      'device';
-    const depositAmount = (booking.depositFee || 0).toLocaleString('en-US');
-    const incomeAmount = (booking.rentalFee || 0).toLocaleString('en-US');
+      STRINGS.BOOKING_MANAGE.DEFAULT_DEVICE_NAME;
+    const depositAmount = (booking.depositFee || 0).toLocaleString(CONFIG.CURRENCY.LOCALE);
+    const incomeAmount = (booking.rentalFee || 0).toLocaleString(CONFIG.CURRENCY.LOCALE);
 
     Alert.alert(
-      'Receive Device & Complete 💰',
-      `Have you inspected "${deviceName}" and confirmed it is returned in good condition?\n\n• Deposit: ${depositAmount} VND will be refunded to renter.\n• Earnings: +${incomeAmount} VND will be credited to your wallet.`,
+      STRINGS.BOOKING_MANAGE.COMPLETE_TITLE,
+      STRINGS.BOOKING_MANAGE.COMPLETE_MSG(deviceName, depositAmount, incomeAmount),
       [
-        { text: 'Recheck', style: 'cancel' },
+        { text: STRINGS.BOOKING_MANAGE.RECHECK, style: 'cancel' },
         {
-          text: 'Confirm & Complete',
+          text: STRINGS.BOOKING_MANAGE.CONFIRM_COMPLETE,
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.completeBooking(booking._id);
               Alert.alert(
-                'Rental Completed 🎉',
-                `Booking #${booking.bookingCode} is completed. Deposit refunded and earnings credited.`
+                STRINGS.BOOKING_MANAGE.COMPLETE_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.COMPLETE_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
               Alert.alert(
-                'Error',
-                err?.response?.data?.message || 'Unable to complete booking at this time.'
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.COMPLETE_ERROR_DEFAULT
               );
             } finally {
               setIsUpdatingOrder(false);
@@ -344,7 +338,7 @@ export function BookingManageScreen({
     const existing = reviewMap[booking._id];
     if (existing) {
       if (existing.renterTrustRating !== null && existing.renterTrustRating !== undefined) {
-        Alert.alert('Already Rated', 'You have already rated the renter for this booking.');
+        Alert.alert(STRINGS.BOOKING_MANAGE.ALREADY_RATED_TITLE, STRINGS.BOOKING_MANAGE.ALREADY_RATED_MSG);
         return;
       }
       const reviewWithRenter: ReviewItem = {
@@ -380,30 +374,30 @@ export function BookingManageScreen({
                   (navigation as any).openDrawer();
                 }
               }}
-              accessibilityLabel="Open owner navigation drawer"
+              accessibilityLabel={STRINGS.OWNER_SIDEBAR.BRAND_TITLE}
             >
-              <Ionicons name="menu-outline" size={24} color={colors.light.textPrimary} />
+              <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
           ) : onBack ? (
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={onBack}
-              accessibilityLabel="Back"
+              accessibilityLabel={STRINGS.NOTIFICATION_SCREEN.BACK_ACCESSIBILITY_LABEL}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.light.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={() => navigation?.goBack?.()}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.light.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
 
           <View style={styles.headerTitleCol}>
-            <Text style={styles.headerTitle}>Booking Management</Text>
-            <Text style={styles.headerSubtitle}>Approve, Handover & Track</Text>
+            <Text style={styles.headerTitle}>{STRINGS.BOOKING_MANAGE.HEADER_TITLE}</Text>
+            <Text style={styles.headerSubtitle}>{STRINGS.BOOKING_MANAGE.HEADER_SUBTITLE}</Text>
           </View>
         </View>
 
@@ -414,8 +408,8 @@ export function BookingManageScreen({
             onPress={() => setScannerVisible(true)}
             activeOpacity={0.85}
           >
-            <Ionicons name="qr-code-outline" size={17} color="#FFFFFF" />
-            <Text style={styles.headerScanBtnText}>Scan QR</Text>
+            <Ionicons name="qr-code-outline" size={17} color={theme.white} />
+            <Text style={styles.headerScanBtnText}>{STRINGS.BOOKING_MANAGE.SCAN_QR}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -423,7 +417,7 @@ export function BookingManageScreen({
             onPress={fetchOwnerBookings}
             disabled={loading || refreshing}
           >
-            <Ionicons name="refresh-outline" size={20} color={colors.light.textSecondary} />
+            <Ionicons name="refresh-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
 
           {onNavigateToNotifications && (
@@ -431,7 +425,7 @@ export function BookingManageScreen({
               style={styles.headerIconBtn}
               onPress={onNavigateToNotifications}
             >
-              <Ionicons name="notifications-outline" size={20} color={colors.light.textPrimary} />
+              <Ionicons name="notifications-outline" size={20} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
         </View>
@@ -440,43 +434,43 @@ export function BookingManageScreen({
       {/* ── 2. QUICK METRICS CARD ── */}
       <View style={styles.metricsCard}>
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Pending</Text>
-          <Text style={[styles.metricValue, { color: colors.light.warning }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_PENDING}</Text>
+          <Text style={[styles.metricValue, { color: theme.warning }]}>
             {pendingOrders.length}
           </Text>
         </View>
         <View style={styles.metricDivider} />
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Active Rentals</Text>
-          <Text style={[styles.metricValue, { color: colors.light.primary }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_ACTIVE}</Text>
+          <Text style={[styles.metricValue, { color: theme.primary }]}>
             {rentingOrders.length}
           </Text>
         </View>
         <View style={styles.metricDivider} />
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Active Revenue</Text>
-          <Text style={[styles.metricValue, { color: colors.light.success }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_REVENUE}</Text>
+          <Text style={[styles.metricValue, { color: theme.success }]}>
             {totalRentingRevenue > 0
-              ? `${(totalRentingRevenue / 1000).toLocaleString('en-US')}k`
-              : '0 VND'}
+              ? `${(totalRentingRevenue / 1000).toLocaleString(CONFIG.CURRENCY.LOCALE)}k`
+              : `0 ${STRINGS.COMMON.CURRENCY_SUFFIX}`}
           </Text>
         </View>
       </View>
 
       {/* ── 3. SEARCH BAR ── */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={18} color={colors.light.textSecondary} />
+        <Ionicons name="search-outline" size={18} color={theme.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by code, device or renter name..."
-          placeholderTextColor={colors.light.textSecondary}
+          placeholder={STRINGS.BOOKING_MANAGE.SEARCH_PLACEHOLDER}
+          placeholderTextColor={theme.textSecondary}
           value={searchKeyword}
           onChangeText={setSearchKeyword}
           clearButtonMode="while-editing"
         />
         {searchKeyword.length > 0 && (
           <TouchableOpacity onPress={() => setSearchKeyword('')}>
-            <Ionicons name="close-circle" size={16} color={colors.light.textSecondary} />
+            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -494,7 +488,7 @@ export function BookingManageScreen({
                 activeTab === 'pending' && styles.tabLabelActive,
               ]}
             >
-              Pending
+              {STRINGS.BOOKING_MANAGE.TAB_PENDING}
             </Text>
             {pendingOrders.length > 0 && (
               <View
@@ -503,8 +497,8 @@ export function BookingManageScreen({
                   {
                     backgroundColor:
                       activeTab === 'pending'
-                        ? colors.light.warning
-                        : colors.light.border,
+                        ? theme.warning
+                        : theme.border,
                   },
                 ]}
               >
@@ -514,8 +508,8 @@ export function BookingManageScreen({
                     {
                       color:
                         activeTab === 'pending'
-                          ? '#FFFFFF'
-                          : colors.light.textSecondary,
+                          ? theme.white
+                          : theme.textSecondary,
                     },
                   ]}
                 >
@@ -537,7 +531,7 @@ export function BookingManageScreen({
                 activeTab === 'renting' && styles.tabLabelActive,
               ]}
             >
-              Active & Renting
+              {STRINGS.BOOKING_MANAGE.TAB_RENTING}
             </Text>
             {rentingOrders.length > 0 && (
               <View
@@ -546,8 +540,8 @@ export function BookingManageScreen({
                   {
                     backgroundColor:
                       activeTab === 'renting'
-                        ? colors.light.primary
-                        : colors.light.border,
+                        ? theme.primary
+                        : theme.border,
                   },
                 ]}
               >
@@ -557,8 +551,8 @@ export function BookingManageScreen({
                     {
                       color:
                         activeTab === 'renting'
-                          ? '#FFFFFF'
-                          : colors.light.textSecondary,
+                          ? theme.white
+                          : theme.textSecondary,
                     },
                   ]}
                 >
@@ -580,7 +574,7 @@ export function BookingManageScreen({
                 activeTab === 'history' && styles.tabLabelActive,
               ]}
             >
-              History
+              {STRINGS.BOOKING_MANAGE.TAB_HISTORY}
             </Text>
             <View
               style={[
@@ -588,8 +582,8 @@ export function BookingManageScreen({
                 {
                   backgroundColor:
                     activeTab === 'history'
-                      ? colors.light.primaryLight
-                      : colors.light.surface,
+                      ? theme.colors.primaryLight
+                      : theme.surface,
                 },
               ]}
             >
@@ -599,8 +593,8 @@ export function BookingManageScreen({
                   {
                     color:
                       activeTab === 'history'
-                        ? colors.light.primary
-                        : colors.light.textSecondary,
+                        ? theme.primary
+                        : theme.textSecondary,
                   },
                 ]}
               >
@@ -614,8 +608,8 @@ export function BookingManageScreen({
       {/* ── 5. ORDER LIST ── */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.light.primary} />
-          <Text style={styles.loadingText}>Loading your booking orders...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.loadingText}>{STRINGS.BOOKING_MANAGE.LOADING_ORDERS}</Text>
         </View>
       ) : (
         <FlatList
@@ -641,8 +635,8 @@ export function BookingManageScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[colors.light.primary]}
-              tintColor={colors.light.primary}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
           ListEmptyComponent={
@@ -659,26 +653,26 @@ export function BookingManageScreen({
                   size={48}
                   color={
                     activeTab === 'pending'
-                      ? colors.light.success
-                      : colors.light.textSecondary
+                      ? theme.success
+                      : theme.textSecondary
                   }
                 />
               </View>
 
               <Text style={styles.emptyTitle}>
                 {activeTab === 'pending'
-                  ? 'No pending bookings'
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_PENDING_TITLE
                   : activeTab === 'renting'
-                  ? 'No devices currently rented'
-                  : 'No order history yet'}
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_RENTING_TITLE
+                  : STRINGS.BOOKING_MANAGE.EMPTY_HISTORY_TITLE}
               </Text>
 
               <Text style={styles.emptySubtitle}>
                 {activeTab === 'pending'
-                  ? 'All rental requests have been reviewed. When a renter books a device, it will appear here.'
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_PENDING_SUB
                   : activeTab === 'renting'
-                  ? 'Approved bookings waiting for handover or active ongoing rentals will appear here.'
-                  : 'Completed, cancelled, or rejected booking records are archived here.'}
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_RENTING_SUB
+                  : STRINGS.BOOKING_MANAGE.EMPTY_HISTORY_SUB}
               </Text>
 
               {searchKeyword.length > 0 && (
@@ -686,7 +680,7 @@ export function BookingManageScreen({
                   style={styles.clearSearchBtn}
                   onPress={() => setSearchKeyword('')}
                 >
-                  <Text style={styles.clearSearchText}>Clear search filter</Text>
+                  <Text style={styles.clearSearchText}>{STRINGS.BOOKING_MANAGE.CLEAR_SEARCH}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -705,21 +699,20 @@ export function BookingManageScreen({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <Ionicons name="close-circle-outline" size={20} color={colors.light.error} />
-                <Text style={styles.modalTitle}>Reject Booking Request</Text>
+                <Ionicons name="close-circle-outline" size={20} color={theme.danger} />
+                <Text style={styles.modalTitle}>{STRINGS.BOOKING_MANAGE.REJECT_MODAL_TITLE}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setRejectModalVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={20} color={colors.light.textSecondary} />
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {selectedBookingToReject && (
               <Text style={styles.modalDesc}>
-                Select a reason for declining booking #{selectedBookingToReject.bookingCode}.
-                This reason will be provided to the renter.
+                {STRINGS.BOOKING_MANAGE.REJECT_MODAL_DESC(selectedBookingToReject.bookingCode)}
               </Text>
             )}
 
@@ -739,7 +732,7 @@ export function BookingManageScreen({
                     <Ionicons
                       name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                       size={18}
-                      color={isSelected ? colors.light.error : colors.light.textSecondary}
+                      color={isSelected ? theme.danger : theme.textSecondary}
                     />
                     <Text
                       style={[
@@ -754,11 +747,11 @@ export function BookingManageScreen({
               })}
             </View>
 
-            {selectedRejectReason === 'Other reason' && (
+            {selectedRejectReason === STRINGS.BOOKING_MANAGE.OTHER_REASON && (
               <TextInput
                 style={styles.customReasonInput}
-                placeholder="Enter detailed reason for rejection..."
-                placeholderTextColor={colors.light.textSecondary}
+                placeholder={STRINGS.BOOKING_MANAGE.CUSTOM_REASON_PLACEHOLDER}
+                placeholderTextColor={theme.textSecondary}
                 value={customRejectReason}
                 onChangeText={setCustomRejectReason}
                 multiline
@@ -772,7 +765,7 @@ export function BookingManageScreen({
                 onPress={() => setRejectModalVisible(false)}
                 disabled={isUpdatingOrder}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{STRINGS.COMMON.CANCEL}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -781,9 +774,9 @@ export function BookingManageScreen({
                 disabled={isUpdatingOrder}
               >
                 {isUpdatingOrder ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={theme.white} />
                 ) : (
-                  <Text style={styles.modalConfirmText}>Confirm Rejection</Text>
+                  <Text style={styles.modalConfirmText}>{STRINGS.BOOKING_MANAGE.CONFIRM_REJECT}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -819,74 +812,74 @@ export function BookingManageScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm + 4,
     flex: 1,
   },
   headerIconBtn: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    backgroundColor: colors.light.surface,
+    borderRadius: theme.radii.sm + 2,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerScanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
+    backgroundColor: theme.primary,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.sm + 2,
+    gap: theme.spacing.xs + 2,
   },
   headerScanBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    color: theme.white,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
   },
   headerTitleCol: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.subheading,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: colors.light.textSecondary,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.xs,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   metricsCard: {
     flexDirection: 'row',
-    backgroundColor: colors.light.surface,
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: theme.surface,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 4,
+    padding: theme.spacing.sm + 4,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
   },
   metricItem: {
     flex: 1,
@@ -895,144 +888,144 @@ const styles = StyleSheet.create({
   metricDivider: {
     width: 1,
     height: '80%',
-    backgroundColor: colors.light.border,
+    backgroundColor: theme.border,
     alignSelf: 'center',
   },
   metricLabel: {
     fontSize: 11,
-    color: colors.light.textSecondary,
-    fontWeight: '500',
-    marginBottom: 4,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
+    marginBottom: theme.spacing.xs,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.heavy,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.surface,
-    marginHorizontal: 16,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    backgroundColor: theme.surface,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 2,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    gap: 8,
+    borderColor: theme.border,
+    gap: theme.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
     padding: 0,
   },
   tabBar: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 12,
+    paddingHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.sm + 4,
     alignItems: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: theme.transparent,
   },
   tabItemActive: {
-    borderBottomColor: colors.light.primary,
+    borderBottomColor: theme.primary,
   },
   tabContentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing.xs + 2,
   },
   tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   tabLabelActive: {
-    color: colors.light.primary,
-    fontWeight: '700',
+    color: theme.primary,
+    fontWeight: theme.typography.weights.bold,
   },
   tabBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: theme.spacing.xs + 2,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.radii.sm + 2,
   },
   tabBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: theme.typography.weights.bold,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 36,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xl + 4,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm + 4,
   },
   loadingText: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
   },
   emptyContainer: {
     paddingVertical: 48,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.lg,
   },
   emptyIconBox: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.light.surface,
+    backgroundColor: theme.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.light.textPrimary,
-    marginBottom: 8,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
+    marginBottom: theme.spacing.sm,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
   clearSearchBtn: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.light.primaryLight,
-    borderRadius: 8,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radii.sm,
   },
   clearSearchText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.light.primaryDark,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primaryDark,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: theme.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.lg - 4,
   },
   modalContent: {
-    backgroundColor: colors.light.background,
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: theme.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.lg - 4,
     width: '100%',
     maxWidth: 420,
-    shadowColor: '#000000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1042,96 +1035,96 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 12,
+    paddingBottom: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   modalHeaderTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.textPrimary,
   },
   modalCloseBtn: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
   modalDesc: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
-    marginVertical: 12,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
+    marginVertical: theme.spacing.sm + 4,
     lineHeight: 18,
   },
   reasonRadioList: {
-    gap: 10,
-    marginBottom: 12,
+    gap: theme.spacing.sm + 2,
+    marginBottom: theme.spacing.sm + 4,
   },
   reasonRadioItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 10,
-    borderRadius: 10,
+    gap: theme.spacing.sm + 2,
+    padding: theme.spacing.sm + 2,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    backgroundColor: colors.light.surface,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   reasonRadioItemSelected: {
-    borderColor: colors.light.error,
-    backgroundColor: '#FEF2F2',
+    borderColor: theme.danger,
+    backgroundColor: theme.dangerLight,
   },
   reasonRadioText: {
-    fontSize: 13,
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
     flex: 1,
   },
   reasonRadioTextSelected: {
-    fontWeight: '700',
-    color: colors.light.error,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.danger,
   },
   customReasonInput: {
     borderWidth: 1,
-    borderColor: colors.light.border,
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 13,
-    color: colors.light.textPrimary,
-    backgroundColor: colors.light.surface,
+    borderColor: theme.border,
+    borderRadius: theme.radii.sm + 2,
+    padding: theme.spacing.sm + 2,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
+    backgroundColor: theme.surface,
     textAlignVertical: 'top',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
+    gap: theme.spacing.sm + 2,
+    marginTop: theme.spacing.sm,
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: theme.spacing.sm + 4,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textSecondary,
   },
   modalConfirmBtn: {
     flex: 1.4,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: colors.light.error,
+    paddingVertical: theme.spacing.sm + 4,
+    borderRadius: theme.radii.sm + 2,
+    backgroundColor: theme.danger,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalConfirmText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.white,
   },
 });

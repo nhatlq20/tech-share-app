@@ -1,6 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { theme } from '../constants/theme';
+import { theme, STRINGS } from '../constants';
 import { OwnerSidebarContent } from './OwnerSidebarContent';
 import { OwnerDashboardScreen } from '../screens/owner/OwnerDashboardScreen';
 import { OwnerAnalyticsScreen } from '../screens/owner/OwnerAnalyticsScreen';
@@ -58,7 +58,10 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="BookingManage"
-        options={{ title: 'Booking Management', drawerLabel: 'Booking Management' }}
+        options={{
+          title: STRINGS.OWNER_NAV.BOOKING_MANAGE_TITLE,
+          drawerLabel: STRINGS.OWNER_NAV.BOOKING_MANAGE_DRAWER,
+        }}
       >
         {(props: any) => (
           <BookingManageScreen
@@ -75,7 +78,10 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="OwnerAnalytics"
-        options={{ title: 'Owner Analytics', drawerLabel: 'Revenue & Analytics' }}
+        options={{
+          title: STRINGS.OWNER_NAV.ANALYTICS_TITLE,
+          drawerLabel: STRINGS.OWNER_NAV.ANALYTICS_DRAWER,
+        }}
       >
         {(props: any) => (
           <OwnerAnalyticsScreen
@@ -86,7 +92,10 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="PostDevice"
-        options={{ title: 'Post Device', drawerLabel: 'Đăng thiết bị mới' }}
+        options={{
+          title: STRINGS.OWNER_NAV.POST_DEVICE_TITLE,
+          drawerLabel: STRINGS.OWNER_NAV.POST_DEVICE_DRAWER,
+        }}
       >
         {(props: any) => (
           <PostDeviceScreen
@@ -100,7 +109,10 @@ export function OwnerDrawerNavigator({ navigation }: any) {
       </Drawer.Screen>
       <Drawer.Screen
         name="Notification"
-        options={{ title: 'Notification', drawerLabel: 'Thông báo hệ thống' }}
+        options={{
+          title: STRINGS.OWNER_NAV.NOTIFICATION_TITLE,
+          drawerLabel: STRINGS.OWNER_NAV.NOTIFICATION_DRAWER,
+        }}
       >
         {(props: any) => (
           <NotificationScreen

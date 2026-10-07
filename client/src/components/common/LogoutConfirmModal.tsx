@@ -7,7 +7,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../constants/theme';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
 export interface LogoutConfirmModalProps {
   /**
@@ -23,7 +23,7 @@ export interface LogoutConfirmModalProps {
    */
   onConfirm: () => void;
   /**
-   * Tiêu đề của modal (Mặc định: 'Xác nhận đăng xuất')
+   * Tiêu đề của modal
    */
   title?: string;
   /**
@@ -31,11 +31,11 @@ export interface LogoutConfirmModalProps {
    */
   subtitle?: string;
   /**
-   * Chữ hiển thị trên nút xác nhận (Mặc định: 'Đăng xuất')
+   * Chữ hiển thị trên nút xác nhận
    */
   confirmButtonText?: string;
   /**
-   * Chữ hiển thị trên nút hủy (Mặc định: 'Hủy')
+   * Chữ hiển thị trên nút hủy
    */
   cancelButtonText?: string;
   /**
@@ -52,10 +52,10 @@ export function LogoutConfirmModal({
   visible,
   onClose,
   onConfirm,
-  title = 'Xác nhận đăng xuất',
-  subtitle = 'Bạn có chắc chắn muốn kết thúc phiên làm việc và đăng xuất khỏi tài khoản?',
-  confirmButtonText = 'Đăng xuất',
-  cancelButtonText = 'Hủy',
+  title = STRINGS.LOGOUT_MODAL.DEFAULT_TITLE,
+  subtitle = STRINGS.LOGOUT_MODAL.DEFAULT_SUBTITLE,
+  confirmButtonText = STRINGS.LOGOUT_MODAL.DEFAULT_CONFIRM,
+  cancelButtonText = STRINGS.LOGOUT_MODAL.DEFAULT_CANCEL,
   iconName = 'log-out-outline',
 }: LogoutConfirmModalProps) {
   return (
@@ -72,7 +72,7 @@ export function LogoutConfirmModal({
           style={styles.modalBackdropTouch}
           activeOpacity={1}
           onPress={onClose}
-          accessibilityLabel="Đóng modal"
+          accessibilityLabel={STRINGS.LOGOUT_MODAL.CLOSE_ACCESSIBILITY}
         />
 
         {/* Card nội dung chính bo tròn mềm */}
@@ -91,7 +91,7 @@ export function LogoutConfirmModal({
             <TouchableOpacity
               style={styles.modalCancelBtn}
               onPress={onClose}
-              activeOpacity={0.7}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               accessibilityRole="button"
               accessibilityLabel={cancelButtonText}
             >
@@ -101,7 +101,7 @@ export function LogoutConfirmModal({
             <TouchableOpacity
               style={styles.modalLogoutBtn}
               onPress={onConfirm}
-              activeOpacity={0.8}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
               accessibilityRole="button"
               accessibilityLabel={confirmButtonText}
             >
@@ -118,10 +118,10 @@ export function LogoutConfirmModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)', // Soft dark backdrop
+    backgroundColor: theme.overlay, // Soft dark backdrop
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing['2xl'],
   },
   modalBackdropTouch: {
     ...StyleSheet.absoluteFillObject,
@@ -130,13 +130,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
     backgroundColor: theme.colors.white,
-    borderRadius: 24,
-    paddingTop: 28,
-    paddingBottom: 22,
-    paddingHorizontal: 22,
+    borderRadius: theme.radii.xl,
+    paddingTop: theme.spacing.xl + 8,
+    paddingBottom: theme.spacing.lg + 6,
+    paddingHorizontal: theme.spacing.lg + 6,
     alignItems: 'center',
     ...theme.shadows.card,
-    elevation: 20,
   },
   modalIconBox: {
     width: 60,

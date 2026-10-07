@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme/colors";
+import { theme, STRINGS, CONFIG } from "../constants";
 import { BlockedDate } from "../types";
 
 interface OwnerAvailabilityModalProps {
@@ -25,7 +25,7 @@ interface OwnerAvailabilityModalProps {
 
 type AvailabilityMode = "single" | "range";
 
-const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const weekDays: readonly string[] = STRINGS.AVAILABILITY.WEEKDAYS;
 
 const createDateKey = (year: number, month: number, day: number) => {
   const monthText = String(month + 1).padStart(2, "0");
@@ -59,7 +59,7 @@ export function OwnerAvailabilityModal({
 
   const numberOfDays = new Date(year, month + 1, 0).getDate();
 
-  const monthName = displayedMonth.toLocaleString("en-US", { month: "long" });
+  const monthName = STRINGS.AVAILABILITY.MONTH_NAME(displayedMonth);
 
   const todayKey = createTodayKey();
   //chọn ngày bắt đầu và ngày kết thúc
@@ -106,13 +106,19 @@ export function OwnerAvailabilityModal({
   const handleSave = async () => {
     let blockedDates: BlockedDate[] = [];
     if (!startDate || !endDate) {
-      Alert.alert("Error", "Please select start date and end date");
+      Alert.alert(
+        STRINGS.AVAILABILITY.ALERT_ERROR_TITLE,
+        STRINGS.AVAILABILITY.ALERT_SELECT_RANGE,
+      );
       return;
     }
 
     if (mode === "single") {
       if (selectedDates.length === 0) {
-        Alert.alert("Error", "Please select at least one date");
+        Alert.alert(
+          STRINGS.AVAILABILITY.ALERT_ERROR_TITLE,
+          STRINGS.AVAILABILITY.ALERT_SELECT_SINGLE,
+        );
         return;
       }
 
@@ -124,7 +130,10 @@ export function OwnerAvailabilityModal({
 
     if (mode === "range") {
       if (!startDate || !endDate) {
-        Alert.alert("Error", "Please select start date and end date");
+        Alert.alert(
+          STRINGS.AVAILABILITY.ALERT_ERROR_TITLE,
+          STRINGS.AVAILABILITY.ALERT_SELECT_RANGE,
+        );
         return;
       }
 
@@ -138,10 +147,16 @@ export function OwnerAvailabilityModal({
 
     try {
       await onUpdateBlockedDates(deviceId, blockedDates);
-      Alert.alert("THành công", "Update blocked dates true");
+      Alert.alert(
+        STRINGS.AVAILABILITY.ALERT_SUCCESS_TITLE,
+        STRINGS.AVAILABILITY.ALERT_SUCCESS_MSG,
+      );
       onClose();
     } catch (error) {
-      Alert.alert("Error", "Update blocked dates failed");
+      Alert.alert(
+        STRINGS.AVAILABILITY.ALERT_ERROR_TITLE,
+        STRINGS.AVAILABILITY.ALERT_ERROR_MSG,
+      );
     }
   };
 
@@ -166,25 +181,25 @@ export function OwnerAvailabilityModal({
         <View style={styles.modalContent}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Manage Availability</Text>
+              <Text style={styles.title}>{STRINGS.AVAILABILITY.MODAL_TITLE}</Text>
               <Text style={styles.deviceName}>{deviceName}</Text>
             </View>
             <Pressable
               onPress={handleCancel}
               style={styles.closeButton}
-              accessibilityLabel="Close"
+              accessibilityLabel={STRINGS.COMMON.CLOSE}
             >
               <Ionicons
                 name="close"
                 size={24}
-                color={colors.light.textSecondary}
+                color={theme.textSecondary}
               />
             </Pressable>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.description}>
-              Block dates when you need to use this device.
+              {STRINGS.AVAILABILITY.DESCRIPTION}
             </Text>
 
             <View style={styles.modeToggle}>
@@ -203,13 +218,13 @@ export function OwnerAvailabilityModal({
                     mode === "single" && styles.modeButtonTextActive,
                   ]}
                 >
-                  Single dates
+                  {STRINGS.AVAILABILITY.MODE_SINGLE}
                 </Text>
                 {mode === "single" && (
                   <Ionicons
                     name="checkmark"
                     size={16}
-                    color={colors.light.background}
+                    color={theme.white}
                   />
                 )}
               </Pressable>
@@ -228,13 +243,13 @@ export function OwnerAvailabilityModal({
                     mode === "range" && styles.modeButtonTextActive,
                   ]}
                 >
-                  Date range
+                  {STRINGS.AVAILABILITY.MODE_RANGE}
                 </Text>
                 {mode === "range" && (
                   <Ionicons
                     name="checkmark"
                     size={16}
-                    color={colors.light.background}
+                    color={theme.white}
                   />
                 )}
               </Pressable>
@@ -244,12 +259,12 @@ export function OwnerAvailabilityModal({
               <Pressable
                 onPress={() => changeMonth(-1)}
                 style={styles.monthButton}
-                accessibilityLabel="Previous month"
+                accessibilityLabel={STRINGS.AVAILABILITY.PREV_MONTH_ACCESSIBILITY}
               >
                 <Ionicons
                   name="chevron-back"
                   size={22}
-                  color={colors.light.primary}
+                  color={theme.primary}
                 />
               </Pressable>
               <Text style={styles.monthTitle}>
@@ -258,18 +273,18 @@ export function OwnerAvailabilityModal({
               <Pressable
                 onPress={() => changeMonth(1)}
                 style={styles.monthButton}
-                accessibilityLabel="Next month"
+                accessibilityLabel={STRINGS.AVAILABILITY.NEXT_MONTH_ACCESSIBILITY}
               >
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color={colors.light.primary}
+                  color={theme.primary}
                 />
               </Pressable>
             </View>
 
             <View style={styles.calendar}>
-              {weekDays.map((day) => (
+              {weekDays.map((day: string) => (
                 <Text key={day} style={styles.weekDay}>
                   {day}
                 </Text>
@@ -305,11 +320,8 @@ export function OwnerAvailabilityModal({
                     <View
                       style={[
                         styles.dateCircle,
-
                         isSelected && styles.blockedDate,
-
                         (isStartDate || isEndDate) && styles.selectedDate,
-
                         mode === "range" &&
                           (isStartDate || isEndDate) &&
                           styles.selectedDate,
@@ -319,11 +331,8 @@ export function OwnerAvailabilityModal({
                       <Text
                         style={[
                           styles.dateText,
-
                           isSelected && styles.blockedDateText,
-
                           isSelected && styles.selectedDateText,
-
                           isPast && styles.pastDateText,
                         ]}
                       >
@@ -335,39 +344,47 @@ export function OwnerAvailabilityModal({
               })}
             </View>
 
-            <Text style={styles.selectedTitle}>Selected blocked dates</Text>
+            <Text style={styles.selectedTitle}>{STRINGS.AVAILABILITY.SELECTED_TITLE}</Text>
 
             {mode === "single" ? (
               // SINGLE MODE
               selectedDates.length === 0 ? (
-                <Text style={styles.emptyText}>No blocked dates selected.</Text>
+                <Text style={styles.emptyText}>{STRINGS.AVAILABILITY.NO_DATES_SELECTED}</Text>
               ) : (
                 <>
                   {selectedDates.sort().map((date: string) => (
-                    <Text key={date}>Blocked Date: {date}</Text>
+                    <Text key={date} style={styles.selectedDateItem}>
+                      {STRINGS.AVAILABILITY.BLOCKED_DATE_ITEM(date)}
+                    </Text>
                   ))}
 
-                  <Text>Total: {selectedDates.length} days</Text>
+                  <Text style={styles.selectedTotal}>
+                    {STRINGS.AVAILABILITY.TOTAL_DAYS(selectedDates.length)}
+                  </Text>
                 </>
               )
             ) : // RANGE MODE
             !startDate ? (
-              <Text style={styles.emptyText}>No blocked dates selected.</Text>
+              <Text style={styles.emptyText}>{STRINGS.AVAILABILITY.NO_DATES_SELECTED}</Text>
             ) : (
               <>
-                <Text>Start Date: {startDate}</Text>
+                <Text style={styles.selectedDateItem}>
+                  {STRINGS.AVAILABILITY.START_DATE(startDate)}
+                </Text>
 
-                <Text>End Date: {endDate || "Please select"}</Text>
+                <Text style={styles.selectedDateItem}>
+                  {STRINGS.AVAILABILITY.END_DATE(endDate || STRINGS.AVAILABILITY.PLEASE_SELECT)}
+                </Text>
               </>
             )}
           </ScrollView>
 
           <View style={styles.actions}>
             <Pressable onPress={handleCancel} style={styles.cancelButton}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{STRINGS.COMMON.CANCEL}</Text>
             </Pressable>
             <Pressable onPress={handleSave} style={styles.saveButton}>
-              <Text style={styles.saveText}>Save Changes</Text>
+              <Text style={styles.saveText}>{STRINGS.AVAILABILITY.SAVE_CHANGES}</Text>
             </Pressable>
           </View>
         </View>
@@ -380,41 +397,45 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    backgroundColor: theme.backdrop,
   },
   modalContent: {
     maxHeight: "92%",
-    padding: 20,
-    backgroundColor: colors.light.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    padding: theme.spacing.lg + 4,
+    backgroundColor: theme.background,
+    borderTopLeftRadius: theme.radii.xl,
+    borderTopRightRadius: theme.radii.xl,
   },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
   },
-  title: { fontSize: 21, fontWeight: "700", color: colors.light.textPrimary },
-  deviceName: {
-    marginTop: 6,
-    fontSize: 15,
-    color: colors.light.primary,
-    fontWeight: "600",
+  title: {
+    fontSize: theme.typography.sizes.h1 - 3,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
-  closeButton: { padding: 4 },
+  deviceName: {
+    marginTop: theme.spacing.xs + 2,
+    fontSize: theme.typography.sizes.subheading,
+    color: theme.primary,
+    fontWeight: theme.typography.weights.semibold,
+  },
+  closeButton: { padding: theme.spacing.xs },
   description: {
-    marginTop: 18,
-    color: colors.light.textSecondary,
-    fontSize: 14,
+    marginTop: theme.spacing.lg,
+    color: theme.textSecondary,
+    fontSize: theme.typography.sizes.body,
     lineHeight: 21,
   },
   modeToggle: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 12,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: colors.light.surface,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.xs,
+    borderRadius: theme.radii.base,
+    backgroundColor: theme.surface,
   },
   modeButton: {
     flex: 1,
@@ -423,41 +444,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingHorizontal: 8,
-    borderRadius: 9,
-    backgroundColor: colors.light.background,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.background,
   },
   modeButtonActive: {
-    backgroundColor: colors.light.primary,
+    backgroundColor: theme.primary,
   },
   modeButtonText: {
-    color: colors.light.textPrimary,
-    fontSize: 13,
-    fontWeight: "600",
+    color: theme.textPrimary,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.semibold,
   },
   modeButtonTextActive: {
-    color: colors.light.background,
+    color: theme.white,
   },
   monthHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 20,
+    marginTop: theme.spacing.lg + 4,
   },
-  monthButton: { padding: 8 },
+  monthButton: { padding: theme.spacing.sm },
   monthTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.h3,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
-  calendar: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
+  calendar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: theme.spacing.sm,
+  },
   weekDay: {
     width: "14.285%",
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.sm,
     textAlign: "center",
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   dateCell: {
     width: "14.285%",
@@ -470,42 +495,76 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 18,
+    borderRadius: theme.radii.full,
   },
-  blockedDate: { backgroundColor: colors.light.primary, borderRadius: 10 },
+  blockedDate: {
+    backgroundColor: theme.primary,
+    borderRadius: theme.radii.md,
+  },
   pastDate: { opacity: 0.35 },
-  dateText: { color: colors.light.textPrimary, fontSize: 14 },
-  blockedDateText: { color: colors.light.background, fontWeight: "700" },
-  pastDateText: { color: colors.light.textSecondary },
+  dateText: {
+    color: theme.textPrimary,
+    fontSize: theme.typography.sizes.body,
+  },
+  blockedDateText: {
+    color: theme.white,
+    fontWeight: theme.typography.weights.bold,
+  },
+  pastDateText: { color: theme.textSecondary },
   selectedTitle: {
-    marginTop: 18,
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.light.textPrimary,
+    marginTop: theme.spacing.lg + 2,
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   selectedDate: {
-    marginBottom: 4,
-    color: colors.light.textSecondary,
-    fontSize: 19,
+    marginBottom: theme.spacing.xs,
+    color: theme.textSecondary,
+    fontSize: theme.typography.sizes.h2,
   },
-  emptyText: { color: colors.light.textSecondary, fontSize: 14 },
-  actions: { flexDirection: "row", gap: 12, marginTop: 20 },
+  selectedDateItem: {
+    fontSize: theme.typography.sizes.body,
+    color: theme.textPrimary,
+    marginBottom: theme.spacing.xs,
+  },
+  selectedTotal: {
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.primaryDark,
+    marginTop: theme.spacing.xs,
+  },
+  emptyText: {
+    color: theme.textSecondary,
+    fontSize: theme.typography.sizes.body,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg + 4,
+  },
   cancelButton: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 13,
-    borderRadius: 10,
+    paddingVertical: theme.spacing.md + 1,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   saveButton: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 13,
-    borderRadius: 10,
-    backgroundColor: colors.light.primary,
+    paddingVertical: theme.spacing.md + 1,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.primary,
   },
-  cancelText: { color: colors.light.textPrimary, fontWeight: "600" },
-  saveText: { color: colors.light.background, fontWeight: "700" },
+  cancelText: {
+    color: theme.textPrimary,
+    fontWeight: theme.typography.weights.semibold,
+  },
+  saveText: {
+    color: theme.white,
+    fontWeight: theme.typography.weights.bold,
+  },
 });

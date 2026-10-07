@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { DeviceStatusToggle } from "../../components/device/DeviceStatusToggle";
 import { OwnerAvailabilityModal } from "../../components/OwnerAvailabilityModal";
-import { colors } from "../../theme/colors";
+import { theme, STRINGS, CONFIG } from "../../constants";
 import type { BlockedDate, ManagedDeviceStatus, OwnedDevice } from "../../types";
 import { deviceService } from "../../services/deviceService";
 import { useSelector } from "react-redux";
@@ -67,7 +67,7 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
         setDevices(data);
       } catch (error) {
         console.error("[PostDeviceScreen] Cannot load owner's devices:", error);
-        setDevicesError("Cannot load your devices. Please check the server.");
+        setDevicesError(STRINGS.MY_DEVICES.ERROR_DEFAULT);
       } finally {
         setIsLoadingDevices(false);
       }
@@ -124,35 +124,35 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
           onPress={onBack}
           style={styles.backButton}
           accessibilityRole="button"
-          accessibilityLabel="Back to Profile"
+          accessibilityLabel={STRINGS.MY_DEVICES.BACK_ACCESSIBILITY_LABEL}
         >
           <Ionicons
             name="arrow-back"
             size={24}
-            color={colors.light.textPrimary}
+            color={theme.textPrimary}
           />
         </TouchableOpacity>
         <View style={styles.heading}>
           <Text style={styles.title} accessibilityRole="header">
-            My Devices
+            {STRINGS.MY_DEVICES.TITLE}
           </Text>
-          <Text style={styles.subtitle}>Manage your listed devices</Text>
+          <Text style={styles.subtitle}>{STRINGS.MY_DEVICES.SUBTITLE}</Text>
         </View>
       </View>
 
       {isLoadingDevices ? (
         <View style={styles.feedbackState} accessibilityLiveRegion="polite">
-          <ActivityIndicator size="large" color={colors.light.primary} />
-          <Text style={styles.emptyDescription}>Loading your devices...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.emptyDescription}>{STRINGS.MY_DEVICES.LOADING}</Text>
         </View>
       ) : devicesError ? (
         <View style={styles.feedbackState} accessibilityRole="alert">
           <Ionicons
             name="alert-circle-outline"
             size={48}
-            color={colors.light.error}
+            color={theme.danger}
           />
-          <Text style={styles.emptyTitle}>Unable to load devices</Text>
+          <Text style={styles.emptyTitle}>{STRINGS.MY_DEVICES.ERROR_TITLE}</Text>
           <Text style={styles.errorDescription}>{devicesError}</Text>
         </View>
       ) : (
@@ -186,14 +186,14 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
                 <Text style={styles.deviceTitle}>{device.title}</Text>
                 <Text style={styles.category}>{device.category}</Text>
                 <Text style={styles.price}>
-                  {device.dailyRate.toLocaleString("vi-VN")} VND
-                  <Text style={styles.priceUnit}> / day</Text>
+                  {device.dailyRate.toLocaleString(CONFIG.CURRENCY.LOCALE)} {STRINGS.COMMON.CURRENCY_SUFFIX}
+                  <Text style={styles.priceUnit}>{STRINGS.MY_DEVICES.PRICE_UNIT}</Text>
                 </Text>
 
                 <View style={styles.stats}>
                   <View style={styles.statItem}>
                     <Text style={styles.statValue}>{device.rentalCount}</Text>
-                    <Text style={styles.statLabel}>Rentals</Text>
+                    <Text style={styles.statLabel}>{STRINGS.MY_DEVICES.RENTALS_LABEL}</Text>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.statItem}>
@@ -201,15 +201,15 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
                       <Ionicons
                         name="star"
                         size={18}
-                        color={colors.light.ratingStar}
+                        color={theme.warning}
                       />
                       <Text style={styles.statValue}>{device.ratingAvg}</Text>
                     </View>
-                    <Text style={styles.statLabel}>Rating</Text>
+                    <Text style={styles.statLabel}>{STRINGS.MY_DEVICES.RATING_LABEL}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.statusLabel}>Device Status</Text>
+                <Text style={styles.statusLabel}>{STRINGS.MY_DEVICES.DEVICE_STATUS_LABEL}</Text>
                 <DeviceStatusToggle
                   status={device.status}
                   onChange={(newStatus: ManagedDeviceStatus) =>
@@ -224,10 +224,10 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
                   <Ionicons
                     name="calendar-outline"
                     size={18}
-                    color={colors.light.primary}
+                    color={theme.primary}
                   />
                   <Text style={styles.availabilityButtonText}>
-                    Manage Availability
+                    {STRINGS.MY_DEVICES.MANAGE_AVAILABILITY}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -238,11 +238,11 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
               <Ionicons
                 name="cube-outline"
                 size={48}
-                color={colors.light.textSecondary}
+                color={theme.textSecondary}
               />
-              <Text style={styles.emptyTitle}>No devices yet</Text>
+              <Text style={styles.emptyTitle}>{STRINGS.MY_DEVICES.EMPTY_TITLE}</Text>
               <Text style={styles.emptyDescription}>
-                You haven't listed any devices.
+                {STRINGS.MY_DEVICES.EMPTY_DESC}
               </Text>
             </View>
           }
@@ -260,16 +260,16 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.light.surface },
+  container: { flex: 1, backgroundColor: theme.surface },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    gap: 8,
-    backgroundColor: colors.light.background,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.background,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   backButton: {
     width: 48,
@@ -278,58 +278,53 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   heading: { flex: 1 },
-  title: { fontSize: 22, fontWeight: "700", color: colors.light.textPrimary },
-  subtitle: { fontSize: 14, color: colors.light.textSecondary, marginTop: 4 },
+  title: { fontSize: 22, fontWeight: "700", color: theme.textPrimary },
+  subtitle: { fontSize: 14, color: theme.textSecondary, marginTop: 4 },
   listContent: {
     width: "100%",
     maxWidth: 720,
     alignSelf: "center",
-    padding: 16,
-    paddingBottom: 24,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
   },
   card: {
-    backgroundColor: colors.light.background,
-    borderRadius: 16,
+    backgroundColor: theme.background,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    marginBottom: 16,
-    shadowColor: colors.light.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: theme.border,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.card,
   },
   deviceImage: {
     width: "100%",
-
     aspectRatio: 1.8,
     maxHeight: 300,
-    backgroundColor: colors.light.border,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    backgroundColor: theme.border,
+    borderTopLeftRadius: theme.radii.lg - 1,
+    borderTopRightRadius: theme.radii.lg - 1,
   },
-  cardContent: { padding: 14 },
+  cardContent: { padding: theme.spacing.sm + 6 },
   deviceTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.light.textPrimary,
+    color: theme.textPrimary,
   },
   category: {
     fontSize: 13,
-    color: colors.light.textSecondary,
+    color: theme.textSecondary,
     marginTop: 4,
     textTransform: "capitalize",
   },
   price: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.light.primary,
+    color: theme.primary,
     marginTop: 12,
   },
   priceUnit: {
     fontSize: 13,
     fontWeight: "400",
-    color: colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   stats: {
     flexDirection: "row",
@@ -337,21 +332,21 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
   },
   statItem: { flex: 1, alignItems: "center", gap: 4 },
   statValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.light.textPrimary,
+    color: theme.textPrimary,
   },
-  statLabel: { fontSize: 12, color: colors.light.textSecondary },
-  statDivider: { width: 1, backgroundColor: colors.light.border },
+  statLabel: { fontSize: 12, color: theme.textSecondary },
+  statDivider: { width: 1, backgroundColor: theme.border },
   ratingValue: { flexDirection: "row", alignItems: "center", gap: 4 },
   statusLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.light.textPrimary,
+    color: theme.textPrimary,
     marginBottom: 8,
   },
   availabilityButton: {
@@ -361,12 +356,12 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.light.primary,
+    borderColor: theme.primary,
   },
   availabilityButtonText: {
-    color: colors.light.primary,
+    color: theme.primary,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -375,12 +370,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    padding: theme.spacing.lg + 8,
     gap: 12,
   },
   errorDescription: {
     fontSize: 14,
-    color: colors.light.error,
+    color: theme.danger,
     textAlign: "center",
   },
   emptyState: {
@@ -393,12 +388,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.light.textPrimary,
+    color: theme.textPrimary,
     textAlign: "center",
   },
   emptyDescription: {
     fontSize: 14,
-    color: colors.light.textSecondary,
+    color: theme.textSecondary,
     textAlign: "center",
   },
 });
