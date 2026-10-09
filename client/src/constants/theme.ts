@@ -70,6 +70,9 @@ export const theme = {
     white: palette.white,
     black: palette.black,
     shadow: palette.shadow,
+    overlay: 'rgba(15, 23, 42, 0.55)',
+    backdrop: 'rgba(15, 23, 42, 0.45)',
+    transparent: 'transparent',
 
     // Flat semantic tokens on colors
     primaryDefault: palette.primary,
@@ -110,6 +113,9 @@ export const theme = {
   white: palette.white,
   black: palette.black,
   shadow: palette.shadow,
+  overlay: 'rgba(15, 23, 42, 0.55)',
+  backdrop: 'rgba(15, 23, 42, 0.45)',
+  transparent: 'transparent',
   success: palette.success,
   successLight: palette.successLight,
   warning: palette.warning,
@@ -124,11 +130,12 @@ export const theme = {
     none: 0,
     xs: 4,
     sm: 8,
-    md: 12,
+    md: 16,        // Padding/Margin tiêu chuẩn
+    lg: 24,        // Khoảng cách giữa các Section
+    xl: 32,
+    '2xl': 48,
+    // Aliases
     base: 14,
-    lg: 16,
-    xl: 20,
-    '2xl': 24,
     '3xl': 32,
     '4xl': 48,
   },
@@ -137,25 +144,32 @@ export const theme = {
   radii: {
     none: 0,
     xs: 4,
-    sm: 6,
-    md: 10,
+    sm: 6,         // Checkbox, badge nhỏ
+    md: 12,        // Thumbnail ảnh thiết bị, input fields
     base: 12,
-    lg: 16,
-    xl: 20,
-    full: 9999,
+    lg: 16,        // Thẻ Card, Modal, Container chính
+    xl: 24,        // Hero banners
+    full: 9999,    // Capsule/Pill buttons, Tabs active, Avatars, Icon wrappers
   },
 
   // Shadows đa nền tảng - theme-skill.md
   shadows: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.03,
+      shadowRadius: 2,
+      elevation: 1,
+    },
     card: {
-      shadowColor: palette.shadow,
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.04,
       shadowRadius: 8,
       elevation: 2,
     },
     subtle: {
-      shadowColor: palette.shadow,
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.03,
       shadowRadius: 3,

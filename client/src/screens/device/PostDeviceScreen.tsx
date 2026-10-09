@@ -84,7 +84,7 @@ export function PostDeviceScreen({
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
   const [deviceLocation, setDeviceLocation] =
-    useState<DeviceLocation | null>(null);
+    useState(null as DeviceLocation | null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const token = useSelector((state: RootState) => state.auth.token);
@@ -119,13 +119,13 @@ export function PostDeviceScreen({
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== "granted") {
-        setLocationError("Location permission denied.");
+        setLocationError(STRINGS.POST_DEVICE.LOCATION_DENIED);
         return;
       }
 
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
-        setLocationError("Please enable location services and try again.");
+        setLocationError(STRINGS.POST_DEVICE.LOCATION_ENABLE);
         return;
       }
 
@@ -143,7 +143,7 @@ export function PostDeviceScreen({
     } catch (error: unknown) {
       console.error("[PostDeviceScreen] Cannot get current location:", error);
       setLocationError(
-        error instanceof Error ? error.message : "Could not get your location.",
+        error instanceof Error ? error.message : STRINGS.POST_DEVICE.LOCATION_ERROR,
       );
     } finally {
       setIsGettingLocation(false);
@@ -231,7 +231,7 @@ export function PostDeviceScreen({
         setDevices(data);
       } catch (error) {
         console.error("[PostDeviceScreen] Cannot load owner's devices:", error);
-        setDevicesError("Cannot load your devices. Please check the server.");
+        setDevicesError(STRINGS.POST_DEVICE.DEVICES_LOAD_ERROR);
       } finally {
         setIsLoadingDevices(false);
       }
@@ -251,12 +251,12 @@ export function PostDeviceScreen({
     }
 
     Alert.alert(
-      "Hủy đăng thiết bị?",
-      "Các thông tin bạn đã nhập sẽ bị mất nếu rời đi lúc này.",
+      STRINGS.POST_DEVICE.DISCARD_TITLE,
+      STRINGS.POST_DEVICE.DISCARD_MSG,
       [
-        { text: "Ở lại", style: "cancel" },
+        { text: STRINGS.POST_DEVICE.STAY, style: "cancel" },
         {
-          text: "Hủy bỏ",
+          text: STRINGS.POST_DEVICE.DISCARD,
           style: "destructive",
           onPress: () => {
             if (onBack) onBack();
@@ -273,12 +273,12 @@ export function PostDeviceScreen({
     setPublishError("");
 
     if (!addressText.trim()) {
-      setPublishError("Please enter the device address.");
+      setPublishError(STRINGS.POST_DEVICE.ERR_ADDRESS_REQUIRED);
       return;
     }
 
     if (!deviceLocation) {
-      setPublishError("Please use current location before publishing.");
+      setPublishError(STRINGS.POST_DEVICE.ERR_LOCATION_REQUIRED);
       return;
     }
 
@@ -297,12 +297,12 @@ export function PostDeviceScreen({
       !Number.isFinite(Number(price)) ||
       !Number.isFinite(Number(depositAmount))
     ) {
-      setPublishError("Price and deposit must be valid numbers.");
+      setPublishError(STRINGS.POST_DEVICE.ERR_NUMERIC_PRICE_DEPOSIT);
       return;
     }
 
     if (!token) {
-      setPublishError("Please log in before publishing a device.");
+      setPublishError(STRINGS.POST_DEVICE.ERR_LOGIN_REQUIRED);
       return;
     }
 
@@ -314,12 +314,12 @@ export function PostDeviceScreen({
     setIsPublishing(true);
     try {
       if (photoUris.length === 0) {
-        throw new Error("Please add at least one device image.");
+        throw new Error(STRINGS.POST_DEVICE.ERR_ADD_PHOTO);
       }
 
       const selectedImages = photoUris.filter((uri: string): uri is string => Boolean(uri),);
       if (selectedImages.length === 0) {
-        throw new Error("Please add at least one valid device image.");
+        throw new Error(STRINGS.POST_DEVICE.ERR_ADD_VALID_PHOTO);
       }
 
       let uploadedImages: string[];
@@ -327,7 +327,7 @@ export function PostDeviceScreen({
         uploadedImages = await Promise.all(selectedImages.map((uri: string, index: number) => deviceService.uploadDeviceImage(token, uri, index),),);
       } catch (error: any) {
         throw new Error(
-          error?.response?.data?.message ?? "Could not upload device image.",
+          error?.response?.data?.message ?? STRINGS.POST_DEVICE.ERR_UPLOAD_IMAGE,
         );
       }
 
@@ -356,9 +356,9 @@ export function PostDeviceScreen({
 
       setDevices(await deviceService.getMyDevices(token));
       Alert.alert(
-        "Listing published",
-        "Your device is now ready for renters to discover.",
-        [{ text: "Done", onPress: () => onPublished?.() }],
+        STRINGS.POST_DEVICE.SUCCESS_PUBLISHED_TITLE,
+        STRINGS.POST_DEVICE.SUCCESS_PUBLISHED_MSG,
+        [{ text: STRINGS.POST_DEVICE.DONE, onPress: () => onPublished?.() }],
       );
     } catch (error: any) {
       const message = error?.response?.data?.message ?? error?.message ?? "Could not publish this device. Please try again.";
@@ -417,35 +417,35 @@ export function PostDeviceScreen({
                 }
               }}
               activeOpacity={0.7}
-              accessibilityLabel="Mở menu quản lý chủ máy"
+              accessibilityLabel={STRINGS.POST_DEVICE.ACCESSIBILITY_MENU}
             >
-              <Ionicons name="menu-outline" size={24} color="#0F172A" />
+              <Ionicons name="menu-outline" size={24} color={colors.light.textPrimary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.headerButton}
               onPress={handleBack}
               activeOpacity={0.8}
-              accessibilityLabel="Quay lại"
+              accessibilityLabel={STRINGS.POST_DEVICE.ACCESSIBILITY_BACK}
             >
-              <Ionicons name="arrow-back" size={21} color="#0F172A" />
+              <Ionicons name="arrow-back" size={21} color={colors.light.textPrimary} />
             </TouchableOpacity>
           )}
           <View style={styles.headerTitleCol}>
-            <Text style={styles.headerTitle}>Đăng Thiết Bị Mới</Text>
-            <Text style={styles.headerSubtitle}>Tạo tin cho thuê thiết bị công nghệ</Text>
+            <Text style={styles.headerTitle}>{STRINGS.POST_DEVICE.HEADER_TITLE}</Text>
+            <Text style={styles.headerSubtitle}>{STRINGS.POST_DEVICE.HEADER_SUBTITLE}</Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={styles.headerButton}
           activeOpacity={0.8}
-          accessibilityLabel="Trợ giúp"
+          accessibilityLabel={STRINGS.POST_DEVICE.ACCESSIBILITY_HELP}
         >
           <Ionicons
             name="information-circle-outline"
             size={22}
-            color="#64748B"
+            color={colors.light.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -457,18 +457,18 @@ export function PostDeviceScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.intro}>
-          <Text style={styles.introTitle}>List your device</Text>
+          <Text style={styles.introTitle}>{STRINGS.POST_DEVICE.INTRO_TITLE}</Text>
           <Text style={styles.introText}>
-            Share your technology with others and earn by renting it out.
+            {STRINGS.POST_DEVICE.INTRO_TEXT}
           </Text>
         </View>
 
         <View style={styles.myDevicesSection}>
           <View style={styles.myDevicesHeader}>
             <View>
-              <Text style={styles.myDevicesTitle}>Your devices</Text>
+              <Text style={styles.myDevicesTitle}>{STRINGS.POST_DEVICE.YOUR_DEVICES_TITLE}</Text>
               <Text style={styles.myDevicesDescription}>
-                Devices you have already listed for rent.
+                {STRINGS.POST_DEVICE.YOUR_DEVICES_DESC}
               </Text>
             </View>
             <View style={styles.deviceCountBadge}>
@@ -478,13 +478,13 @@ export function PostDeviceScreen({
 
           {isLoadingDevices ? (
             <Text style={styles.deviceListMessage}>
-              Loading your devices...
+              {STRINGS.POST_DEVICE.LOADING_DEVICES}
             </Text>
           ) : devicesError ? (
             <Text style={styles.deviceListError}>{devicesError}</Text>
           ) : devices.length === 0 ? (
             <Text style={styles.deviceListMessage}>
-              You have not listed any device yet.
+              {STRINGS.POST_DEVICE.NO_DEVICES_YET}
             </Text>
           ) : (
             devices.map((device: Device) => (
@@ -503,7 +503,7 @@ export function PostDeviceScreen({
                   </Text>
                   <Text style={styles.deviceListMeta}>
                     {device.category} •{" "}
-                    {device.dailyRate.toLocaleString("vi-VN")} VND/day
+                    {device.dailyRate.toLocaleString("vi-VN")} {STRINGS.POST_DEVICE.PER_DAY_SUFFIX}
                   </Text>
                   <Text
                     style={[
@@ -514,7 +514,7 @@ export function PostDeviceScreen({
                     ]}
                   >
                     {device.status === "available"
-                      ? "Available"
+                      ? STRINGS.POST_DEVICE.STATUS_AVAILABLE
                       : device.status}
                   </Text>
                 </View>
@@ -524,7 +524,7 @@ export function PostDeviceScreen({
         </View>
 
         <View style={styles.section}>
-          <SectionTitle title="Device Photos" />
+          <SectionTitle title={STRINGS.POST_DEVICE.SECTION_PHOTOS} />
           <View style={styles.photoRow}>
             <TouchableOpacity
               style={styles.primaryPhotoBox}
@@ -539,8 +539,8 @@ export function PostDeviceScreen({
                     resizeMode="cover"
                   />
                   <View style={styles.photoOverlay}>
-                    <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.photoOverlayText}>Remove photo</Text>
+                    <Ionicons name="trash-outline" size={18} color={colors.light.white} />
+                    <Text style={styles.photoOverlayText}>{STRINGS.POST_DEVICE.REMOVE_PHOTO}</Text>
                   </View>
                 </>
               ) : (
@@ -548,11 +548,11 @@ export function PostDeviceScreen({
                   <Ionicons
                     name="cloud-upload-outline"
                     size={27}
-                    color="#2563EB"
+                    color={colors.light.primary}
                   />
-                  <Text style={styles.photoTitle}>Add device photos</Text>
+                  <Text style={styles.photoTitle}>{STRINGS.POST_DEVICE.ADD_PHOTOS_TITLE}</Text>
                   <Text style={styles.photoHint}>
-                    Clear photos help renters know what they are getting.
+                    {STRINGS.POST_DEVICE.ADD_PHOTOS_HINT}
                   </Text>
                 </>
               )}
@@ -569,7 +569,7 @@ export function PostDeviceScreen({
                     style={styles.smallPhoto}
                   />
                 ) : (
-                  <Ionicons name="add" size={21} color="#64748B" />
+                  <Ionicons name="add" size={21} color={colors.light.textSecondary} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -583,7 +583,7 @@ export function PostDeviceScreen({
                     style={styles.smallPhoto}
                   />
                 ) : (
-                  <Ionicons name="add" size={21} color="#64748B" />
+                  <Ionicons name="add" size={21} color={colors.light.textSecondary} />
                 )}
               </TouchableOpacity>
             </View>
@@ -591,26 +591,26 @@ export function PostDeviceScreen({
         </View>
 
         <View style={styles.section}>
-          <SectionTitle title="Device Information" />
+          <SectionTitle title={STRINGS.POST_DEVICE.SECTION_DEVICE_INFO} />
           <Text style={styles.fieldLabel}>
-            Device Name<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_DEVICE_NAME}<Text style={styles.required}> *</Text>
           </Text>
           <TextInput
             value={deviceName}
             onChangeText={setDeviceName}
-            placeholder="e.g. iPhone 15 Pro Max 256GB"
-            placeholderTextColor="#64748B"
+            placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_DEVICE_NAME}
+            placeholderTextColor={colors.light.textSecondary}
             style={[
               styles.input,
               submitted && !deviceName.trim() && styles.inputError,
             ]}
           />
           {submitted && !deviceName.trim() && (
-            <Text style={styles.errorText}>Device name is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_NAME_REQUIRED}</Text>
           )}
 
           <Text style={styles.fieldLabel}>
-            Category<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_CATEGORY}<Text style={styles.required}> *</Text>
           </Text>
           <TouchableOpacity
             style={styles.selectInput}
@@ -618,12 +618,12 @@ export function PostDeviceScreen({
             activeOpacity={0.8}
           >
             <Text style={styles.selectText}>
-              {category || "Select a category"}
+              {category || STRINGS.POST_DEVICE.SELECT_CATEGORY}
             </Text>
             <Ionicons
               name={showCategories ? "chevron-up" : "chevron-down"}
               size={18}
-              color="#64748B"
+              color={colors.light.textSecondary}
             />
           </TouchableOpacity>
           {showCategories && (
@@ -647,7 +647,7 @@ export function PostDeviceScreen({
                     {item}
                   </Text>
                   {item === category && (
-                    <Ionicons name="checkmark" size={17} color="#2563EB" />
+                    <Ionicons name="checkmark" size={17} color={colors.light.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -655,40 +655,40 @@ export function PostDeviceScreen({
           )}
 
           <Text style={styles.fieldLabel}>
-            Brand<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_BRAND}<Text style={styles.required}> *</Text>
           </Text>
           <TextInput
             value={brand}
             onChangeText={setBrand}
-            placeholder="e.g. Apple"
-            placeholderTextColor="#64748B"
+            placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_BRAND}
+            placeholderTextColor={colors.light.textSecondary}
             style={[
               styles.input,
               submitted && !brand.trim() && styles.inputError,
             ]}
           />
           {submitted && !brand.trim() && (
-            <Text style={styles.errorText}>Brand is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_BRAND_REQUIRED}</Text>
           )}
 
           <Text style={styles.fieldLabel}>
-            Display Address<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_ADDRESS}<Text style={styles.required}> *</Text>
           </Text>
           <TextInput
             value={addressText}
             onChangeText={setAddressText}
-            placeholder="e.g. 123 Nguyen Trai, Thanh Xuan, Hanoi"
-            placeholderTextColor="#64748B"
+            placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_ADDRESS}
+            placeholderTextColor={colors.light.textSecondary}
             style={[
               styles.input,
               submitted && !addressText.trim() && styles.inputError,
             ]}
           />
           {submitted && !addressText.trim() && (
-            <Text style={styles.errorText}>Display address is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_ADDRESS_FIELD}</Text>
           )}
 
-          <Text style={styles.fieldLabel}>Location</Text>
+          <Text style={styles.fieldLabel}>{STRINGS.POST_DEVICE.LABEL_LOCATION}</Text>
           <TouchableOpacity
             onPress={getCurrentLocation}
             disabled={isGettingLocation}
@@ -701,33 +701,33 @@ export function PostDeviceScreen({
             <Ionicons
               name={deviceLocation ? "checkmark-circle-outline" : "locate-outline"}
               size={18}
-              color="#2563EB"
+              color={colors.light.primary}
             />
             <Text style={styles.locationButtonText}>
               {isGettingLocation
-                ? "Getting location..."
+                ? STRINGS.POST_DEVICE.LOCATION_GETTING
                 : deviceLocation
-                  ? "Location captured — update"
-                  : "Use Current Location"}
+                  ? STRINGS.POST_DEVICE.LOCATION_CAPTURED_BTN
+                  : STRINGS.POST_DEVICE.LOCATION_USE_CURRENT}
             </Text>
           </TouchableOpacity>
           {locationError ? (
             <Text style={styles.errorText}>{locationError}</Text>
           ) : deviceLocation ? (
             <Text style={styles.locationStatus}>
-              Location captured successfully.
+              {STRINGS.POST_DEVICE.LOCATION_SUCCESS}
             </Text>
           ) : (
             <Text style={styles.helperText}>
-              Capture your location to set the device’s map position.
+              {STRINGS.POST_DEVICE.LOCATION_HELPER}
             </Text>
           )}
         </View>
 
         <View style={styles.section}>
-          <SectionTitle title="Rental Pricing" />
+          <SectionTitle title={STRINGS.POST_DEVICE.SECTION_PRICING} />
           <Text style={styles.fieldLabel}>
-            Rental Price / Day<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_RENTAL_PRICE}<Text style={styles.required}> *</Text>
           </Text>
           <View
             style={[
@@ -738,21 +738,21 @@ export function PostDeviceScreen({
             <TextInput
               value={price}
               onChangeText={setPrice}
-              placeholder="Enter daily rental price"
-              placeholderTextColor="#64748B"
+              placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_PRICE}
+              placeholderTextColor={colors.light.textSecondary}
               keyboardType="numeric"
               style={[
                 styles.currencyTextInput,
                 submitted && !price.trim() && styles.currencyTextInputError,
               ]}
             />
-            <Text style={styles.currency}>VND</Text>
+            <Text style={styles.currency}>{STRINGS.POST_DEVICE.CURRENCY_VND}</Text>
           </View>
           {submitted && !price.trim() && (
-            <Text style={styles.errorText}>Rental price is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_PRICE_REQUIRED}</Text>
           )}
           <Text style={styles.fieldLabel}>
-            Security Deposit<Text style={styles.required}> *</Text>
+            {STRINGS.POST_DEVICE.LABEL_DEPOSIT}<Text style={styles.required}> *</Text>
           </Text>
           <View
             style={[
@@ -763,8 +763,8 @@ export function PostDeviceScreen({
             <TextInput
               value={depositAmount}
               onChangeText={setDepositAmount}
-              placeholder="Enter security deposit"
-              placeholderTextColor="#64748B"
+              placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_DEPOSIT}
+              placeholderTextColor={colors.light.textSecondary}
               keyboardType="numeric"
               style={[
                 styles.currencyTextInput,
@@ -773,13 +773,13 @@ export function PostDeviceScreen({
                 styles.currencyTextInputError,
               ]}
             />
-            <Text style={styles.currency}>VND</Text>
+            <Text style={styles.currency}>{STRINGS.POST_DEVICE.CURRENCY_VND}</Text>
           </View>
           {submitted && !depositAmount.trim() && (
-            <Text style={styles.errorText}>Security deposit is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_DEPOSIT_REQUIRED}</Text>
           )}
           <Text style={styles.helperText}>
-            The deposit protects the owner against potential damage or loss.
+            {STRINGS.POST_DEVICE.DEPOSIT_HELPER}
           </Text>
         </View>
 
@@ -799,8 +799,8 @@ export function PostDeviceScreen({
             <TextInput
               value={description}
               onChangeText={handleDescriptionChange}
-              placeholder="Describe the device condition, included accessories, and anything renters should know..."
-              placeholderTextColor="#64748B"
+              placeholder={STRINGS.POST_DEVICE.PLACEHOLDER_DESCRIPTION}
+              placeholderTextColor={colors.light.textSecondary}
               multiline
               textAlignVertical="top"
               style={styles.textarea}
@@ -808,7 +808,7 @@ export function PostDeviceScreen({
             <Text style={styles.counter}>{description.length} / 500</Text>
           </View>
           {submitted && !description.trim() && (
-            <Text style={styles.errorText}>Description is required</Text>
+            <Text style={styles.errorText}>{STRINGS.POST_DEVICE.ERR_DESCRIPTION_REQUIRED}</Text>
           )}
 
 
@@ -816,8 +816,8 @@ export function PostDeviceScreen({
 
         <View style={styles.section}>
           <SectionTitle
-            title="Technical Specifications"
-            description="Add important technical details that help renters understand the device."
+            title={STRINGS.POST_DEVICE.SECTION_SPECS}
+            description={STRINGS.POST_DEVICE.SECTION_SPECS_DESC}
           />
           <SpecsInputForm
             category={category}
@@ -851,12 +851,12 @@ export function PostDeviceScreen({
 
           {draftSaved && (
             <Text style={styles.successText}>
-              Your draft has been saved on this device.
+              {STRINGS.POST_DEVICE.DRAFT_SAVED_MSG}
             </Text>
           )}
           {submitted && !specificationsValid && (
             <Text style={styles.errorText}>
-              Please complete all technical specifications.
+              {STRINGS.POST_DEVICE.ERR_COMPLETE_SPECS}
             </Text>
           )}
           {publishError && <Text style={styles.errorText}>{publishError}</Text>}
@@ -867,7 +867,7 @@ export function PostDeviceScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: colors.light.card },
   header: {
     minHeight: 56,
     flexDirection: "row",
@@ -875,10 +875,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-    shadowColor: "#000",
+    borderBottomColor: colors.light.borderSubtle,
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -894,32 +894,32 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: colors.light.borderSubtle,
   },
   headerButton: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: colors.light.borderSubtle,
   },
   headerTitleCol: {
     flex: 1,
   },
-  headerTitle: { color: "#0F172A", fontSize: 16, fontWeight: "700" },
-  headerSubtitle: { color: "#64748B", fontSize: 11, fontWeight: "500", marginTop: 2 },
+  headerTitle: { color: colors.light.textPrimary, fontSize: 16, fontWeight: "700" },
+  headerSubtitle: { color: colors.light.textSecondary, fontSize: 11, fontWeight: "500", marginTop: 2 },
   content: { paddingHorizontal: 16, paddingTop: 23, paddingBottom: 30 },
   intro: { marginBottom: 27 },
-  introTitle: { color: "#0F172A", fontSize: 24, fontWeight: "800" },
+  introTitle: { color: colors.light.textPrimary, fontSize: 24, fontWeight: "800" },
   introText: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 7,
@@ -928,9 +928,9 @@ const styles = StyleSheet.create({
   myDevicesSection: {
     marginBottom: 25,
     padding: 14,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 14,
   },
   myDevicesHeader: {
@@ -939,8 +939,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  myDevicesTitle: { color: "#0F172A", fontSize: 17, fontWeight: "800" },
-  myDevicesDescription: { color: "#64748B", fontSize: 12, marginTop: 3 },
+  myDevicesTitle: { color: colors.light.textPrimary, fontSize: 17, fontWeight: "800" },
+  myDevicesDescription: { color: colors.light.textSecondary, fontSize: 12, marginTop: 3 },
   deviceCountBadge: {
     minWidth: 28,
     height: 28,
@@ -948,48 +948,48 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.light.primaryLight,
   },
-  deviceCountText: { color: "#2563EB", fontSize: 12, fontWeight: "800" },
+  deviceCountText: { color: colors.light.primary, fontSize: 12, fontWeight: "800" },
   deviceListCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
     marginTop: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 10,
   },
   deviceListImage: {
     width: 58,
     height: 58,
     borderRadius: 8,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.light.borderDefault,
   },
   deviceListInfo: { flex: 1, marginLeft: 10 },
-  deviceListName: { color: "#0F172A", fontSize: 13, fontWeight: "800" },
-  deviceListMeta: { color: "#64748B", fontSize: 11, marginTop: 4 },
+  deviceListName: { color: colors.light.textPrimary, fontSize: 13, fontWeight: "800" },
+  deviceListMeta: { color: colors.light.textSecondary, fontSize: 11, marginTop: 4 },
   deviceListStatus: { fontSize: 11, fontWeight: "700", marginTop: 5 },
-  deviceListStatusAvailable: { color: "#059669" },
-  deviceListStatusMuted: { color: "#64748B" },
+  deviceListStatusAvailable: { color: colors.light.success },
+  deviceListStatusMuted: { color: colors.light.textSecondary },
   deviceListMessage: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 12,
   },
   deviceListError: {
-    color: "#DC2626",
+    color: colors.light.danger,
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 12,
   },
   section: { marginBottom: 25 },
   sectionHeading: { marginBottom: 14 },
-  sectionTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800" },
+  sectionTitle: { color: colors.light.textPrimary, fontSize: 18, fontWeight: "800" },
   sectionDescription: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
@@ -1001,9 +1001,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 14,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     borderStyle: "dashed",
   },
@@ -1026,15 +1026,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "rgba(15, 23, 42, 0.78)",
   },
-  photoOverlayText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  photoOverlayText: { color: colors.light.white, fontSize: 10, fontWeight: "700" },
   photoTitle: {
-    color: "#2563EB",
+    color: colors.light.primary,
     fontSize: 13,
     fontWeight: "800",
     marginTop: 9,
   },
   photoHint: {
-    color: "#64748B",
+    color: colors.light.textSecondary,
     fontSize: 10,
     lineHeight: 14,
     textAlign: "center",
@@ -1046,33 +1046,33 @@ const styles = StyleSheet.create({
     minHeight: 71,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     borderStyle: "dashed",
   },
   smallPhoto: { width: "100%", height: "100%", borderRadius: 12 },
   fieldLabel: {
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 7,
     marginTop: 14,
   },
-  required: { color: "#DC2626" },
+  required: { color: colors.light.danger },
   input: {
     height: 48,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingHorizontal: 13,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
   },
-  inputError: { borderColor: "#DC2626" },
-  errorText: { color: "#DC2626", fontSize: 11, marginTop: 5 },
+  inputError: { borderColor: colors.light.danger },
+  errorText: { color: colors.light.danger, fontSize: 11, marginTop: 5 },
   locationButton: {
     minHeight: 42,
     flexDirection: "row",
@@ -1081,27 +1081,27 @@ const styles = StyleSheet.create({
     gap: 7,
     marginBottom: 8,
     borderRadius: 10,
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.light.primaryLight,
   },
   locationButtonDisabled: { opacity: 0.6 },
-  locationButtonText: { color: "#2563EB", fontSize: 12, fontWeight: "700" },
-  locationStatus: { color: "#16A34A", fontSize: 11, marginBottom: 8 },
+  locationButtonText: { color: colors.light.primary, fontSize: 12, fontWeight: "700" },
+  locationStatus: { color: colors.light.success, fontSize: 11, marginBottom: 8 },
   selectInput: {
     height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingHorizontal: 13,
   },
-  selectText: { color: "#0F172A", fontSize: 13 },
+  selectText: { color: colors.light.textPrimary, fontSize: 13 },
   categoryMenu: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     marginTop: 6,
     overflow: "hidden",
@@ -1113,49 +1113,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 13,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+    borderBottomColor: colors.light.borderSubtle,
   },
-  categoryOptionText: { color: "#64748B", fontSize: 13 },
-  categoryOptionActive: { color: "#2563EB", fontWeight: "800" },
+  categoryOptionText: { color: colors.light.textSecondary, fontSize: 13 },
+  categoryOptionActive: { color: colors.light.primary, fontWeight: "800" },
   currencyInput: {
     height: 48,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     paddingLeft: 13,
     paddingRight: 14,
   },
-  currencyInputError: { borderColor: "#DC2626" },
+  currencyInputError: { borderColor: colors.light.danger },
   currencyTextInput: {
     flex: 1,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     paddingVertical: 0,
   },
-  currencyTextInputError: { color: "#DC2626" },
-  currency: { color: "#64748B", fontSize: 12, fontWeight: "800" },
-  helperText: { color: "#64748B", fontSize: 11, lineHeight: 16, marginTop: 7 },
+  currencyTextInputError: { color: colors.light.danger },
+  currency: { color: colors.light.textSecondary, fontSize: 12, fontWeight: "800" },
+  helperText: { color: colors.light.textSecondary, fontSize: 11, lineHeight: 16, marginTop: 7 },
   textareaWrap: {
     minHeight: 145,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     borderRadius: 12,
     padding: 12,
   },
-  textareaError: { borderColor: "#DC2626" },
+  textareaError: { borderColor: colors.light.danger },
   textarea: {
     flex: 1,
     minHeight: 112,
-    color: "#0F172A",
+    color: colors.light.textPrimary,
     fontSize: 13,
     lineHeight: 19,
     padding: 0,
   },
-  counter: { color: "#64748B", fontSize: 11, textAlign: "right" },
+  counter: { color: colors.light.textSecondary, fontSize: 11, textAlign: "right" },
   actions: { marginTop: -2 },
   publishButton: {
     height: 53,
@@ -1164,20 +1164,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.light.primary,
   },
-  publishText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  publishText: { color: colors.light.white, fontSize: 14, fontWeight: "800" },
   draftButton: {
     height: 49,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.light.card,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.light.borderDefault,
     marginTop: 10,
   },
-  draftText: { color: "#2563EB", fontSize: 13, fontWeight: "800" },
+  draftText: { color: colors.light.primary, fontSize: 13, fontWeight: "800" },
   successText: {
-    color: "#16A34A",
+    color: colors.light.success,
     fontSize: 12,
     textAlign: "center",
     marginTop: 10,

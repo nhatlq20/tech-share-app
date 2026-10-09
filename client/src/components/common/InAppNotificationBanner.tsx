@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
+import { STRINGS } from '../../constants/strings';
 import { Notification } from '../../types';
 
 interface InAppNotificationBannerProps {
@@ -124,9 +125,9 @@ export function InAppNotificationBanner({
           <View style={styles.topRow}>
             <View style={styles.tag}>
               <View style={styles.pulseDot} />
-              <Text style={styles.tagText}>Thông báo mới</Text>
+              <Text style={styles.tagText}>{STRINGS.NOTIFICATION_BANNER.TAG}</Text>
             </View>
-            <Text style={styles.timeText}>Vừa xong</Text>
+            <Text style={styles.timeText}>{STRINGS.NOTIFICATION_BANNER.TIME_JUST_NOW}</Text>
           </View>
           <Text style={styles.title} numberOfLines={1}>
             {notification.title}
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: theme.colors.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
         shadowRadius: 10,

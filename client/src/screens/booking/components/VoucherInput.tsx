@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '../../../config/api';
 import { colors } from '../../../theme/colors';
+import { STRINGS } from '../../../constants/strings';
 
 interface Voucher {
   code: string;
@@ -28,8 +29,6 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
     setError('');
     
     try {
-      // In a real app, you would pass the auth token if required.
-      // Assuming apiClient has an interceptor or it's a public check.
       const response = await apiClient.post('/vouchers/validate', {
         code: code.trim(),
         rentalDays
@@ -39,7 +38,7 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
       onApplyVoucher(response.data.voucher);
       setCode(''); // clear input on success
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Không thể kiểm tra mã voucher');
+      setError(err.response?.data?.message || STRINGS.VOUCHER_INPUT.VALIDATE_ERROR);
       setAppliedVoucher(null);
       onApplyVoucher(null);
     } finally {
@@ -56,16 +55,16 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mã giảm giá</Text>
+      <Text style={styles.title}>{STRINGS.VOUCHER_INPUT.TITLE}</Text>
       
       {appliedVoucher ? (
         <View style={styles.appliedCard}>
           <View style={styles.appliedLeft}>
-            <Ionicons name="ticket" size={20} color="#16A34A" />
-            <Text style={styles.appliedText}>Đã áp dụng mã: <Text style={styles.appliedCode}>{appliedVoucher.code}</Text></Text>
+            <Ionicons name="ticket" size={20} color={colors.light.success} />
+            <Text style={styles.appliedText}>{STRINGS.VOUCHER_INPUT.APPLIED_LABEL}<Text style={styles.appliedCode}>{appliedVoucher.code}</Text></Text>
           </View>
           <TouchableOpacity onPress={handleRemove} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-            <Ionicons name="close-circle" size={22} color="#DC2626" />
+            <Ionicons name="close-circle" size={22} color={colors.light.error} />
           </TouchableOpacity>
         </View>
       ) : (
@@ -74,7 +73,7 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
             <Ionicons name="pricetag-outline" size={18} color={colors.light.textSecondary} style={styles.icon} />
             <TextInput
               style={styles.input}
-              placeholder="Nhập mã voucher (vd: SALE20)"
+              placeholder={STRINGS.VOUCHER_INPUT.PLACEHOLDER}
               placeholderTextColor={colors.light.textSecondary}
               value={code}
               onChangeText={(text: string) => {
@@ -91,10 +90,10 @@ export const VoucherInput = ({ rentalDays, onApplyVoucher }: VoucherInputProps) 
             disabled={!code.trim() || loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.light.white} />
             ) : (
               <Text style={[styles.applyBtnText, (!code.trim() || loading) && styles.applyBtnTextDisabled]}>
-                Áp dụng
+                {STRINGS.VOUCHER_INPUT.APPLY}
               </Text>
             )}
           </TouchableOpacity>
@@ -111,11 +110,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -157,23 +156,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   applyBtnDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.light.borderDefault,
   },
   applyBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '700',
     fontSize: 14,
   },
   applyBtnTextDisabled: {
-    color: '#94A3B8',
+    color: colors.light.textMuted,
   },
   appliedCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: colors.light.success,
     borderRadius: 10,
     padding: 12,
   },
@@ -184,11 +183,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   appliedText: {
-    color: '#166534',
+    color: colors.light.success,
     fontSize: 13,
   },
   appliedCode: {
-    color: '#15803D',
+    color: colors.light.success,
     fontWeight: '700',
   },
   errorText: {

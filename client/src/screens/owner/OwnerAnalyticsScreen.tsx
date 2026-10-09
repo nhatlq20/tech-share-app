@@ -27,23 +27,9 @@ import {
   ownerAnalyticsService,
 } from '../../services/ownerAnalyticsService';
 import type { Period, RentalPayment, RevenueData } from '../../data/ownerAnalyticsMock';
-import { colors } from '../../theme/colors';
+import { theme, STRINGS, CONFIG } from '../../constants';
 
-// ── DESIGN TOKENS (theme-skill.md via theme/colors) ──
-const palette = colors.light;
-const PRIMARY_TEAL = palette.primary;
-const PASTEL_TEAL = palette.primaryLight;
-const BRAND_DARK = palette.primaryDark;
-const BG_SLATE = palette.background;
-const CARD_BG = palette.surface;
-const BORDER_SUBTLE = palette.border;
-const BORDER_COLOR = palette.borderDefault;
-const TEXT_PRIMARY = palette.textPrimary;
-const TEXT_SECONDARY = palette.textSecondary;
-const TEXT_MUTED = palette.textMuted;
-const DANGER_RED = palette.danger;
-
-const VN_WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const WEEKDAYS = STRINGS.OWNER_ANALYTICS.WEEKDAYS;
 
 const getBookingDate = (booking: OwnerAnalyticsBooking) =>
   new Date(booking.updatedAt || booking.endDate || booking.startDate);
@@ -68,7 +54,7 @@ const getChartData = (
       nextDay.setDate(day.getDate() + 1);
 
       return {
-        label: VN_WEEKDAYS[day.getDay()],
+        label: WEEKDAYS[day.getDay()],
         revenue: bookings.reduce((sum, booking) => {
           const bookingDate = getBookingDate(booking);
           return bookingDate >= day && bookingDate < nextDay
@@ -80,7 +66,7 @@ const getChartData = (
   }
 
   return Array.from({ length: 5 }, (_, index) => ({
-    label: `Tuần ${index + 1}`,
+    label: `Week ${index + 1}`,
     revenue: bookings.reduce((sum, booking) => {
       const bookingDate = getBookingDate(booking);
       const isCurrentMonth =
@@ -98,7 +84,7 @@ const getChartData = (
 const formatDate = (dateValue?: string | null) => {
   if (!dateValue) return '-';
   const date = new Date(dateValue);
-  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('vi-VN');
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-US');
 };
 
 interface OwnerAnalyticsScreenProps {
@@ -122,7 +108,7 @@ export function OwnerAnalyticsScreen({
   const [analytics, setAnalytics] = useState(null as OwnerAnalyticsData | null);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Tính toán Safe Area Insets chính xác cho iOS notch & Android status bar
+  // Safe Area Insets calculation for iOS notch & Android status bar
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
@@ -132,7 +118,7 @@ export function OwnerAnalyticsScreen({
   const fetchAnalytics = useCallback(async () => {
     if (!token || role !== 'owner') {
       setAnalytics(null);
-      setErrorMessage(token ? 'Yêu cầu quyền truy cập Chủ máy.' : 'Vui lòng đăng nhập lại.');
+      setErrorMessage(token ? 'Owner access required.' : 'Please log in again.');
       setIsLoading(false);
       return;
     }
@@ -143,7 +129,7 @@ export function OwnerAnalyticsScreen({
       setErrorMessage('');
     } catch (error: any) {
       setErrorMessage(
-        error?.response?.data?.message || error?.message || 'Không thể tải dữ liệu phân tích.',
+        error?.response?.data?.message || error?.message || 'Unable to load analytics data.',
       );
     } finally {
       setIsLoading(false);
@@ -180,8 +166,8 @@ export function OwnerAnalyticsScreen({
 
     return {
       id: booking._id,
-      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || 'Thiết bị công nghệ',
-      renterName: renterReference?.name || 'Khách thuê',
+      deviceName: deviceReference?.name || deviceById.get(deviceId)?.name || 'Tech Device',
+      renterName: renterReference?.name || 'Renter',
       amount: Number(booking.rentalFee || 0),
       date: formatDate(bookingDate),
       status: 'completed',
@@ -190,14 +176,14 @@ export function OwnerAnalyticsScreen({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.card} />
 
       {/* ── TOP BAR CỐ ĐỊNH: NÚT MENU BÊN TRÁI, BỎ NÚT BACK ── */}
-      <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
+      <View style={[styles.topBar, { paddingTop: topInset + theme.spacing.sm }]}>
         <View style={styles.topBarLeft}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Mở menu quản lý chủ máy"
+            accessibilityLabel={STRINGS.OWNER_ANALYTICS.MENU_ACCESSIBILITY_LABEL}
             onPress={() => {
               if (onOpenDrawer) {
                 onOpenDrawer();
@@ -206,13 +192,13 @@ export function OwnerAnalyticsScreen({
               }
             }}
             style={styles.hamburgerButton}
-            activeOpacity={0.7}
+            activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
           >
-            <Ionicons name="menu-outline" size={24} color={TEXT_PRIMARY} />
+            <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
           <View style={styles.topBarTitleCol}>
-            <Text style={styles.topBarTitle}>Doanh Thu & Phân Tích</Text>
-            <Text style={styles.topBarSubtitle}>Báo cáo dòng tiền & hiệu suất cho thuê</Text>
+            <Text style={styles.topBarTitle}>{STRINGS.OWNER_ANALYTICS.TOP_BAR_TITLE}</Text>
+            <Text style={styles.topBarSubtitle}>{STRINGS.OWNER_ANALYTICS.TOP_BAR_SUBTITLE}</Text>
           </View>
         </View>
       </View>
@@ -221,30 +207,30 @@ export function OwnerAnalyticsScreen({
       {role !== 'owner' ? (
         <View style={styles.stateContainer}>
           <View style={styles.stateIconCircle}>
-            <Ionicons name="lock-closed-outline" size={36} color={DANGER_RED} />
+            <Ionicons name="lock-closed-outline" size={36} color={theme.danger} />
           </View>
-          <Text style={styles.stateTitle}>Yêu cầu quyền Chủ máy</Text>
-          <Text style={styles.stateSubtitle}>Bạn cần đăng nhập tài khoản có quyền Chủ máy để xem trang này.</Text>
+          <Text style={styles.stateTitle}>{STRINGS.OWNER_ANALYTICS.ROLE_REQUIRED_TITLE}</Text>
+          <Text style={styles.stateSubtitle}>{STRINGS.OWNER_ANALYTICS.ROLE_REQUIRED_SUBTITLE}</Text>
         </View>
       ) : isLoading ? (
         <View style={styles.stateContainer}>
-          <ActivityIndicator size="large" color={PRIMARY_TEAL} />
-          <Text style={styles.loadingText}>Đang tải dữ liệu phân tích doanh thu...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.loadingText}>{STRINGS.OWNER_ANALYTICS.LOADING_TEXT}</Text>
         </View>
       ) : errorMessage && !analytics ? (
         <View style={styles.stateContainer}>
           <View style={styles.stateIconCircle}>
-            <Ionicons name="alert-circle-outline" size={36} color={DANGER_RED} />
+            <Ionicons name="alert-circle-outline" size={36} color={theme.danger} />
           </View>
-          <Text style={styles.stateTitle}>Không thể tải dữ liệu</Text>
+          <Text style={styles.stateTitle}>{STRINGS.OWNER_ANALYTICS.ERROR_TITLE}</Text>
           <Text style={styles.stateSubtitle}>{errorMessage}</Text>
           <TouchableOpacity
             accessibilityRole="button"
             onPress={fetchAnalytics}
             style={styles.retryButton}
-            activeOpacity={0.8}
+            activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
           >
-            <Text style={styles.retryButtonText}>Thử lại</Text>
+            <Text style={styles.retryButtonText}>{STRINGS.COMMON.RETRY}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -256,8 +242,8 @@ export function OwnerAnalyticsScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[PRIMARY_TEAL]}
-              tintColor={PRIMARY_TEAL}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
         >
@@ -268,8 +254,8 @@ export function OwnerAnalyticsScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeading}>
               <View style={styles.sectionTitleRow}>
-                <Ionicons name="bar-chart-outline" size={17} color={PRIMARY_TEAL} />
-                <Text style={styles.sectionTitle}>Biến Động Doanh Thu</Text>
+                <Ionicons name="bar-chart-outline" size={17} color={theme.primary} />
+                <Text style={styles.sectionTitle}>{STRINGS.OWNER_ANALYTICS.SECTION_REVENUE_TREND}</Text>
               </View>
 
               {/* Pill-shaped Period Selector theo theme-skill.md */}
@@ -282,7 +268,7 @@ export function OwnerAnalyticsScreen({
                     styles.periodButton,
                     period === 'week' && styles.periodButtonSelected,
                   ]}
-                  activeOpacity={0.8}
+                  activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_PILL}
                 >
                   <Text
                     style={[
@@ -290,7 +276,7 @@ export function OwnerAnalyticsScreen({
                       period === 'week' && styles.periodTextSelected,
                     ]}
                   >
-                    Tuần
+                    {STRINGS.OWNER_DASHBOARD.PERIOD_WEEK}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -301,7 +287,7 @@ export function OwnerAnalyticsScreen({
                     styles.periodButton,
                     period === 'month' && styles.periodButtonSelected,
                   ]}
-                  activeOpacity={0.8}
+                  activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_PILL}
                 >
                   <Text
                     style={[
@@ -309,7 +295,7 @@ export function OwnerAnalyticsScreen({
                       period === 'month' && styles.periodTextSelected,
                     ]}
                   >
-                    Tháng
+                    {STRINGS.OWNER_DASHBOARD.PERIOD_MONTH}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -320,8 +306,8 @@ export function OwnerAnalyticsScreen({
           {/* 3. Hiệu suất khai thác kho máy */}
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="pie-chart-outline" size={17} color={PRIMARY_TEAL} />
-              <Text style={styles.sectionTitle}>Hiệu Suất Khai Thác Kho Máy</Text>
+              <Ionicons name="pie-chart-outline" size={17} color={theme.primary} />
+              <Text style={styles.sectionTitle}>{STRINGS.OWNER_ANALYTICS.SECTION_UTILIZATION}</Text>
             </View>
             <UtilizationCard
               utilizationRate={utilizationRate}
@@ -333,8 +319,8 @@ export function OwnerAnalyticsScreen({
           {/* 4. Thống kê tình trạng thiết bị */}
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="cube-outline" size={17} color={PRIMARY_TEAL} />
-              <Text style={styles.sectionTitle}>Thống Kê Tình Trạng Thiết Bị</Text>
+              <Ionicons name="cube-outline" size={17} color={theme.primary} />
+              <Text style={styles.sectionTitle}>{STRINGS.OWNER_ANALYTICS.SECTION_DEVICE_STATS}</Text>
             </View>
             <DeviceStats statistics={{ totalDevices, rentedDevices, availableDevices }} />
           </View>
@@ -342,23 +328,23 @@ export function OwnerAnalyticsScreen({
           {/* 5. Lịch sử thanh toán & Sao kê dòng tiền */}
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="receipt-outline" size={17} color={PRIMARY_TEAL} />
-              <Text style={styles.sectionTitle}>Lịch Sử Thanh Toán & Sao Kê</Text>
+              <Ionicons name="receipt-outline" size={17} color={theme.primary} />
+              <Text style={styles.sectionTitle}>{STRINGS.OWNER_ANALYTICS.SECTION_PAYMENT_HISTORY}</Text>
             </View>
             {rentalPayments.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons
                   name="receipt-outline"
                   size={36}
-                  color={TEXT_MUTED}
+                  color={theme.textMuted}
                 />
-                <Text style={styles.emptyTitle}>Chưa có giao dịch thanh toán</Text>
-                <Text style={styles.emptyText}>Các khoản thu tiền từ đơn thuê sẽ xuất hiện tại đây.</Text>
+                <Text style={styles.emptyTitle}>{STRINGS.OWNER_ANALYTICS.EMPTY_PAYMENT_TITLE}</Text>
+                <Text style={styles.emptyText}>{STRINGS.OWNER_ANALYTICS.EMPTY_PAYMENT_DESC}</Text>
               </View>
             ) : (
               <View style={styles.paymentList}>
                 {rentalPayments.map((item: RentalPayment) => (
-                  <View key={item.id} style={{ marginBottom: 10 }}>
+                  <View key={item.id} style={{ marginBottom: theme.spacing.sm + 2 }}>
                     <RentalPaymentItem payment={item} />
                   </View>
                 ))}
@@ -374,176 +360,168 @@ export function OwnerAnalyticsScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_SLATE,
+    backgroundColor: theme.background,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: CARD_BG,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.card,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER_SUBTLE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    borderBottomColor: theme.borderSubtle,
+    ...theme.shadows.subtle,
   },
   topBarLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.md,
   },
   hamburgerButton: {
     width: 38,
     height: 38,
-    borderRadius: 12,
-    backgroundColor: BG_SLATE,
+    borderRadius: theme.radii.base,
+    backgroundColor: theme.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
+    borderColor: theme.borderSubtle,
   },
   topBarTitleCol: {
     flex: 1,
   },
   topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: theme.typography.sizes.title,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   topBarSubtitle: {
-    fontSize: 11,
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.caption,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
     marginTop: 2,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: theme.spacing.lg,
   },
   section: {
-    marginTop: 20,
+    marginTop: theme.spacing.xl,
   },
   sectionHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
   },
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
+    gap: theme.spacing.xs + 2,
+    marginBottom: theme.spacing.sm + 2,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   // Pill Selector theo theme-skill.md Rule 2
   periodControl: {
     flexDirection: 'row',
-    backgroundColor: BORDER_SUBTLE,
-    borderRadius: 9999,
+    backgroundColor: theme.borderSubtle,
+    borderRadius: theme.radii.full,
     padding: 3,
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderColor: theme.borderDefault,
   },
   periodButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: theme.radii.full,
   },
   periodButtonSelected: {
-    backgroundColor: PASTEL_TEAL,
+    backgroundColor: theme.primaryLight,
   },
   periodText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.caption,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   periodTextSelected: {
-    color: BRAND_DARK,
-    fontWeight: '700',
+    color: theme.primaryDark,
+    fontWeight: theme.typography.weights.bold,
   },
   stateContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: BG_SLATE,
-    padding: 24,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.background,
+    padding: theme.spacing['2xl'],
   },
   stateIconCircle: {
     width: 64,
     height: 64,
-    borderRadius: 9999,
-    backgroundColor: '#FEE2E2',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.dangerLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   stateTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: theme.typography.sizes.title,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
   },
   stateSubtitle: {
-    fontSize: 13,
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.body,
+    color: theme.textSecondary,
     textAlign: 'center',
     maxWidth: 280,
   },
   loadingText: {
-    fontSize: 13,
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-    marginTop: 10,
+    fontSize: theme.typography.sizes.body,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
+    marginTop: theme.spacing.sm + 2,
   },
   retryButton: {
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.spacing.xl,
     paddingVertical: 10,
-    borderRadius: 9999,
-    backgroundColor: PRIMARY_TEAL,
-    marginTop: 12,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.primary,
+    marginTop: theme.spacing.md,
   },
   retryButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.white,
   },
   emptyState: {
     minHeight: 140,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: theme.card,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: BORDER_SUBTLE,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: theme.borderSubtle,
+    padding: theme.spacing['2xl'],
+    ...theme.shadows.subtle,
   },
   emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginTop: 4,
+    fontSize: theme.typography.sizes.body,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
+    marginTop: theme.spacing.xs,
   },
   emptyText: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
+    fontSize: theme.typography.sizes.bodySm,
+    color: theme.textSecondary,
     textAlign: 'center',
   },
   paymentList: {

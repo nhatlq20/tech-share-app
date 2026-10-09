@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { theme } from '../constants/theme';
+import { theme, STRINGS, CONFIG } from '../constants';
 import { RootState } from '../store';
 import { clearAuth } from '../store/slices/authSlice';
 import { socketService } from '../services/socketService';
@@ -32,20 +32,20 @@ export interface OwnerMenuItem {
 const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
   {
     id: 'overview',
-    label: 'Dashboard & KPIs',
+    label: STRINGS.OWNER_SIDEBAR.MENU_OVERVIEW,
     icon: 'stats-chart-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'overview',
   },
   {
     id: 'analytics',
-    label: 'Revenue & Analytics',
+    label: STRINGS.OWNER_SIDEBAR.MENU_ANALYTICS,
     icon: 'analytics-outline',
     targetScreen: 'OwnerAnalytics',
   },
   {
     id: 'orders',
-    label: 'Pending Bookings',
+    label: STRINGS.OWNER_SIDEBAR.MENU_ORDERS,
     icon: 'receipt-outline',
     targetScreen: 'BookingManage',
     badgeCount: 2,
@@ -53,40 +53,40 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
   },
   {
     id: 'fleet',
-    label: 'My Device Inventory',
+    label: STRINGS.OWNER_SIDEBAR.MENU_FLEET,
     icon: 'cube-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'fleet',
   },
   {
     id: 'post_device',
-    label: 'List a New Device',
+    label: STRINGS.OWNER_SIDEBAR.MENU_POST_DEVICE,
     icon: 'add-circle-outline',
     targetScreen: 'PostDevice',
   },
   {
     id: 'wallet',
-    label: 'Revenue & Deposit Wallet',
+    label: STRINGS.OWNER_SIDEBAR.MENU_WALLET,
     icon: 'wallet-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'wallet',
   },
   {
     id: 'ai_tools',
-    label: 'AI Assistant',
+    label: STRINGS.OWNER_SIDEBAR.MENU_AI_TOOLS,
     icon: 'sparkles-outline',
     targetScreen: 'OwnerDashboard',
     sectionParam: 'ai_tools',
   },
   {
     id: 'renter_mode',
-    label: 'Switch to Renter Mode',
+    label: STRINGS.OWNER_SIDEBAR.MENU_RENTER_MODE,
     icon: 'swap-horizontal-outline',
     targetScreen: 'MainTabs',
   },
   {
     id: 'notifications',
-    label: 'System Notifications',
+    label: STRINGS.OWNER_SIDEBAR.MENU_NOTIFICATIONS,
     icon: 'notifications-outline',
     targetScreen: 'Notification',
   },
@@ -149,8 +149,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
             <Ionicons name="briefcase" size={20} color={theme.colors.primary[600]} />
           </View>
           <View>
-            <Text style={styles.brandTitle}>TechShare Owner</Text>
-            <Text style={styles.brandSubtitle}>Owner Operations Portal</Text>
+            <Text style={styles.brandTitle}>{STRINGS.OWNER_SIDEBAR.BRAND_TITLE}</Text>
+            <Text style={styles.brandSubtitle}>{STRINGS.OWNER_SIDEBAR.BRAND_SUBTITLE}</Text>
           </View>
         </View>
 
@@ -167,7 +167,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.ownerName} numberOfLines={1}>
-                {user?.name || 'Owner'}
+                {user?.name || STRINGS.OWNER_SIDEBAR.DEFAULT_OWNER_NAME}
               </Text>
               <Ionicons
                 name="checkmark-circle"
@@ -176,13 +176,13 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
               />
             </View>
             <Text style={styles.ownerEmail} numberOfLines={1}>
-              {user?.email || 'owner@techshare.vn'}
+              {user?.email || STRINGS.OWNER_SIDEBAR.DEFAULT_OWNER_EMAIL}
             </Text>
 
             {/* Badges Row */}
             <View style={styles.badgeRow}>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>Top Owner</Text>
+                <Text style={styles.roleBadgeText}>{STRINGS.OWNER_SIDEBAR.ROLE_BADGE}</Text>
               </View>
               <View style={styles.trustBadge}>
                 <Ionicons
@@ -191,7 +191,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                   color={theme.colors.success[600]}
                 />
                 <Text style={styles.trustBadgeText}>
-                  Trust: {user?.trustScore || 100}
+                  {STRINGS.OWNER_SIDEBAR.TRUST_LABEL(user?.trustScore || CONFIG.LIMITS.MAX_TRUST_SCORE)}
                 </Text>
               </View>
             </View>
@@ -205,7 +205,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.menuSectionHeader}>OWNER MENU</Text>
+        <Text style={styles.menuSectionHeader}>{STRINGS.OWNER_SIDEBAR.SECTION_HEADER}</Text>
 
         {OWNER_MENU_ITEMS.map((item) => {
           let isActive = false;
@@ -220,7 +220,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
               key={item.id}
               style={[styles.menuItem, isActive && styles.menuItemActive]}
               onPress={() => handleMenuItemPress(item)}
-              activeOpacity={0.75}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_PILL}
             >
               <View style={styles.menuItemLeft}>
                 <View
@@ -249,7 +249,10 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
               {item.id === 'notifications' && unreadNotifications > 0 ? (
                 <View style={[styles.menuBadge, styles.menuBadgeRed]}>
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications} new
+                    {unreadNotifications > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
+                      ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
+                      : unreadNotifications}{' '}
+                    {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
                   </Text>
                 </View>
               ) : item.badgeCount && item.badgeCount > 0 ? (
@@ -267,7 +270,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                         : styles.menuBadgeTextBlue,
                     ]}
                   >
-                    {item.badgeCount} tasks
+                    {item.badgeCount} {STRINGS.OWNER_SIDEBAR.TASKS_SUFFIX}
                   </Text>
                 </View>
               ) : null}
@@ -281,10 +284,10 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => setShowLogoutModal(true)}
-          activeOpacity={0.8}
+          activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
         >
           <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
-          <Text style={styles.logoutButtonText}>Sign Out of Owner Session</Text>
+          <Text style={styles.logoutButtonText}>{STRINGS.OWNER_SIDEBAR.LOGOUT_BUTTON}</Text>
         </TouchableOpacity>
       </View>
 
@@ -293,8 +296,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
-        title="Confirm Sign Out"
-        subtitle="Are you sure you want to end this session and sign out of TechShare Owner?"
+        title={STRINGS.OWNER_SIDEBAR.LOGOUT_CONFIRM_TITLE}
+        subtitle={STRINGS.OWNER_SIDEBAR.LOGOUT_CONFIRM_SUBTITLE}
       />
     </View>
   );

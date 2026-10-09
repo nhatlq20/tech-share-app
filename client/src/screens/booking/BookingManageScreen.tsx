@@ -15,9 +15,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { theme, STRINGS, CONFIG } from '../../constants';
 import { OwnerApprovalCard } from '../../components/booking/OwnerApprovalCard';
 import { OwnerRateRenterModal } from '../../components/booking/OwnerRateRenterModal';
+import { OwnerQrScannerModal } from '../../components/booking/OwnerQrScannerModal';
 import { bookingService, Booking } from '../../services/bookingService';
 import { reviewService, ReviewItem } from '../../services/reviewService';
 import { socketService } from '../../services/socketService';
@@ -33,13 +34,7 @@ interface BookingManageScreenProps {
   onNavigateToNotifications?: () => void;
 }
 
-const REJECT_REASONS = [
-  'Thiết bị đang bảo trì hoặc chưa sẵn sàng',
-  'Trùng lịch sử dụng cá nhân đột xuất',
-  'Thời gian thuê không thuận tiện giao nhận',
-  'Khách thuê không phản hồi xác minh thông tin',
-  'Lý do khác',
-];
+const REJECT_REASONS = STRINGS.BOOKING_MANAGE.REJECT_REASONS;
 
 export function BookingManageScreen({
   route,
@@ -66,6 +61,9 @@ export function BookingManageScreen({
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
 
+  // QR Scanner Modal State
+  const [scannerVisible, setScannerVisible] = useState(false);
+
   // Reject Modal State
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedBookingToReject, setSelectedBookingToReject] = useState(null as Booking | null);
@@ -78,13 +76,13 @@ export function BookingManageScreen({
   // Map: bookingId → reviewId (for already-reviewed completed bookings)
   const [reviewMap, setReviewMap] = useState({} as Record<string, ReviewItem>);
 
-  // ── GỌI API LẤY DANH SÁCH ĐƠN CỦA CHỦ MÁY ──
+  // ── LOAD OWNER BOOKINGS FROM API ──
   const fetchOwnerBookings = useCallback(async () => {
     try {
       const data = await bookingService.getOwnerBookings();
       setBookings(data || []);
 
-      // Sau khi có danh sách đơn, tải map review để kiểm tra đơn nào đã được Owner đánh giá
+      // Load owner reviews map to check which completed orders were already reviewed
       try {
         const myReviews = await reviewService.getMyOwnerReviews();
         const map: Record<string, ReviewItem> = {};
@@ -97,7 +95,7 @@ export function BookingManageScreen({
         // ignore review map error silently
       }
     } catch (error) {
-      console.warn('⚠️ [BookingManageScreen] Lỗi khi tải danh sách đơn:', error);
+      console.warn('⚠️ [BookingManageScreen] Failed to fetch owner bookings:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -108,7 +106,7 @@ export function BookingManageScreen({
     fetchOwnerBookings();
   }, [fetchOwnerBookings]);
 
-  // ── LẮNG NGHE SOCKET REAL-TIME ĐƠN MỚI HOẶC ĐỔI TRẠNG THÁI ──
+  // ── SOCKET LISTENER FOR REAL-TIME UPDATES ──
   useEffect(() => {
     const unsub = socketService.onNewNotification((notif) => {
       if (notif.type === 'order' || notif.type === 'reminder') {
@@ -123,20 +121,20 @@ export function BookingManageScreen({
     await fetchOwnerBookings();
   };
 
-  // ── PHÂN LOẠI ĐƠN THEO 3 TAB CHUẨN ──
-  // 1. Chờ duyệt: status === 'pending'
+  // ── 3 STANDARD CATEGORY TABS ──
+  // 1. Pending approval: status === 'pending'
   const pendingOrders = useMemo(
     () => bookings.filter((b: Booking) => b.status === 'pending'),
     [bookings]
   );
 
-  // 2. Đang cho thuê: status === 'approved' (chờ giao) hoặc 'active' (đang thuê)
+  // 2. Active & Renting: status === 'approved' (ready for handover) or 'active' (renting)
   const rentingOrders = useMemo(
     () => bookings.filter((b: Booking) => b.status === 'approved' || b.status === 'active'),
     [bookings]
   );
 
-  // 3. Lịch sử đơn: completed, rejected, cancelled
+  // 3. Order History: completed, rejected, cancelled
   const historyOrders = useMemo(
     () =>
       bookings.filter(
@@ -148,7 +146,7 @@ export function BookingManageScreen({
     [bookings]
   );
 
-  // Danh sách hiển thị theo Tab và Từ khóa tìm kiếm
+  // Filtered orders by active tab & search query
   const currentTabOrders = useMemo(() => {
     let sourceList: Booking[] = [];
     if (activeTab === 'pending') sourceList = pendingOrders;
@@ -170,34 +168,37 @@ export function BookingManageScreen({
     });
   }, [activeTab, pendingOrders, rentingOrders, historyOrders, searchKeyword]);
 
-  // Tổng doanh thu dự kiến / thực tế
+  // Total active renting revenue
   const totalRentingRevenue = useMemo(
     () => rentingOrders.reduce((sum: number, b: Booking) => sum + (b.rentalFee || 0), 0),
     [rentingOrders]
   );
 
-  // ── HÀNH ĐỘNG 1: DUYỆT ĐƠN THUÊ ──
+  // ── ACTION 1: APPROVE BOOKING ──
   const handleApproveBooking = (booking: Booking) => {
-    const renterName = (booking.renterId as any)?.name || 'khách thuê';
+    const renterName = (booking.renterId as any)?.name || STRINGS.BOOKING_MANAGE.DEFAULT_RENTER_NAME;
     Alert.alert(
-      'Xác nhận duyệt đơn 📦',
-      `Phê duyệt đơn thuê #${booking.bookingCode} của ${renterName}?\n\nThông báo xác nhận sẽ được gửi tức thì đến máy của khách.`,
+      STRINGS.BOOKING_MANAGE.CONFIRM_APPROVE_TITLE,
+      STRINGS.BOOKING_MANAGE.CONFIRM_APPROVE_MSG(booking.bookingCode, renterName),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
         {
-          text: 'Duyệt đơn ngay',
+          text: STRINGS.BOOKING_MANAGE.APPROVE_NOW,
           style: 'default',
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.updateBookingStatusByOwner(booking._id, 'approved');
               Alert.alert(
-                'Phê duyệt thành công! 🎉',
-                `Đơn #${booking.bookingCode} đã được duyệt. Hãy chuẩn bị máy sẵn sàng để bàn giao cho khách.`
+                STRINGS.BOOKING_MANAGE.APPROVE_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.APPROVE_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
-              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể phê duyệt đơn lúc này.');
+              Alert.alert(
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.APPROVE_ERROR_DEFAULT
+              );
             } finally {
               setIsUpdatingOrder(false);
             }
@@ -207,7 +208,7 @@ export function BookingManageScreen({
     );
   };
 
-  // ── HÀNH ĐỘNG 2: MỞ MODAL TỪ CHỐI ĐƠN ──
+  // ── ACTION 2: OPEN REJECT MODAL ──
   const handleOpenRejectModal = (booking: Booking) => {
     setSelectedBookingToReject(booking);
     setSelectedRejectReason(REJECT_REASONS[0]);
@@ -215,11 +216,11 @@ export function BookingManageScreen({
     setRejectModalVisible(true);
   };
 
-  // Xác nhận từ chối đơn
+  // Confirm Reject
   const handleConfirmReject = async () => {
     if (!selectedBookingToReject) return;
     const finalReason =
-      selectedRejectReason === 'Lý do khác' && customRejectReason.trim()
+      selectedRejectReason === STRINGS.BOOKING_MANAGE.OTHER_REASON && customRejectReason.trim()
         ? customRejectReason.trim()
         : selectedRejectReason;
 
@@ -231,45 +232,51 @@ export function BookingManageScreen({
         finalReason
       );
       Alert.alert(
-        'Đã từ chối đơn',
-        `Đơn thuê #${selectedBookingToReject.bookingCode} đã được từ chối.`
+        STRINGS.BOOKING_MANAGE.REJECT_SUCCESS_TITLE,
+        STRINGS.BOOKING_MANAGE.REJECT_SUCCESS_MSG(selectedBookingToReject.bookingCode)
       );
       setRejectModalVisible(false);
       setSelectedBookingToReject(null);
       await fetchOwnerBookings();
     } catch (err: any) {
-      Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể từ chối đơn lúc này.');
+      Alert.alert(
+        STRINGS.COMMON.ERROR,
+        err?.response?.data?.message || STRINGS.BOOKING_MANAGE.REJECT_ERROR_DEFAULT
+      );
     } finally {
       setIsUpdatingOrder(false);
     }
   };
 
-  // ── HÀNH ĐỘNG 3: BÀN GIAO THIẾT BỊ (ACTIVE) ──
+  // ── ACTION 3: HANDOVER DEVICE (MANUAL ACTIVATE) ──
   const handleHandoverBooking = (booking: Booking) => {
     const deviceName =
       (booking.deviceId as any)?.name ||
       (booking.deviceId as any)?.title ||
-      'thiết bị';
-    const renterName = (booking.renterId as any)?.name || 'khách thuê';
+      STRINGS.BOOKING_MANAGE.DEFAULT_DEVICE_NAME;
+    const renterName = (booking.renterId as any)?.name || STRINGS.BOOKING_MANAGE.DEFAULT_RENTER_NAME;
 
     Alert.alert(
-      'Bàn giao thiết bị 📱',
-      `Xác nhận đối soát mã QR và bàn giao "${deviceName}" cho ${renterName}?\n\nĐơn thuê sẽ kích hoạt và bắt đầu tính thời gian thuê.`,
+      STRINGS.BOOKING_MANAGE.HANDOVER_TITLE,
+      STRINGS.BOOKING_MANAGE.HANDOVER_MSG(deviceName, renterName),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
         {
-          text: 'Xác nhận bàn giao',
+          text: STRINGS.BOOKING_MANAGE.CONFIRM_HANDOVER,
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.handoverBooking(booking._id);
               Alert.alert(
-                'Thành công 🎉',
-                `Đã bàn giao máy thành công. Đơn thuê #${booking.bookingCode} chính thức kích hoạt.`
+                STRINGS.BOOKING_MANAGE.HANDOVER_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.HANDOVER_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
-              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể bàn giao đơn lúc này.');
+              Alert.alert(
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.HANDOVER_ERROR_DEFAULT
+              );
             } finally {
               setIsUpdatingOrder(false);
             }
@@ -279,33 +286,36 @@ export function BookingManageScreen({
     );
   };
 
-  // ── HÀNH ĐỘNG 4: NHẬN LẠI MÁY & HOÀN TẤT (COMPLETE) ──
+  // ── ACTION 4: COMPLETE & RETURN ──
   const handleCompleteBooking = (booking: Booking) => {
     const deviceName =
       (booking.deviceId as any)?.name ||
       (booking.deviceId as any)?.title ||
-      'thiết bị';
-    const depositAmount = (booking.depositFee || 0).toLocaleString('vi-VN');
-    const incomeAmount = (booking.rentalFee || 0).toLocaleString('vi-VN');
+      STRINGS.BOOKING_MANAGE.DEFAULT_DEVICE_NAME;
+    const depositAmount = (booking.depositFee || 0).toLocaleString(CONFIG.CURRENCY.LOCALE);
+    const incomeAmount = (booking.rentalFee || 0).toLocaleString(CONFIG.CURRENCY.LOCALE);
 
     Alert.alert(
-      'Xác nhận nhận lại máy & Hoàn tất 💰',
-      `Bạn đã kiểm tra thiết bị "${deviceName}" nguyên vẹn?\n\n• Tiền cọc: ${depositAmount} đ sẽ được hoàn trả cho khách thuê.\n• Doanh thu: +${incomeAmount} đ sẽ được cộng vào ví của bạn.`,
+      STRINGS.BOOKING_MANAGE.COMPLETE_TITLE,
+      STRINGS.BOOKING_MANAGE.COMPLETE_MSG(deviceName, depositAmount, incomeAmount),
       [
-        { text: 'Kiểm tra lại', style: 'cancel' },
+        { text: STRINGS.BOOKING_MANAGE.RECHECK, style: 'cancel' },
         {
-          text: 'Xác nhận hoàn tất',
+          text: STRINGS.BOOKING_MANAGE.CONFIRM_COMPLETE,
           onPress: async () => {
             try {
               setIsUpdatingOrder(true);
               await bookingService.completeBooking(booking._id);
               Alert.alert(
-                'Đơn thuê hoàn tất 🎉',
-                `Đơn thuê #${booking.bookingCode} đã kết thúc. Tiền cọc đã giải tỏa và doanh thu đã cộng vào ví của bạn.`
+                STRINGS.BOOKING_MANAGE.COMPLETE_SUCCESS_TITLE,
+                STRINGS.BOOKING_MANAGE.COMPLETE_SUCCESS_MSG(booking.bookingCode)
               );
               await fetchOwnerBookings();
             } catch (err: any) {
-              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể hoàn tất đơn lúc này.');
+              Alert.alert(
+                STRINGS.COMMON.ERROR,
+                err?.response?.data?.message || STRINGS.BOOKING_MANAGE.COMPLETE_ERROR_DEFAULT
+              );
             } finally {
               setIsUpdatingOrder(false);
             }
@@ -323,16 +333,14 @@ export function BookingManageScreen({
     }
   };
 
-  // ── HÀNH ĐỘNG 5: MỞ MODAL ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ (sau khi hoàn tất) ──
+  // ── ACTION 5: RATE RENTER TRUST (AFTER COMPLETION) ──
   const handleOpenRateRenter = async (booking: Booking) => {
-    // Kiểm tra xem review cho đơn này đã tồn tại chưa
     const existing = reviewMap[booking._id];
     if (existing) {
       if (existing.renterTrustRating !== null && existing.renterTrustRating !== undefined) {
-        Alert.alert('Đã đánh giá', 'Bạn đã đánh giá ý thức khách thuê cho đơn này rồi.');
+        Alert.alert(STRINGS.BOOKING_MANAGE.ALREADY_RATED_TITLE, STRINGS.BOOKING_MANAGE.ALREADY_RATED_MSG);
         return;
       }
-      // Review tồn tại nhưng Owner chưa rate → mở modal
       const reviewWithRenter: ReviewItem = {
         ...existing,
         renterId: (booking.renterId as any) || existing.renterId,
@@ -341,7 +349,6 @@ export function BookingManageScreen({
       setSelectedReviewToRate(reviewWithRenter);
       setRateRenterModalVisible(true);
     } else {
-      // Đơn đã completed nhưng chưa có review record -> vẫn cho phép chủ máy chấm điểm trực tiếp
       const newReviewItem: any = {
         bookingId: booking._id,
         renterId: booking.renterId,
@@ -354,7 +361,7 @@ export function BookingManageScreen({
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
-      {/* ── 1. HEADER CHÍNH ── */}
+      {/* ── 1. HEADER ── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           {onOpenDrawer || (navigation as any)?.openDrawer ? (
@@ -367,40 +374,50 @@ export function BookingManageScreen({
                   (navigation as any).openDrawer();
                 }
               }}
-              accessibilityLabel="Mở menu quản lý chủ máy"
+              accessibilityLabel={STRINGS.OWNER_SIDEBAR.BRAND_TITLE}
             >
-              <Ionicons name="menu-outline" size={24} color={colors.light.textPrimary} />
+              <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
           ) : onBack ? (
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={onBack}
-              accessibilityLabel="Quay lại"
+              accessibilityLabel={STRINGS.NOTIFICATION_SCREEN.BACK_ACCESSIBILITY_LABEL}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.light.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={() => navigation?.goBack?.()}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.light.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
 
           <View style={styles.headerTitleCol}>
-            <Text style={styles.headerTitle}>Quản lý Đơn thuê</Text>
-            <Text style={styles.headerSubtitle}>Vận hành & Duyệt đơn chủ máy</Text>
+            <Text style={styles.headerTitle}>{STRINGS.BOOKING_MANAGE.HEADER_TITLE}</Text>
+            <Text style={styles.headerSubtitle}>{STRINGS.BOOKING_MANAGE.HEADER_SUBTITLE}</Text>
           </View>
         </View>
 
         <View style={styles.headerRight}>
+          {/* Quick QR Scanner CTA */}
+          <TouchableOpacity
+            style={styles.headerScanBtn}
+            onPress={() => setScannerVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="qr-code-outline" size={17} color={theme.white} />
+            <Text style={styles.headerScanBtnText}>{STRINGS.BOOKING_MANAGE.SCAN_QR}</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={fetchOwnerBookings}
             disabled={loading || refreshing}
           >
-            <Ionicons name="refresh-outline" size={20} color={colors.light.textSecondary} />
+            <Ionicons name="refresh-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
 
           {onNavigateToNotifications && (
@@ -408,7 +425,7 @@ export function BookingManageScreen({
               style={styles.headerIconBtn}
               onPress={onNavigateToNotifications}
             >
-              <Ionicons name="notifications-outline" size={20} color={colors.light.textPrimary} />
+              <Ionicons name="notifications-outline" size={20} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
         </View>
@@ -417,48 +434,48 @@ export function BookingManageScreen({
       {/* ── 2. QUICK METRICS CARD ── */}
       <View style={styles.metricsCard}>
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Chờ bạn duyệt</Text>
-          <Text style={[styles.metricValue, { color: colors.light.warning }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_PENDING}</Text>
+          <Text style={[styles.metricValue, { color: theme.warning }]}>
             {pendingOrders.length}
           </Text>
         </View>
         <View style={styles.metricDivider} />
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Đang cho thuê</Text>
-          <Text style={[styles.metricValue, { color: colors.light.primary }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_ACTIVE}</Text>
+          <Text style={[styles.metricValue, { color: theme.primary }]}>
             {rentingOrders.length}
           </Text>
         </View>
         <View style={styles.metricDivider} />
         <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Doanh thu giữ</Text>
-          <Text style={[styles.metricValue, { color: colors.light.success }]}>
+          <Text style={styles.metricLabel}>{STRINGS.BOOKING_MANAGE.METRIC_REVENUE}</Text>
+          <Text style={[styles.metricValue, { color: theme.success }]}>
             {totalRentingRevenue > 0
-              ? `${(totalRentingRevenue / 1000).toLocaleString('vi-VN')}k`
-              : '0 đ'}
+              ? `${(totalRentingRevenue / 1000).toLocaleString(CONFIG.CURRENCY.LOCALE)}k`
+              : `0 ${STRINGS.COMMON.CURRENCY_SUFFIX}`}
           </Text>
         </View>
       </View>
 
       {/* ── 3. SEARCH BAR ── */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={18} color={colors.light.textSecondary} />
+        <Ionicons name="search-outline" size={18} color={theme.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo mã đơn, tên máy hoặc tên khách..."
-          placeholderTextColor={colors.light.textSecondary}
+          placeholder={STRINGS.BOOKING_MANAGE.SEARCH_PLACEHOLDER}
+          placeholderTextColor={theme.textSecondary}
           value={searchKeyword}
           onChangeText={setSearchKeyword}
           clearButtonMode="while-editing"
         />
         {searchKeyword.length > 0 && (
           <TouchableOpacity onPress={() => setSearchKeyword('')}>
-            <Ionicons name="close-circle" size={16} color={colors.light.textSecondary} />
+            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* ── 4. TAB BAR 3 PHÂN MỤC CHUẨN ── */}
+      {/* ── 4. TAB BAR ── */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'pending' && styles.tabItemActive]}
@@ -471,7 +488,7 @@ export function BookingManageScreen({
                 activeTab === 'pending' && styles.tabLabelActive,
               ]}
             >
-              Chờ duyệt
+              {STRINGS.BOOKING_MANAGE.TAB_PENDING}
             </Text>
             {pendingOrders.length > 0 && (
               <View
@@ -480,8 +497,8 @@ export function BookingManageScreen({
                   {
                     backgroundColor:
                       activeTab === 'pending'
-                        ? colors.light.warning
-                        : colors.light.border,
+                        ? theme.warning
+                        : theme.border,
                   },
                 ]}
               >
@@ -491,8 +508,8 @@ export function BookingManageScreen({
                     {
                       color:
                         activeTab === 'pending'
-                          ? '#FFFFFF'
-                          : colors.light.textSecondary,
+                          ? theme.white
+                          : theme.textSecondary,
                     },
                   ]}
                 >
@@ -514,7 +531,7 @@ export function BookingManageScreen({
                 activeTab === 'renting' && styles.tabLabelActive,
               ]}
             >
-              Đang cho thuê
+              {STRINGS.BOOKING_MANAGE.TAB_RENTING}
             </Text>
             {rentingOrders.length > 0 && (
               <View
@@ -523,8 +540,8 @@ export function BookingManageScreen({
                   {
                     backgroundColor:
                       activeTab === 'renting'
-                        ? colors.light.primary
-                        : colors.light.border,
+                        ? theme.primary
+                        : theme.border,
                   },
                 ]}
               >
@@ -534,8 +551,8 @@ export function BookingManageScreen({
                     {
                       color:
                         activeTab === 'renting'
-                          ? '#FFFFFF'
-                          : colors.light.textSecondary,
+                          ? theme.white
+                          : theme.textSecondary,
                     },
                   ]}
                 >
@@ -557,7 +574,7 @@ export function BookingManageScreen({
                 activeTab === 'history' && styles.tabLabelActive,
               ]}
             >
-              Lịch sử đơn
+              {STRINGS.BOOKING_MANAGE.TAB_HISTORY}
             </Text>
             <View
               style={[
@@ -565,8 +582,8 @@ export function BookingManageScreen({
                 {
                   backgroundColor:
                     activeTab === 'history'
-                      ? colors.light.primaryLight
-                      : colors.light.surface,
+                      ? theme.colors.primaryLight
+                      : theme.surface,
                 },
               ]}
             >
@@ -576,8 +593,8 @@ export function BookingManageScreen({
                   {
                     color:
                       activeTab === 'history'
-                        ? colors.light.primary
-                        : colors.light.textSecondary,
+                        ? theme.primary
+                        : theme.textSecondary,
                   },
                 ]}
               >
@@ -588,11 +605,11 @@ export function BookingManageScreen({
         </TouchableOpacity>
       </View>
 
-      {/* ── 5. DANH SÁCH ĐƠN HÀNG ── */}
+      {/* ── 5. ORDER LIST ── */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.light.primary} />
-          <Text style={styles.loadingText}>Đang tải danh sách đơn thuê của bạn...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.loadingText}>{STRINGS.BOOKING_MANAGE.LOADING_ORDERS}</Text>
         </View>
       ) : (
         <FlatList
@@ -606,6 +623,7 @@ export function BookingManageScreen({
               onHandover={handleHandoverBooking}
               onComplete={handleCompleteBooking}
               onPress={handleCardPress}
+              onScanQr={() => setScannerVisible(true)}
               onRateRenter={handleOpenRateRenter}
               renterReview={reviewMap[item._id]}
               isUpdating={isUpdatingOrder}
@@ -617,8 +635,8 @@ export function BookingManageScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[colors.light.primary]}
-              tintColor={colors.light.primary}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
           ListEmptyComponent={
@@ -635,26 +653,26 @@ export function BookingManageScreen({
                   size={48}
                   color={
                     activeTab === 'pending'
-                      ? colors.light.success
-                      : colors.light.textSecondary
+                      ? theme.success
+                      : theme.textSecondary
                   }
                 />
               </View>
 
               <Text style={styles.emptyTitle}>
                 {activeTab === 'pending'
-                  ? 'Không có đơn chờ duyệt'
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_PENDING_TITLE
                   : activeTab === 'renting'
-                  ? 'Chưa có thiết bị đang cho thuê'
-                  : 'Chưa có lịch sử đơn thuê'}
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_RENTING_TITLE
+                  : STRINGS.BOOKING_MANAGE.EMPTY_HISTORY_TITLE}
               </Text>
 
               <Text style={styles.emptySubtitle}>
                 {activeTab === 'pending'
-                  ? 'Tất cả yêu cầu thuê máy mới đã được xử lý. Khi có khách thuê mới, đơn sẽ lập tức xuất hiện tại đây.'
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_PENDING_SUB
                   : activeTab === 'renting'
-                  ? 'Các đơn đã duyệt chờ bàn giao hoặc đang trong thời gian thuê sẽ hiển thị tại tab này.'
-                  : 'Lịch sử các đơn đã hoàn tất, đã hủy hoặc bị từ chối sẽ được lưu trữ tại đây.'}
+                  ? STRINGS.BOOKING_MANAGE.EMPTY_RENTING_SUB
+                  : STRINGS.BOOKING_MANAGE.EMPTY_HISTORY_SUB}
               </Text>
 
               {searchKeyword.length > 0 && (
@@ -662,7 +680,7 @@ export function BookingManageScreen({
                   style={styles.clearSearchBtn}
                   onPress={() => setSearchKeyword('')}
                 >
-                  <Text style={styles.clearSearchText}>Xóa bộ lọc tìm kiếm</Text>
+                  <Text style={styles.clearSearchText}>{STRINGS.BOOKING_MANAGE.CLEAR_SEARCH}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -670,7 +688,7 @@ export function BookingManageScreen({
         />
       )}
 
-      {/* ── 6. MODAL TỪ CHỐI ĐƠN HÀNG KÈM LÝ DO ── */}
+      {/* ── 6. REJECT BOOKING MODAL ── */}
       <Modal
         visible={rejectModalVisible}
         transparent
@@ -681,21 +699,20 @@ export function BookingManageScreen({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <Ionicons name="close-circle-outline" size={20} color={colors.light.error} />
-                <Text style={styles.modalTitle}>Từ chối đơn thuê</Text>
+                <Ionicons name="close-circle-outline" size={20} color={theme.danger} />
+                <Text style={styles.modalTitle}>{STRINGS.BOOKING_MANAGE.REJECT_MODAL_TITLE}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setRejectModalVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={20} color={colors.light.textSecondary} />
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {selectedBookingToReject && (
               <Text style={styles.modalDesc}>
-                Vui lòng chọn lý do từ chối đơn #{selectedBookingToReject.bookingCode}. Thông báo
-                kèm lý do sẽ được gửi trực tiếp đến khách thuê.
+                {STRINGS.BOOKING_MANAGE.REJECT_MODAL_DESC(selectedBookingToReject.bookingCode)}
               </Text>
             )}
 
@@ -715,7 +732,7 @@ export function BookingManageScreen({
                     <Ionicons
                       name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                       size={18}
-                      color={isSelected ? colors.light.error : colors.light.textSecondary}
+                      color={isSelected ? theme.danger : theme.textSecondary}
                     />
                     <Text
                       style={[
@@ -730,11 +747,11 @@ export function BookingManageScreen({
               })}
             </View>
 
-            {selectedRejectReason === 'Lý do khác' && (
+            {selectedRejectReason === STRINGS.BOOKING_MANAGE.OTHER_REASON && (
               <TextInput
                 style={styles.customReasonInput}
-                placeholder="Nhập lý do từ chối chi tiết..."
-                placeholderTextColor={colors.light.textSecondary}
+                placeholder={STRINGS.BOOKING_MANAGE.CUSTOM_REASON_PLACEHOLDER}
+                placeholderTextColor={theme.textSecondary}
                 value={customRejectReason}
                 onChangeText={setCustomRejectReason}
                 multiline
@@ -748,7 +765,7 @@ export function BookingManageScreen({
                 onPress={() => setRejectModalVisible(false)}
                 disabled={isUpdatingOrder}
               >
-                <Text style={styles.modalCancelText}>Hủy bỏ</Text>
+                <Text style={styles.modalCancelText}>{STRINGS.COMMON.CANCEL}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -757,9 +774,9 @@ export function BookingManageScreen({
                 disabled={isUpdatingOrder}
               >
                 {isUpdatingOrder ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={theme.white} />
                 ) : (
-                  <Text style={styles.modalConfirmText}>Xác nhận từ chối</Text>
+                  <Text style={styles.modalConfirmText}>{STRINGS.BOOKING_MANAGE.CONFIRM_REJECT}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -767,7 +784,7 @@ export function BookingManageScreen({
         </View>
       </Modal>
 
-      {/* ── 7. MODAL CHỦ MÁY ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ ── */}
+      {/* ── 7. OWNER RATE RENTER MODAL ── */}
       <OwnerRateRenterModal
         visible={rateRenterModalVisible}
         onClose={() => {
@@ -779,6 +796,15 @@ export function BookingManageScreen({
           fetchOwnerBookings();
         }}
       />
+
+      {/* ── 8. OWNER HANDOVER QR SCANNER MODAL ── */}
+      <OwnerQrScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onHandoverSuccess={() => {
+          fetchOwnerBookings();
+        }}
+      />
     </View>
   );
 }
@@ -786,60 +812,74 @@ export function BookingManageScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm + 4,
     flex: 1,
   },
   headerIconBtn: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    backgroundColor: colors.light.surface,
+    borderRadius: theme.radii.sm + 2,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.primary,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.sm + 2,
+    gap: theme.spacing.xs + 2,
+  },
+  headerScanBtnText: {
+    color: theme.white,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
   },
   headerTitleCol: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.subheading,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: colors.light.textSecondary,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.xs,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   metricsCard: {
     flexDirection: 'row',
-    backgroundColor: colors.light.surface,
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: theme.surface,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 4,
+    padding: theme.spacing.sm + 4,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
   },
   metricItem: {
     flex: 1,
@@ -848,144 +888,144 @@ const styles = StyleSheet.create({
   metricDivider: {
     width: 1,
     height: '80%',
-    backgroundColor: colors.light.border,
+    backgroundColor: theme.border,
     alignSelf: 'center',
   },
   metricLabel: {
     fontSize: 11,
-    color: colors.light.textSecondary,
-    fontWeight: '500',
-    marginBottom: 4,
+    color: theme.textSecondary,
+    fontWeight: theme.typography.weights.medium,
+    marginBottom: theme.spacing.xs,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.heavy,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.surface,
-    marginHorizontal: 16,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    backgroundColor: theme.surface,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 2,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    gap: 8,
+    borderColor: theme.border,
+    gap: theme.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
     padding: 0,
   },
   tabBar: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 12,
+    paddingHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: theme.spacing.sm + 4,
     alignItems: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: theme.transparent,
   },
   tabItemActive: {
-    borderBottomColor: colors.light.primary,
+    borderBottomColor: theme.primary,
   },
   tabContentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing.xs + 2,
   },
   tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.textSecondary,
   },
   tabLabelActive: {
-    color: colors.light.primary,
-    fontWeight: '700',
+    color: theme.primary,
+    fontWeight: theme.typography.weights.bold,
   },
   tabBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: theme.spacing.xs + 2,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.radii.sm + 2,
   },
   tabBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: theme.typography.weights.bold,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 36,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xl + 4,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm + 4,
   },
   loadingText: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
   },
   emptyContainer: {
     paddingVertical: 48,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.lg,
   },
   emptyIconBox: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.light.surface,
+    backgroundColor: theme.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.light.textPrimary,
-    marginBottom: 8,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textPrimary,
+    marginBottom: theme.spacing.sm,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
   clearSearchBtn: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.light.primaryLight,
-    borderRadius: 8,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radii.sm,
   },
   clearSearchText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.light.primaryDark,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primaryDark,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: theme.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.lg - 4,
   },
   modalContent: {
-    backgroundColor: colors.light.background,
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: theme.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.lg - 4,
     width: '100%',
     maxWidth: 420,
-    shadowColor: '#000000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -995,96 +1035,96 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 12,
+    paddingBottom: theme.spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: theme.border,
   },
   modalHeaderTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.heavy,
+    color: theme.textPrimary,
   },
   modalCloseBtn: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
   modalDesc: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
-    marginVertical: 12,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textSecondary,
+    marginVertical: theme.spacing.sm + 4,
     lineHeight: 18,
   },
   reasonRadioList: {
-    gap: 10,
-    marginBottom: 12,
+    gap: theme.spacing.sm + 2,
+    marginBottom: theme.spacing.sm + 4,
   },
   reasonRadioItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 10,
-    borderRadius: 10,
+    gap: theme.spacing.sm + 2,
+    padding: theme.spacing.sm + 2,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    backgroundColor: colors.light.surface,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   reasonRadioItemSelected: {
-    borderColor: colors.light.error,
-    backgroundColor: '#FEF2F2',
+    borderColor: theme.danger,
+    backgroundColor: theme.dangerLight,
   },
   reasonRadioText: {
-    fontSize: 13,
-    color: colors.light.textPrimary,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
     flex: 1,
   },
   reasonRadioTextSelected: {
-    fontWeight: '700',
-    color: colors.light.error,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.danger,
   },
   customReasonInput: {
     borderWidth: 1,
-    borderColor: colors.light.border,
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 13,
-    color: colors.light.textPrimary,
-    backgroundColor: colors.light.surface,
+    borderColor: theme.border,
+    borderRadius: theme.radii.sm + 2,
+    padding: theme.spacing.sm + 2,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.textPrimary,
+    backgroundColor: theme.surface,
     textAlignVertical: 'top',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
+    gap: theme.spacing.sm + 2,
+    marginTop: theme.spacing.sm,
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: theme.spacing.sm + 4,
+    borderRadius: theme.radii.sm + 2,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: theme.border,
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.light.textSecondary,
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.textSecondary,
   },
   modalConfirmBtn: {
     flex: 1.4,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: colors.light.error,
+    paddingVertical: theme.spacing.sm + 4,
+    borderRadius: theme.radii.sm + 2,
+    backgroundColor: theme.danger,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalConfirmText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.white,
   },
 });

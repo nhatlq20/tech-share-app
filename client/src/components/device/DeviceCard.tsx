@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { toggleFavoriteDevice } from '../../store/slices/wishlistSlice';
 import { API_BASE_URL } from '../../config/api';
@@ -21,14 +22,7 @@ interface DeviceCardProps {
 }
 
 const formatPrice = (price: number): string => {
-  return `${price.toLocaleString('en-US')} ₫/day`;
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  available: 'Available',
-  rented: 'Rented',
-  maintenance: 'Under Maintenance',
-  hidden: 'Unavailable',
+  return `${price.toLocaleString('en-US')}${STRINGS.DEVICE_CARD.PRICE_SUFFIX}`;
 };
 
 const resolveImageUri = (url?: string): string => {
@@ -74,8 +68,8 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
   const handleToggleFavorite = () => {
     if (!isAuthenticated) {
       Alert.alert(
-        'Yêu cầu đăng nhập',
-        'Vui lòng đăng nhập để lưu thiết bị vào danh sách yêu thích.'
+        STRINGS.DEVICE_CARD.LOGIN_REQUIRED_TITLE,
+        STRINGS.DEVICE_CARD.LOGIN_REQUIRED_MSG
       );
       return;
     }
@@ -111,7 +105,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={16}
-            color={isFavorite ? '#EF4444' : '#64748B'}
+            color={isFavorite ? colors.light.danger : colors.light.textSecondary}
           />
         </TouchableOpacity>
 
@@ -134,7 +128,7 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
               isAvailable ? styles.statusTextAvailable : styles.statusTextRented,
             ]}
           >
-            {STATUS_LABELS[device.status] ?? 'Unavailable'}
+            {STRINGS.DEVICE_CARD.STATUS_LABELS[device.status] ?? STRINGS.DEVICE_CARD.UNAVAILABLE}
           </Text>
         </View>
       </View>
@@ -169,12 +163,12 @@ export function DeviceCard({ device, onPress, width }: DeviceCardProps) {
         {/* Giá thuê & Nút xem */}
         <View style={styles.bottomRow}>
           <View>
-            <Text style={styles.priceLabel}>Daily Rate</Text>
+            <Text style={styles.priceLabel}>{STRINGS.DEVICE_CARD.DAILY_RATE}</Text>
             <Text style={styles.priceText}>{formatPrice(device.dailyRate)}</Text>
           </View>
 
           <View style={styles.arrowBtn}>
-            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={14} color={colors.light.white} />
           </View>
         </View>
       </View>
@@ -190,7 +184,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.border,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#0F172A',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -202,7 +196,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 140,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     position: 'relative',
   },
   image: {
@@ -247,7 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
@@ -259,7 +253,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.primary,
   },
   statusRented: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     borderWidth: 1,
     borderColor: colors.light.warning,
   },

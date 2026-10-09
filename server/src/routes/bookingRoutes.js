@@ -11,6 +11,8 @@ import {
   requestExtension,
   respondExtension,
   getDeviceBusyDates,
+  updateBeforeRentalPhotos,
+  verifyHandoverQr,
 } from '../controllers/bookingController.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
@@ -20,11 +22,13 @@ router.post('/', requireAuth, createBooking);
 router.get('/my-bookings', requireAuth, getMyBookings);
 router.get('/owner-bookings', requireAuth, getOwnerBookings);
 router.get('/busy-dates/:deviceId', getDeviceBusyDates);
+router.post('/verify-qr', requireAuth, verifyHandoverQr);
 router.get('/:id', requireAuth, getBookingById);
 router.patch('/:id/status', requireAuth, updateBookingStatusByOwner);
 router.put('/:id/status', requireAuth, updateBookingStatusByOwner);
 router.patch('/:id/handover', requireAuth, handoverBooking);
 router.post('/:id/handover', requireAuth, handoverBooking);
+router.patch('/:id/handover-renter', requireAuth, updateBeforeRentalPhotos);
 router.patch('/:id/complete', requireAuth, completeBooking);
 router.post('/:id/complete', requireAuth, completeBooking);
 router.put('/:id/cancel', requireAuth, cancelBooking);

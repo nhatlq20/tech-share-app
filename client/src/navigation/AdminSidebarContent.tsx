@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { theme } from '../constants/theme';
+import { theme, STRINGS, CONFIG } from '../constants';
 import { RootState } from '../store';
 import { clearAuth } from '../store/slices/authSlice';
 import { socketService } from '../services/socketService';
@@ -32,28 +32,28 @@ interface AdminMenuItem {
 const MENU_ITEMS: AdminMenuItem[] = [
   {
     id: 'overview',
-    label: 'Dashboard & KPIs',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_OVERVIEW,
     icon: 'stats-chart-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'overview',
   },
   {
     id: 'users',
-    label: 'User Management',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_USERS,
     icon: 'people-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'users',
   },
   {
     id: 'devices',
-    label: 'Device Moderation',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_DEVICES,
     icon: 'hardware-chip-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'devices',
   },
   {
     id: 'disputes',
-    label: 'Deposit Disputes',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_DISPUTES,
     icon: 'scale-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'disputes',
@@ -61,7 +61,7 @@ const MENU_ITEMS: AdminMenuItem[] = [
   },
   {
     id: 'ekyc',
-    label: 'eKYC Reviews',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_EKYC,
     icon: 'finger-print-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'ekyc',
@@ -69,7 +69,7 @@ const MENU_ITEMS: AdminMenuItem[] = [
   },
   {
     id: 'vouchers',
-    label: 'Vouchers & Promotions',
+    label: STRINGS.ADMIN_SIDEBAR.MENU_VOUCHERS,
     icon: 'pricetags-outline',
     targetScreen: 'AdminDashboard',
     tabParam: 'vouchers',
@@ -146,8 +146,8 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
             <Ionicons name="shield-checkmark" size={20} color={theme.colors.primary[600]} />
           </View>
           <View>
-            <Text style={styles.brandTitle}>TechShare Admin</Text>
-            <Text style={styles.brandSubtitle}>Control Center</Text>
+            <Text style={styles.brandTitle}>{STRINGS.ADMIN_SIDEBAR.BRAND_TITLE}</Text>
+            <Text style={styles.brandSubtitle}>{STRINGS.ADMIN_SIDEBAR.BRAND_SUBTITLE}</Text>
           </View>
         </View>
 
@@ -163,15 +163,15 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
           />
           <View style={styles.profileInfo}>
             <Text style={styles.adminName} numberOfLines={1}>
-              {user?.name || 'Administrator'}
+              {user?.name || STRINGS.ADMIN_SIDEBAR.DEFAULT_ADMIN_NAME}
             </Text>
             <Text style={styles.adminEmail} numberOfLines={1}>
-              {user?.email || 'admin@techshare.vn'}
+              {user?.email || STRINGS.ADMIN_SIDEBAR.DEFAULT_ADMIN_EMAIL}
             </Text>
 
             {/* Badge System Administrator */}
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>System Administrator</Text>
+              <Text style={styles.roleBadgeText}>{STRINGS.ADMIN_SIDEBAR.ROLE_BADGE}</Text>
             </View>
           </View>
         </View>
@@ -183,7 +183,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.menuSectionHeader}>SYSTEM ADMINISTRATION</Text>
+        <Text style={styles.menuSectionHeader}>{STRINGS.ADMIN_SIDEBAR.SECTION_HEADER}</Text>
 
         {MENU_ITEMS.map(item => {
           // Xác định active state dựa vào targetScreen và tabParam
@@ -206,7 +206,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
               key={item.id}
               style={[styles.menuItem, isActive && styles.menuItemActive]}
               onPress={() => handleMenuItemPress(item)}
-              activeOpacity={0.75}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_PILL}
             >
               <View style={styles.menuItemLeft}>
                 <View
@@ -257,10 +257,10 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => setShowLogoutModal(true)}
-          activeOpacity={0.8}
+          activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
         >
           <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
-          <Text style={styles.logoutButtonText}>Sign Out of Admin Session</Text>
+          <Text style={styles.logoutButtonText}>{STRINGS.ADMIN_SIDEBAR.LOGOUT_BUTTON}</Text>
         </TouchableOpacity>
       </View>
 
@@ -269,7 +269,7 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
-        subtitle="Are you sure you want to end this session and sign out of TechShare Admin?"
+        subtitle={STRINGS.ADMIN_SIDEBAR.LOGOUT_CONFIRM_SUBTITLE}
       />
     </View>
   );

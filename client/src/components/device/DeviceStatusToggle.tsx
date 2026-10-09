@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors } from "../../theme/colors";
+import { theme, STRINGS, CONFIG } from "../../constants";
 import type { ManagedDeviceStatus } from "../../types";
 
 interface DeviceStatusToggleProps {
@@ -13,9 +13,9 @@ const STATUS_OPTIONS: {
   label: string;
   color: string;
 }[] = [
-  { value: "available", label: "Available", color: colors.light.success },
-  { value: "maintenance", label: "Maintenance", color: colors.light.warning },
-  { value: "hidden", label: "Hidden", color: colors.light.textSecondary },
+  { value: "available", label: STRINGS.DEVICE_STATUS.AVAILABLE, color: theme.success },
+  { value: "maintenance", label: STRINGS.DEVICE_STATUS.MAINTENANCE, color: theme.warning },
+  { value: "hidden", label: STRINGS.DEVICE_STATUS.HIDDEN, color: theme.textSecondary },
 ];
 
 export function DeviceStatusToggle({
@@ -26,7 +26,7 @@ export function DeviceStatusToggle({
     <View
       style={styles.container}
       accessibilityRole="radiogroup"
-      accessibilityLabel="Device status"
+      accessibilityLabel={STRINGS.DEVICE_STATUS.LABEL_GROUP}
     >
       {STATUS_OPTIONS.map((option) => {
         const selected = status === option.value;
@@ -71,7 +71,7 @@ export function DeviceStatusToggle({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   option: {
     flex: 1,
@@ -79,28 +79,28 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm + 2,
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: colors.light.border,
-    backgroundColor: colors.light.surface,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   pressed: {
-    opacity: 0.75,
+    opacity: CONFIG.ANIMATION.ACTIVE_OPACITY_PILL,
   },
   label: {
     maxWidth: "100%",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.bodySm,
+    fontWeight: theme.typography.weights.semibold,
     textAlign: "center",
-    color: colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   selectedLabel: {
-    color: colors.light.background,
-    fontWeight: "700",
+    color: theme.white,
+    fontWeight: theme.typography.weights.bold,
   },
   maintenanceLabel: {
-    color: colors.light.textPrimary,
+    color: theme.textPrimary,
   },
 });

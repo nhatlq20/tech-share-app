@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { STRINGS } from '../../constants/strings';
 import {
   AdminAnalytics,
   DisputeItem,
@@ -165,18 +166,21 @@ export function AdminDashboardScreen({
 
   const handleDeleteDevice = (device: AdminDeviceItem) => {
     Alert.alert(
-      'Xác nhận gỡ thiết bị vi phạm',
-      `Bạn có chắc chắn muốn gỡ thiết bị "${device.name}" khỏi sàn giao dịch?\n\nThiết bị sẽ bị ẩn và đánh dấu xóa mềm (isDeleted: true).`,
+      STRINGS.ADMIN.DASHBOARD.CONFIRM_DELETE_TITLE,
+      STRINGS.ADMIN.DASHBOARD.CONFIRM_DELETE_MSG(device.name),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: STRINGS.ADMIN.DASHBOARD.CANCEL, style: 'cancel' },
         {
-          text: 'Gỡ thiết bị',
+          text: STRINGS.ADMIN.DASHBOARD.REMOVE_DEVICE,
           style: 'destructive',
           onPress: async () => {
             try {
               const res = await adminService.deleteDevice(device._id);
               if (res && res.success) {
-                Alert.alert('Đã gỡ thiết bị', `Thiết bị "${device.name}" đã được xóa mềm thành công.`);
+                Alert.alert(
+                  STRINGS.ADMIN.DASHBOARD.DELETE_SUCCESS_TITLE,
+                  STRINGS.ADMIN.DASHBOARD.DELETE_SUCCESS_MSG(device.name)
+                );
                 setDevices((prev: AdminDeviceItem[]) => prev.filter((d: AdminDeviceItem) => d._id !== device._id));
                 setAnalytics((prev: AdminAnalytics) => ({
                   ...prev,
@@ -184,7 +188,7 @@ export function AdminDashboardScreen({
                 }));
               }
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể xóa thiết bị.');
+              Alert.alert('Error', err.message || STRINGS.ADMIN.DASHBOARD.DELETE_ERROR);
             }
           },
         },
@@ -195,23 +199,23 @@ export function AdminDashboardScreen({
   const getHeaderTitle = () => {
     switch (selectedTab) {
       case 'disputes':
-        return 'Phân xử Tranh chấp';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.disputes;
       case 'ekyc':
-        return 'Xét duyệt eKYC';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.ekyc;
       case 'devices':
-        return 'Kiểm duyệt Thiết bị';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.devices;
       case 'users':
-        return 'Quản lý Người dùng';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.users;
       case 'vouchers':
-        return 'Voucher & Khuyến mãi';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.vouchers;
       default:
-        return 'TechShare Admin Hub';
+        return STRINGS.ADMIN.DASHBOARD.TAB_TITLES.default;
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* ── 1. HEADER QUẢN TRỊ ADMIN HUB (Soft Surface) ── */}
+      {/* ── 1. HEADER (Soft Surface) ── */}
       <View
         style={[
           styles.header,
@@ -226,7 +230,6 @@ export function AdminDashboardScreen({
       >
         <View style={styles.headerTop}>
           <View style={styles.headerLeftGroup}>
-            {/* Nút Hamburger mềm mại bo tròn */}
             <TouchableOpacity
               style={styles.hamburgerButton}
               onPress={() => {
@@ -237,7 +240,7 @@ export function AdminDashboardScreen({
                 }
               }}
               activeOpacity={0.7}
-              accessibilityLabel="Mở menu quản trị"
+              accessibilityLabel="Open admin menu"
             >
               <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
@@ -250,13 +253,13 @@ export function AdminDashboardScreen({
           {onBackToHome && (
             <TouchableOpacity style={styles.exitButton} onPress={onBackToHome} activeOpacity={0.8}>
               <Ionicons name="exit-outline" size={16} color={theme.textSecondary} />
-              <Text style={styles.exitButtonText}>Thoát</Text>
+              <Text style={styles.exitButtonText}>Exit</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* ── 2. NỘI DUNG CUỘN CHÍNH (Tabs Container) ── */}
+      {/* ── 2. MAIN SCROLL CONTAINER ── */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -273,7 +276,7 @@ export function AdminDashboardScreen({
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-            <Text style={styles.loadingText}>Đang tải dữ liệu TechShare Admin...</Text>
+            <Text style={styles.loadingText}>Loading TechShare Admin data...</Text>
           </View>
         ) : (
           <>

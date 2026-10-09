@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { toggleFavoriteDevice } from '../../store/slices/wishlistSlice';
 import { ReviewListSection } from '../../components/device/ReviewListSection';
@@ -36,35 +37,12 @@ const formatPrice = (price: number): string => {
   return `${price.toLocaleString('en-US')} ₫`;
 };
 
-const CONDITION_LABELS: Record<string, string> = {
-  new: 'New',
-  new99: 'Like New',
-  used: 'Used',
-  used95: 'Gently Used',
-  good: 'Good',
-  fair: 'Fair',
-  scratched: 'Visible Wear',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  available: 'Available',
-  rented: 'Currently Rented',
-  maintenance: 'Under Maintenance',
-  hidden: 'Unavailable',
-};
-
-const SPEC_LABELS: Record<string, string> = {
-  'màn hình': 'Display',
-  pin: 'Battery',
-  'bộ nhớ': 'Storage',
-  'vi xử lý': 'Chip',
-  'hệ điều hành': 'Operating System',
-  'kích thước': 'Dimensions',
-  'trọng lượng': 'Weight',
-};
+const CONDITION_LABELS = STRINGS.DEVICE_DETAIL.CONDITION_LABELS;
+const STATUS_LABELS = STRINGS.DEVICE_DETAIL.STATUS_LABELS;
+const SPEC_LABELS = STRINGS.DEVICE_DETAIL.SPEC_LABELS;
 
 const getConditionLabel = (condition?: string): string => {
-  if (!condition) return 'Not specified';
+  if (!condition) return STRINGS.DEVICE_DETAIL.NOT_SPECIFIED;
   return CONDITION_LABELS[condition.toLowerCase()] ?? condition
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (character: string) => character.toUpperCase());
@@ -100,8 +78,8 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const handleToggleFavorite = () => {
     if (!isAuthenticated) {
       Alert.alert(
-        'Yêu cầu đăng nhập',
-        'Vui lòng đăng nhập để lưu thiết bị vào danh sách yêu thích.'
+        STRINGS.DEVICE_DETAIL.LOGIN_REQUIRED_TITLE,
+        STRINGS.DEVICE_DETAIL.LOGIN_REQUIRED_MSG
       );
       return;
     }
@@ -122,10 +100,10 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
     } catch (err: unknown) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined;
       Alert.alert(
-        'Error',
+        STRINGS.DEVICE_DETAIL.AI_ERROR_TITLE,
         status === 503
-          ? 'AI is currently busy. Please try again later.'
-          : 'Unable to analyze this device. Please try again.'
+          ? STRINGS.DEVICE_DETAIL.AI_BUSY_MSG
+          : STRINGS.DEVICE_DETAIL.AI_ERROR_MSG
       );
     } finally {
       aiRequestInProgress.current = false;
@@ -149,9 +127,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (isMounted) {
-          setError(status === 404 ? 'Device not found'
-            : status === 400 ? 'Invalid device ID'
-            : 'Unable to load device');
+          setError(
+            status === 404
+              ? STRINGS.DEVICE_DETAIL.NOT_FOUND
+              : status === 400
+              ? STRINGS.DEVICE_DETAIL.INVALID_ID
+              : STRINGS.DEVICE_DETAIL.LOAD_ERROR
+          );
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -166,7 +148,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.light.primary} />
-        <Text style={styles.loadingText}>Loading device details...</Text>
+        <Text style={styles.loadingText}>{STRINGS.DEVICE_DETAIL.LOADING}</Text>
       </View>
     );
   }
@@ -175,16 +157,16 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.light.error} />
-        <Text style={styles.errorTitle}>{error || 'Device not found'}</Text>
+        <Text style={styles.errorTitle}>{error || STRINGS.DEVICE_DETAIL.NOT_FOUND}</Text>
         <View style={styles.errorActions}>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => setRetryCount((count: number) => count + 1)}
           >
-            <Text style={styles.retryBtnText}>Try Again</Text>
+            <Text style={styles.retryBtnText}>{STRINGS.DEVICE_DETAIL.TRY_AGAIN}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-            <Text style={styles.backBtnText}>Back</Text>
+            <Text style={styles.backBtnText}>{STRINGS.DEVICE_DETAIL.BACK}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -214,7 +196,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={22}
-            color={isFavorite ? '#EF4444' : colors.light.textPrimary}
+            color={isFavorite ? colors.light.error : colors.light.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -250,7 +232,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
                   {failedImages[index] ? (
                     <View style={styles.imageFallback}>
                       <Ionicons name="image-outline" size={42} color={colors.light.textSecondary} />
-                      <Text style={styles.imageFallbackText}>Image unavailable</Text>
+                      <Text style={styles.imageFallbackText}>{STRINGS.DEVICE_DETAIL.IMAGE_UNAVAILABLE}</Text>
                     </View>
                   ) : (
                     <Image
@@ -277,7 +259,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
           ) : (
             <View style={styles.imageFallback}>
               <Ionicons name="image-outline" size={42} color={colors.light.textSecondary} />
-              <Text style={styles.imageFallbackText}>No image available</Text>
+              <Text style={styles.imageFallbackText}>{STRINGS.DEVICE_DETAIL.NO_IMAGE_AVAILABLE}</Text>
             </View>
           )}
           {imageUrls.length > 1 && (
@@ -329,7 +311,7 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
                 {device.rating ? device.rating.toFixed(1) : '5.0'}
               </Text>
               <Text style={styles.reviewCount}>
-                ({device.reviewCount || 0} reviews)
+                {STRINGS.DEVICE_DETAIL.REVIEWS_SUFFIX(device.reviewCount || 0)}
               </Text>
             </View>
 
@@ -346,40 +328,40 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
           {/* Price & Deposit Card */}
           <View style={styles.priceCard}>
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Daily rental price</Text>
-              <Text style={styles.priceMain}>{formatPrice(device.dailyRate)}/day</Text>
+              <Text style={styles.priceSub}>{STRINGS.DEVICE_DETAIL.DAILY_RENTAL_PRICE}</Text>
+              <Text style={styles.priceMain}>{formatPrice(device.dailyRate)}{STRINGS.DEVICE_DETAIL.PER_DAY}</Text>
             </View>
             <View style={styles.depositDivider} />
             <View style={styles.priceColumn}>
-              <Text style={styles.priceSub}>Security deposit</Text>
+              <Text style={styles.priceSub}>{STRINGS.DEVICE_DETAIL.SECURITY_DEPOSIT}</Text>
               <Text style={styles.depositMain}>{formatPrice(device.depositValue)}</Text>
             </View>
           </View>
 
-          <Text style={styles.sectionHeading}>Device Information</Text>
+          <Text style={styles.sectionHeading}>{STRINGS.DEVICE_DETAIL.DEVICE_INFO}</Text>
           <View style={styles.specRow}>
-            <Text style={styles.specKey}>Brand</Text>
+            <Text style={styles.specKey}>{STRINGS.DEVICE_DETAIL.BRAND}</Text>
             <Text style={styles.specValue}>{device.brand}</Text>
           </View>
           <View style={styles.specRow}>
-            <Text style={styles.specKey}>Condition</Text>
+            <Text style={styles.specKey}>{STRINGS.DEVICE_DETAIL.CONDITION}</Text>
             <Text style={styles.specValue}>{getConditionLabel(condition)}</Text>
           </View>
           {owner?.name && (
             <View style={styles.specRow}>
-              <Text style={styles.specKey}>Owner</Text>
+              <Text style={styles.specKey}>{STRINGS.DEVICE_DETAIL.OWNER}</Text>
               <Text style={styles.specValue}>{owner.name}</Text>
             </View>
           )}
 
           {/* Description */}
-          <Text style={styles.sectionHeading}>Description</Text>
+          <Text style={styles.sectionHeading}>{STRINGS.DEVICE_DETAIL.DESCRIPTION}</Text>
           <Text style={styles.descriptionText}>{device.description}</Text>
 
           {/* Specs */}
           {device.specs && Object.keys(device.specs).length > 0 && (
             <View style={styles.specsContainer}>
-              <Text style={styles.sectionHeading}>Specifications</Text>
+              <Text style={styles.sectionHeading}>{STRINGS.DEVICE_DETAIL.SPECIFICATIONS}</Text>
               {Object.entries(device.specs).map(([key, val]) => (
                 <View key={key} style={styles.specRow}>
                   <Text style={styles.specKey}>{getSpecLabel(key)}</Text>
@@ -396,12 +378,12 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
             activeOpacity={0.8}
           >
             {aiLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.light.white} />
             ) : (
-              <Ionicons name="sparkles-outline" size={18} color="#FFFFFF" />
+              <Ionicons name="sparkles-outline" size={18} color={colors.light.white} />
             )}
             <Text style={styles.aiReviewButtonText}>
-              {aiLoading ? 'Analyzing...' : 'AI Review'}
+              {aiLoading ? STRINGS.DEVICE_DETAIL.AI_ANALYZING_BTN : STRINGS.DEVICE_DETAIL.AI_REVIEW_BTN}
             </Text>
           </TouchableOpacity>
         </View>
@@ -423,10 +405,10 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
           ]}
         >
           <View>
-            <Text style={styles.bottomPriceSub}>Total rental fee</Text>
+            <Text style={styles.bottomPriceSub}>{STRINGS.DEVICE_DETAIL.TOTAL_RENTAL_FEE}</Text>
             <Text style={styles.bottomPriceMain}>
               {formatPrice(device.dailyRate)}
-              <Text style={styles.dayUnit}>/day</Text>
+              <Text style={styles.dayUnit}>{STRINGS.DEVICE_DETAIL.PER_DAY}</Text>
             </Text>
           </View>
 
@@ -436,13 +418,13 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
               if (onBookNow) {
                 onBookNow(deviceId);
               } else {
-                alert(`Book device: ${device.title}`);
+                alert(STRINGS.DEVICE_DETAIL.BOOK_DEVICE_FALLBACK(device.title));
               }
             }}
             activeOpacity={0.85}
           >
-            <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.bookBtnText}>Book Now</Text>
+            <Ionicons name="calendar-outline" size={18} color={colors.light.white} />
+            <Text style={styles.bookBtnText}>{STRINGS.DEVICE_DETAIL.BOOK_NOW}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -492,7 +474,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   retryBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontWeight: '600',
   },
   backBtn: {
@@ -542,7 +524,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 240,
     position: 'relative',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.light.border,
     overflow: 'hidden',
   },
   imagePage: {
@@ -587,7 +569,7 @@ const styles = StyleSheet.create({
   },
   paginationDotActive: {
     width: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.white,
   },
   categoryBadge: {
     position: 'absolute',
@@ -633,7 +615,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.primary,
   },
   statusRented: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     borderColor: colors.light.warning,
   },
   statusText: {
@@ -745,7 +727,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   aiReviewButtonText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -781,7 +763,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#0F172A',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -816,7 +798,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   bookBtnText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
   },

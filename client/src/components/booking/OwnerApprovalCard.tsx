@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { Booking } from '../../services/bookingService';
 import { ReviewItem } from '../../services/reviewService';
 import { RentalCountdownTimer } from './RentalCountdownTimer';
@@ -21,6 +22,7 @@ export interface OwnerApprovalCardProps {
   onComplete?: (booking: Booking) => void;
   onPress?: (booking: Booking) => void;
   onRateRenter?: (booking: Booking) => void;
+  onScanQr?: (booking: Booking) => void;
   renterReview?: ReviewItem;
   isUpdating?: boolean;
 }
@@ -30,39 +32,39 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bgColor: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
   pending: {
-    label: 'Chờ bạn duyệt',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.pending,
     color: colors.light.warning,
-    bgColor: '#FEF3C7',
+    bgColor: colors.light.warningLight,
     icon: 'time-outline',
   },
   approved: {
-    label: 'Đã duyệt • Bàn giao',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.approved,
     color: colors.light.primary,
     bgColor: colors.light.primaryLight,
     icon: 'checkmark-circle-outline',
   },
   active: {
-    label: 'Đang thuê • Nhận lại máy',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.active,
     color: colors.light.primaryDark,
     bgColor: colors.light.primaryLight,
     icon: 'play-circle-outline',
   },
   completed: {
-    label: 'Đã hoàn tất',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.completed,
     color: colors.light.success,
-    bgColor: '#DCFCE7',
+    bgColor: colors.light.successLight,
     icon: 'checkmark-done-circle-outline',
   },
   rejected: {
-    label: 'Đã từ chối',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.rejected,
     color: colors.light.error,
-    bgColor: '#FEE2E2',
+    bgColor: colors.light.dangerLight,
     icon: 'close-circle-outline',
   },
   cancelled: {
-    label: 'Khách đã hủy',
+    label: STRINGS.OWNER_APPROVAL_CARD.STATUS.cancelled,
     color: colors.light.textSecondary,
-    bgColor: '#F1F5F9',
+    bgColor: colors.light.surface,
     icon: 'ban-outline',
   },
 };
@@ -75,6 +77,7 @@ export function OwnerApprovalCard({
   onComplete,
   onPress,
   onRateRenter,
+  onScanQr,
   renterReview,
   isUpdating = false,
 }: OwnerApprovalCardProps) {
@@ -92,17 +95,23 @@ export function OwnerApprovalCard({
   const deviceImage =
     device.images?.[0] ||
     'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400';
-  const deviceTitle = device.name || device.title || 'Thiết bị công nghệ';
-  const renterName = renter.name || 'Khách thuê';
+  const deviceTitle = device.name || device.title || STRINGS.OWNER_APPROVAL_CARD.DEFAULT_DEVICE_TITLE;
+  const renterName = renter.name || STRINGS.OWNER_APPROVAL_CARD.DEFAULT_RENTER_NAME;
   const renterAvatar =
     renter.avatar ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
 
   const startDateStr = booking.startDate
-    ? new Date(booking.startDate).toLocaleDateString('vi-VN')
+    ? new Date(booking.startDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
     : '';
   const endDateStr = booking.endDate
-    ? new Date(booking.endDate).toLocaleDateString('vi-VN')
+    ? new Date(booking.endDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
     : '';
 
   return (
@@ -116,7 +125,7 @@ export function OwnerApprovalCard({
       onPress={() => onPress && onPress(booking)}
       activeOpacity={onPress ? 0.85 : 1}
     >
-      {/* ── 1. HEADER: Trạng thái & Mã đơn & Tổng tiền ── */}
+      {/* ── 1. HEADER: Status Badge & Booking Code & Total ── */}
       <View style={styles.headerRow}>
         <View style={[styles.statusBadge, { backgroundColor: statusCfg.bgColor }]}>
           <Ionicons name={statusCfg.icon} size={14} color={statusCfg.color} />
@@ -128,12 +137,12 @@ export function OwnerApprovalCard({
         <View style={styles.headerRight}>
           <Text style={styles.bookingCode}>#{booking.bookingCode || 'TS'}</Text>
           <Text style={styles.totalPrice}>
-            {(booking.totalAmount || 0).toLocaleString('vi-VN')} đ
+            {(booking.totalAmount || 0).toLocaleString('en-US')} {STRINGS.COMMON.CURRENCY_SUFFIX}
           </Text>
         </View>
       </View>
 
-      {/* ── 2. BODY: Thông tin thiết bị & Thời gian thuê ── */}
+      {/* ── 2. BODY: Device info & rental duration ── */}
       <View style={styles.bodyRow}>
         <Image source={{ uri: deviceImage }} style={styles.deviceThumb} />
 
@@ -145,14 +154,14 @@ export function OwnerApprovalCard({
           <View style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={13} color={colors.light.textSecondary} />
             <Text style={styles.durationText}>
-              {booking.totalDays} ngày ({startDateStr} - {endDateStr})
+              {booking.totalDays} {STRINGS.OWNER_APPROVAL_CARD.DAYS_UNIT} ({startDateStr} - {endDateStr})
             </Text>
           </View>
 
           <View style={styles.pricingPillsRow}>
             <View style={styles.pricePill}>
               <Text style={styles.pricePillText}>
-                Tiền thuê: {(booking.rentalFee || 0).toLocaleString('vi-VN')} đ
+                {STRINGS.OWNER_APPROVAL_CARD.RENT_LABEL((booking.rentalFee || 0).toLocaleString('en-US'))}
               </Text>
             </View>
 
@@ -160,7 +169,7 @@ export function OwnerApprovalCard({
               <View style={styles.depositPill}>
                 <Ionicons name="shield-checkmark-outline" size={11} color={colors.light.primary} />
                 <Text style={styles.depositPillText}>
-                  Cọc: {(booking.depositFee || 0).toLocaleString('vi-VN')} đ
+                  {STRINGS.OWNER_APPROVAL_CARD.DEPOSIT_LABEL((booking.depositFee || 0).toLocaleString('en-US'))}
                 </Text>
               </View>
             )}
@@ -168,7 +177,7 @@ export function OwnerApprovalCard({
         </View>
       </View>
 
-      {/* ── 3. KHÁCH THUÊ: Avatar, Tên, Điểm uy tín, SĐT ── */}
+      {/* ── 3. RENTER: Avatar, Name, Trust Score, Phone ── */}
       <View style={styles.renterCard}>
         <View style={styles.renterLeft}>
           <Image source={{ uri: renterAvatar }} style={styles.renterAvatar} />
@@ -180,7 +189,7 @@ export function OwnerApprovalCard({
               {renter.isVerified && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark-circle" size={13} color={colors.light.primary} />
-                  <Text style={styles.verifiedText}>Đã xác minh</Text>
+                  <Text style={styles.verifiedText}>{STRINGS.OWNER_APPROVAL_CARD.VERIFIED_BADGE}</Text>
                 </View>
               )}
             </View>
@@ -188,7 +197,7 @@ export function OwnerApprovalCard({
             <View style={styles.trustScoreRow}>
               <Ionicons name="star" size={12} color={colors.light.ratingStar} />
               <Text style={styles.trustScoreText}>
-                5.0 • Điểm uy tín: {renter.trustScore || 100}
+                {STRINGS.OWNER_APPROVAL_CARD.TRUST_SCORE_LABEL(renter.trustScore || 100)}
               </Text>
             </View>
           </View>
@@ -202,7 +211,7 @@ export function OwnerApprovalCard({
         )}
       </View>
 
-      {/* ── 4. PHƯƠNG THỨC GIAO NHẬN ── */}
+      {/* ── 4. DELIVERY METHOD ── */}
       {booking.deliveryMethod && (
         <View style={styles.deliveryRow}>
           <Ionicons
@@ -212,25 +221,38 @@ export function OwnerApprovalCard({
           />
           <Text style={styles.deliveryLabel}>
             {booking.deliveryMethod === 'delivery'
-              ? `Giao tận nơi: ${booking.deliveryAddress || 'Theo địa chỉ khách'}`
-              : 'Khách đến tự nhận tại điểm của chủ máy'}
+              ? STRINGS.OWNER_APPROVAL_CARD.DELIVERY_PREFIX(
+                  booking.deliveryAddress || STRINGS.OWNER_APPROVAL_CARD.DELIVERY_DEFAULT_ADDR
+                )
+              : STRINGS.OWNER_APPROVAL_CARD.PICKUP_LABEL}
           </Text>
         </View>
       )}
 
-      {/* ── 5. ĐỒNG HỒ ĐẾM NGƯỢC (KHI ĐANG ACTIVE) ── */}
+      {/* ── 4B. BEFORE-RENTAL PHOTOS BADGE ── */}
+      {booking.handoverPhotos?.beforeRental && booking.handoverPhotos.beforeRental.length > 0 && (
+        <View style={styles.beforeRentalBadgeRow}>
+          <Ionicons name="shield-checkmark" size={13} color={colors.light.success} />
+          <Text style={styles.beforeRentalBadgeText}>
+            {STRINGS.OWNER_APPROVAL_CARD.BEFORE_RENTAL_PHOTOS(booking.handoverPhotos.beforeRental.length)}
+          </Text>
+        </View>
+      )}
+
+      {/* ── 5. COUNTDOWN TIMER (WHEN ACTIVE) ── */}
       {isActive && booking.endDate && (
         <View style={styles.countdownContainer}>
           <RentalCountdownTimer endDate={booking.endDate} />
         </View>
       )}
 
-      {/* ── 6. LÝ DO TỪ CHỐI / HỦY (NẾU CÓ) ── */}
+      {/* ── 6. REJECTION / CANCELLATION REASON ── */}
       {isRejected && (
         <View style={styles.reasonBox}>
           <Ionicons name="alert-circle-outline" size={14} color={colors.light.error} />
           <Text style={styles.reasonText}>
-            Lý do từ chối: {(booking as any).rejectReason || 'Chủ máy bận hoặc chưa sẵn sàng'}
+            {STRINGS.OWNER_APPROVAL_CARD.REJECTION_REASON_PREFIX}
+            {(booking as any).rejectReason || STRINGS.OWNER_APPROVAL_CARD.REJECTION_REASON_DEFAULT}
           </Text>
         </View>
       )}
@@ -239,30 +261,33 @@ export function OwnerApprovalCard({
         <View style={styles.reasonBox}>
           <Ionicons name="information-circle-outline" size={14} color={colors.light.textSecondary} />
           <Text style={[styles.reasonText, { color: colors.light.textSecondary }]}>
-            Lý do hủy: {(booking as any).cancelReason || 'Khách đã hủy yêu cầu'}
+            {STRINGS.OWNER_APPROVAL_CARD.CANCELLATION_REASON_PREFIX}
+            {(booking as any).cancelReason || STRINGS.OWNER_APPROVAL_CARD.CANCELLATION_REASON_DEFAULT}
           </Text>
         </View>
       )}
 
-      {/* ── 7. HOÀN CỌC THÀNH CÔNG (KHI HOÀN TẤT) ── */}
+      {/* ── 7. COMPLETED BANNER ── */}
       {isCompleted && (
         <View style={styles.completedNoteBox}>
           <Ionicons name="checkmark-done" size={14} color={colors.light.success} />
           <Text style={styles.completedNoteText}>
-            Đơn thuê đã hoàn tất • Tiền cọc đã hoàn về ví khách • Doanh thu đã cộng ví chủ
+            {STRINGS.OWNER_APPROVAL_CARD.COMPLETED_BANNER}
           </Text>
         </View>
       )}
 
-      {/* ── 7B. CHIỀU 2: CHỦ MÁY ĐÁNH GIÁ Ý THỨC KHÁCH THUÊ ── */}
+      {/* ── 7B. OWNER REVIEWS RENTER ── */}
       {isCompleted && renterReview?.renterTrustRating ? (
         <View style={styles.ratedTrustBox}>
           <View style={styles.ratedTrustHeader}>
             <Ionicons name="shield-checkmark" size={15} color={colors.light.primary} />
-            <Text style={styles.ratedTrustTitle}>Đã chấm ý thức khách:</Text>
+            <Text style={styles.ratedTrustTitle}>{STRINGS.OWNER_APPROVAL_CARD.RATED_RENTER_TITLE}</Text>
             <View style={styles.ratedStarBadge}>
-              <Ionicons name="star" size={12} color="#FBBF24" />
-              <Text style={styles.ratedStarText}>{renterReview.renterTrustRating}/5 sao</Text>
+              <Ionicons name="star" size={12} color={colors.light.ratingStar} />
+              <Text style={styles.ratedStarText}>
+                {STRINGS.OWNER_APPROVAL_CARD.STARS_SUFFIX(renterReview.renterTrustRating)}
+              </Text>
             </View>
           </View>
           {!!renterReview.renterFeedback && (
@@ -275,11 +300,11 @@ export function OwnerApprovalCard({
         <View style={styles.rateRenterCtaBox}>
           <View style={styles.rateRenterCtaTextCol}>
             <View style={styles.rateRenterTagRow}>
-              <Ionicons name="star" size={13} color="#F59E0B" />
-              <Text style={styles.rateRenterCtaTitle}>Chấm điểm ý thức khách thuê</Text>
+              <Ionicons name="star" size={13} color={colors.light.warning} />
+              <Text style={styles.rateRenterCtaTitle}>{STRINGS.OWNER_APPROVAL_CARD.RATE_CTA_TITLE}</Text>
             </View>
             <Text style={styles.rateRenterCtaSub}>
-              Cộng hoặc trừ điểm tín nhiệm khách thuê
+              {STRINGS.OWNER_APPROVAL_CARD.RATE_CTA_SUB}
             </Text>
           </View>
           <TouchableOpacity
@@ -287,13 +312,13 @@ export function OwnerApprovalCard({
             onPress={() => onRateRenter(booking)}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnRateRenterText}>Đánh giá ngay</Text>
-            <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+            <Text style={styles.btnRateRenterText}>{STRINGS.OWNER_APPROVAL_CARD.RATE_NOW_BTN}</Text>
+            <Ionicons name="arrow-forward" size={13} color={colors.light.white} />
           </TouchableOpacity>
         </View>
       ) : null}
 
-      {/* ── 8. HÀNG NÚT THAO TÁC THEO TRẠNG THÁI ── */}
+      {/* ── 8. ACTION BUTTONS ── */}
       {isPending && (
         <View style={styles.actionsRow}>
           <TouchableOpacity
@@ -303,7 +328,7 @@ export function OwnerApprovalCard({
             activeOpacity={0.8}
           >
             <Ionicons name="close-circle-outline" size={16} color={colors.light.error} />
-            <Text style={styles.btnRejectText}>Từ chối</Text>
+            <Text style={styles.btnRejectText}>{STRINGS.OWNER_APPROVAL_CARD.REJECT_BTN}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -313,34 +338,48 @@ export function OwnerApprovalCard({
             activeOpacity={0.85}
           >
             {isUpdating ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.light.white} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.btnApproveText}>Duyệt đơn ngay</Text>
+                <Ionicons name="checkmark-circle-outline" size={16} color={colors.light.white} />
+                <Text style={styles.btnApproveText}>{STRINGS.OWNER_APPROVAL_CARD.APPROVE_BTN}</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
       )}
 
-      {isApproved && onHandover && (
+      {isApproved && (
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.btnHandover}
-            onPress={() => onHandover(booking)}
-            disabled={isUpdating}
-            activeOpacity={0.85}
-          >
-            {isUpdating ? (
-              <ActivityIndicator size="small" color={colors.light.primary} />
-            ) : (
-              <>
-                <Ionicons name="qr-code-outline" size={16} color={colors.light.primary} />
-                <Text style={styles.btnHandoverText}>Bàn giao máy (Kích hoạt)</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {onScanQr && (
+            <TouchableOpacity
+              style={styles.btnScanHandover}
+              onPress={() => onScanQr(booking)}
+              disabled={isUpdating}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="qr-code-outline" size={16} color={colors.light.white} />
+              <Text style={styles.btnScanHandoverText}>{STRINGS.OWNER_APPROVAL_CARD.SCAN_QR_BTN}</Text>
+            </TouchableOpacity>
+          )}
+
+          {onHandover && (
+            <TouchableOpacity
+              style={[styles.btnHandover, !onScanQr && { flex: 1 }]}
+              onPress={() => onHandover(booking)}
+              disabled={isUpdating}
+              activeOpacity={0.85}
+            >
+              {isUpdating ? (
+                <ActivityIndicator size="small" color={colors.light.primary} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-outline" size={16} color={colors.light.primary} />
+                  <Text style={styles.btnHandoverText}>{STRINGS.OWNER_APPROVAL_CARD.MANUAL_ACTIVATE_BTN}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -353,11 +392,11 @@ export function OwnerApprovalCard({
             activeOpacity={0.85}
           >
             {isUpdating ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.light.white} />
             ) : (
               <>
-                <Ionicons name="checkmark-done-circle-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.btnCompleteText}>Nhận máy & Hoàn tất</Text>
+                <Ionicons name="checkmark-done-circle-outline" size={16} color={colors.light.white} />
+                <Text style={styles.btnCompleteText}>{STRINGS.OWNER_APPROVAL_CARD.RECEIVE_COMPLETE_BTN}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -375,7 +414,7 @@ const styles = StyleSheet.create({
     borderColor: colors.light.border,
     padding: 14,
     marginBottom: 14,
-    shadowColor: '#000000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -585,6 +624,24 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     flex: 1,
   },
+  beforeRentalBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.light.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.light.successLight,
+    alignSelf: 'flex-start',
+  },
+  beforeRentalBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.light.success,
+  },
   countdownContainer: {
     marginTop: 10,
   },
@@ -592,7 +649,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.light.dangerLight,
     padding: 8,
     borderRadius: 8,
     marginTop: 10,
@@ -607,7 +664,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     padding: 8,
     borderRadius: 8,
     marginTop: 10,
@@ -636,7 +693,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.light.error,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
   },
   btnRejectText: {
     fontSize: 13,
@@ -656,7 +713,22 @@ const styles = StyleSheet.create({
   btnApproveText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
+  },
+  btnScanHandover: {
+    flex: 1.4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: colors.light.primary,
+  },
+  btnScanHandoverText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.white,
   },
   btnHandover: {
     flex: 1,
@@ -688,12 +760,12 @@ const styles = StyleSheet.create({
   btnCompleteText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   ratedTrustBox: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.light.successLight,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.light.successLight,
     borderRadius: 10,
     padding: 10,
     marginTop: 10,
@@ -706,14 +778,14 @@ const styles = StyleSheet.create({
   ratedTrustTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.light.success,
     flex: 1,
   },
   ratedStarBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -721,11 +793,11 @@ const styles = StyleSheet.create({
   ratedStarText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#92400E',
+    color: colors.light.warning,
   },
   ratedFeedbackText: {
     fontSize: 12,
-    color: '#374151',
+    color: colors.light.textPrimary,
     fontStyle: 'italic',
     marginTop: 4,
     marginLeft: 21,
@@ -734,9 +806,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.light.warningLight,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.light.warningLight,
     borderRadius: 10,
     padding: 10,
     marginTop: 10,
@@ -753,18 +825,18 @@ const styles = StyleSheet.create({
   rateRenterCtaTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#92400E',
+    color: colors.light.warning,
   },
   rateRenterCtaSub: {
     fontSize: 11,
-    color: '#B45309',
+    color: colors.light.warning,
     marginTop: 2,
   },
   btnRateRenter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#D97706',
+    backgroundColor: colors.light.warning,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -772,6 +844,6 @@ const styles = StyleSheet.create({
   btnRateRenterText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
 });

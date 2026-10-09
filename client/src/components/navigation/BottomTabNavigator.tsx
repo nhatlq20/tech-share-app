@@ -125,8 +125,8 @@ interface TabItemProps {
 function TabItem({ tab, isActive, onPress }: TabItemProps) {
   const iconName = isActive ? tab.iconActive : tab.iconInactive;
   const iconColor = isActive
-    ? theme.colors.primary[600]  // #2563EB
-    : theme.colors.slate[400];   // #94A3B8 — muted/inactive
+    ? theme.primary
+    : theme.textMuted;
 
   return (
     <TouchableOpacity
@@ -237,12 +237,11 @@ const styles = StyleSheet.create({
   },
 
   /**
-   * Active pill — nền nhạt primaryLight.
-   * Dùng theme.colors.primary[50] (#EFF6FF) — tông xanh nhạt nhất,
-   * tạo contrast với icon primary[600] bên trong.
+   * Active pill — nền nhạt primaryLight (brand-100: #E8F6F7).
+   * Tuân thủ theme-skill.md Nguyên tắc 2: Nền nhạt brand-100, icon đậm brand-500.
    */
   iconPillActive: {
-    backgroundColor: theme.colors.primary[50],
+    backgroundColor: theme.primaryLight,
   },
 
   /** Badge số đơn chờ xử lý — góc trên phải pill */
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.danger[500], // #EF4444
+    backgroundColor: theme.danger,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -277,11 +276,11 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   tabLabelActive: {
-    color: theme.colors.primary[600],  // #2563EB
+    color: theme.primaryDark,
     fontWeight: '600',
   },
   tabLabelInactive: {
-    color: theme.colors.slate[400],    // #94A3B8
+    color: theme.textMuted,
     fontWeight: '500',
   },
 });

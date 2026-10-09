@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { reviewService, ReviewItem } from '../../services/reviewService';
 
 interface OwnerRateRenterModalProps {
@@ -25,30 +26,36 @@ interface OwnerRateRenterModalProps {
 }
 
 const TRUST_LABELS: Record<number, { label: string; color: string; icon: string; desc: string }> = {
-  1: { label: 'Rất tệ', color: '#DC2626', icon: 'thumbs-down', desc: 'Vi phạm nghiêm trọng, thiết bị hư hỏng nặng hoặc mất phụ kiện' },
-  2: { label: 'Kém', color: '#F97316', icon: 'warning-outline', desc: 'Máy bẩn, xước nhẹ, trả trễ không báo trước' },
-  3: { label: 'Bình thường', color: '#F59E0B', icon: 'remove-circle-outline', desc: 'Trả trễ nhẹ nhưng có liên hệ trước, thiết bị ổn' },
-  4: { label: 'Hài lòng', color: '#16A34A', icon: 'thumbs-up-outline', desc: 'Giữ máy tốt, giao tiếp lịch sự, trả đúng hẹn' },
-  5: { label: 'Xuất sắc', color: '#2563EB', icon: 'star', desc: 'Khách hàng mẫu mực, máy sạch đẹp, phụ kiện đủ, trả sớm hơn hẹn' },
-};
-
-const QUICK_TAGS = [
-  { label: '✓ Máy sạch sẽ, nguyên vẹn', good: true },
-  { label: '✓ Trả đúng giờ hẹn', good: true },
-  { label: '✓ Giao tiếp lịch sự, văn minh', good: true },
-  { label: '✓ Đầy đủ phụ kiện khi trả', good: true },
-  { label: '⚠️ Trả trễ giờ', good: false },
-  { label: '⚠️ Thiết bị bị dính bẩn / xước nhẹ', good: false },
-  { label: '⚠️ Thiếu phụ kiện kèm theo', good: false },
-  { label: '⚠️ Giao tiếp khó khăn', good: false },
-];
-
-const TRUST_DELTA_INFO: Record<number, string> = {
-  5: '+ 2 điểm tín nhiệm',
-  4: '+ 1 điểm tín nhiệm',
-  3: 'Giữ nguyên điểm',
-  2: '− 5 điểm tín nhiệm',
-  1: '− 10 điểm tín nhiệm',
+  1: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[1].label,
+    color: colors.light.error,
+    icon: 'thumbs-down',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[1].desc,
+  },
+  2: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[2].label,
+    color: colors.light.warning,
+    icon: 'warning-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[2].desc,
+  },
+  3: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[3].label,
+    color: colors.light.warning,
+    icon: 'remove-circle-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[3].desc,
+  },
+  4: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[4].label,
+    color: colors.light.success,
+    icon: 'thumbs-up-outline',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[4].desc,
+  },
+  5: {
+    label: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[5].label,
+    color: colors.light.primary,
+    icon: 'star',
+    desc: STRINGS.OWNER_RATE_RENTER_MODAL.LEVELS[5].desc,
+  },
 };
 
 export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: OwnerRateRenterModalProps) {
@@ -65,7 +72,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
     reviewAny?.deviceId?.title ||
     reviewAny?.device?.name ||
     reviewAny?.device?.title ||
-    'Thiết bị';
+    STRINGS.OWNER_RATE_RENTER_MODAL.DEFAULT_DEVICE;
   const trustInfo = TRUST_LABELS[selectedRating];
 
   const toggleTag = (tag: string) => {
@@ -91,7 +98,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
         : (review.bookingId as any)?._id);
 
     if (!targetId) {
-      Alert.alert('Lỗi', 'Không tìm thấy thông tin đơn thuê');
+      Alert.alert(STRINGS.COMMON.ERROR, STRINGS.OWNER_RATE_RENTER_MODAL.ERR_NOT_FOUND);
       return;
     }
 
@@ -104,16 +111,16 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
         renterFeedback: finalFeedback,
       });
 
-      const deltaStr = TRUST_DELTA_INFO[selectedRating];
+      const deltaStr = STRINGS.OWNER_RATE_RENTER_MODAL.DELTA_INFO[selectedRating] || '';
       Alert.alert(
-        'Đã ghi nhận đánh giá ✅',
-        `Điểm ý thức ${selectedRating} sao đã được gửi.\n${deltaStr} sẽ được cập nhật ngay vào hồ sơ khách thuê.`
+        STRINGS.OWNER_RATE_RENTER_MODAL.SUCCESS_TITLE,
+        STRINGS.OWNER_RATE_RENTER_MODAL.SUCCESS_MSG(selectedRating, deltaStr)
       );
       onSuccess();
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Không thể gửi đánh giá lúc này.';
-      Alert.alert('Lỗi', msg);
+      const msg = err?.response?.data?.message || STRINGS.OWNER_RATE_RENTER_MODAL.ERR_SUBMIT;
+      Alert.alert(STRINGS.COMMON.ERROR, msg);
     } finally {
       setSubmitting(false);
     }
@@ -147,8 +154,8 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
               <Ionicons name="shield-checkmark" size={20} color={colors.light.primary} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Đánh giá ý thức khách thuê</Text>
-              <Text style={styles.headerSubtitle}>Phản hồi này ảnh hưởng đến điểm tín nhiệm khách</Text>
+              <Text style={styles.headerTitle}>{STRINGS.OWNER_RATE_RENTER_MODAL.TITLE}</Text>
+              <Text style={styles.headerSubtitle}>{STRINGS.OWNER_RATE_RENTER_MODAL.SUBTITLE}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={20} color={colors.light.textSecondary} />
@@ -164,18 +171,20 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                   style={styles.renterAvatar}
                 />
                 <View style={styles.renterInfo}>
-                  <Text style={styles.renterName}>{renter.name || 'Khách thuê'}</Text>
+                  <Text style={styles.renterName}>{renter.name || STRINGS.OWNER_RATE_RENTER_MODAL.DEFAULT_RENTER}</Text>
                   <Text style={styles.renterDevice} numberOfLines={1}>{deviceName}</Text>
                   <View style={styles.trustScoreRow}>
                     <Ionicons name="shield-checkmark-outline" size={13} color={colors.light.primary} />
-                    <Text style={styles.trustScoreText}>Điểm tín nhiệm hiện tại: {currentTrustScore}/100</Text>
+                    <Text style={styles.trustScoreText}>
+                      {STRINGS.OWNER_RATE_RENTER_MODAL.CURRENT_TRUST(currentTrustScore)}
+                    </Text>
                   </View>
                 </View>
               </View>
             )}
 
             {/* Star Selector */}
-            <Text style={styles.sectionLabel}>Chọn mức đánh giá ý thức:</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_RATING_LEVEL}</Text>
             <View style={styles.starSelector}>
               {[1, 2, 3, 4, 5].map((s) => {
                 const info = TRUST_LABELS[s];
@@ -205,16 +214,16 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
               <View style={styles.ratingDescTop}>
                 <Ionicons name={trustInfo.icon as any} size={16} color={trustInfo.color} />
                 <Text style={[styles.ratingDescTitle, { color: trustInfo.color }]}>
-                  {trustInfo.label} — {TRUST_DELTA_INFO[selectedRating]}
+                  {trustInfo.label} — {STRINGS.OWNER_RATE_RENTER_MODAL.DELTA_INFO[selectedRating]}
                 </Text>
               </View>
               <Text style={styles.ratingDescText}>{trustInfo.desc}</Text>
             </View>
 
             {/* Quick Tags */}
-            <Text style={styles.sectionLabel}>Chọn nhanh nhận xét phù hợp:</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_QUICK_TAGS}</Text>
             <View style={styles.tagsWrap}>
-              {QUICK_TAGS.map((tag) => {
+              {STRINGS.OWNER_RATE_RENTER_MODAL.QUICK_TAGS.map((tag) => {
                 const isSelected = selectedTags.includes(tag.label);
                 return (
                   <TouchableOpacity
@@ -240,10 +249,10 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             </View>
 
             {/* Free-form Feedback */}
-            <Text style={styles.sectionLabel}>Ghi chú thêm (tùy chọn):</Text>
+            <Text style={styles.sectionLabel}>{STRINGS.OWNER_RATE_RENTER_MODAL.SECTION_COMMENTS}</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Nhập nhận xét thêm về ý thức và hành vi sử dụng thiết bị..."
+              placeholder={STRINGS.OWNER_RATE_RENTER_MODAL.COMMENTS_PLACEHOLDER}
               placeholderTextColor={colors.light.textSecondary}
               value={feedback}
               onChangeText={setFeedback}
@@ -256,7 +265,7 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
             {/* Action Buttons */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
-                <Text style={styles.cancelBtnText}>Bỏ qua</Text>
+                <Text style={styles.cancelBtnText}>{STRINGS.OWNER_RATE_RENTER_MODAL.SKIP_BTN}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitBtn, { backgroundColor: trustInfo.color }]}
@@ -265,11 +274,13 @@ export function OwnerRateRenterModal({ visible, onClose, review, onSuccess }: Ow
                 activeOpacity={0.85}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.light.white} />
                 ) : (
                   <>
-                    <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-                    <Text style={styles.submitBtnText}>Gửi đánh giá ({selectedRating} ★)</Text>
+                    <Ionicons name="shield-checkmark" size={16} color={colors.light.white} />
+                    <Text style={styles.submitBtnText}>
+                      {STRINGS.OWNER_RATE_RENTER_MODAL.SUBMIT_BTN(selectedRating)}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -309,16 +320,16 @@ const styles = StyleSheet.create({
   ratingDescText: { fontSize: 12, color: colors.light.textSecondary, lineHeight: 18 },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, borderWidth: 1, borderColor: colors.light.border, backgroundColor: colors.light.surface },
-  tagChipGoodActive: { borderColor: '#16A34A', backgroundColor: '#DCFCE7' },
-  tagChipBadActive: { borderColor: '#F97316', backgroundColor: '#FFF7ED' },
+  tagChipGoodActive: { borderColor: colors.light.success, backgroundColor: colors.light.successLight },
+  tagChipBadActive: { borderColor: colors.light.warning, backgroundColor: colors.light.warningLight },
   tagChipText: { fontSize: 12, fontWeight: '600', color: colors.light.textSecondary },
-  tagChipTextGood: { color: '#16A34A' },
-  tagChipTextBad: { color: '#F97316' },
+  tagChipTextGood: { color: colors.light.success },
+  tagChipTextBad: { color: colors.light.warning },
   textInput: { borderWidth: 1, borderColor: colors.light.border, borderRadius: 10, padding: 12, fontSize: 13, color: colors.light.textPrimary, backgroundColor: colors.light.surface, textAlignVertical: 'top', minHeight: 80 },
   charCount: { fontSize: 11, color: colors.light.textSecondary, textAlign: 'right', marginTop: -8 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 6 },
   cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.light.border, alignItems: 'center', backgroundColor: colors.light.surface },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: colors.light.textSecondary },
   submitBtn: { flex: 2, paddingVertical: 12, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  submitBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  submitBtnText: { fontSize: 14, fontWeight: '700', color: colors.light.white },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { RentalCountdownTimer } from './RentalCountdownTimer';
 import { Booking } from '../../services/bookingService';
 
@@ -15,17 +16,17 @@ interface BookingItemCardProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Chờ duyệt', color: colors.light.warning, icon: 'time-outline' },
-  approved: { label: 'Đã duyệt', color: colors.light.primary, icon: 'checkmark-circle-outline' },
-  active: { label: 'Đang thuê', color: colors.light.primary, icon: 'play-circle-outline' },
-  completed: { label: 'Hoàn tất', color: colors.light.success, icon: 'star-outline' },
-  cancelled: { label: 'Đã hủy', color: colors.light.error, icon: 'close-circle-outline' },
-  rejected: { label: 'Từ chối', color: colors.light.error, icon: 'close-circle-outline' },
+  pending: { label: STRINGS.BOOKING_DETAIL.STATUS.pending, color: colors.light.warning, icon: 'time-outline' },
+  approved: { label: STRINGS.BOOKING_DETAIL.STATUS.approved, color: colors.light.primary, icon: 'checkmark-circle-outline' },
+  active: { label: STRINGS.BOOKING_DETAIL.STATUS.active, color: colors.light.primary, icon: 'play-circle-outline' },
+  completed: { label: STRINGS.BOOKING_DETAIL.STATUS.completed, color: colors.light.success, icon: 'star-outline' },
+  cancelled: { label: STRINGS.BOOKING_DETAIL.STATUS.cancelled, color: colors.light.error, icon: 'close-circle-outline' },
+  rejected: { label: STRINGS.BOOKING_DETAIL.STATUS.rejected, color: colors.light.error, icon: 'close-circle-outline' },
 };
 
 export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview, onReRent }: BookingItemCardProps) {
   const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
-  const deviceName = booking.deviceId?.name || 'Thiết bị';
+  const deviceName = booking.deviceId?.name || 'Device';
   const deviceImage = booking.deviceId?.images?.[0] || 'https://via.placeholder.com/150';
   const isActive = booking.status === 'active';
   const isPendingExtension = booking.extensionRequest?.status === 'pending';
@@ -53,10 +54,10 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
             {deviceName}
           </Text>
           <Text style={styles.dateText}>
-            Từ: {new Date(booking.startDate).toLocaleDateString('vi-VN')}
+            {STRINGS.BOOKING_ITEM_CARD.FROM_PREFIX}{new Date(booking.startDate).toLocaleDateString('en-US')}
           </Text>
           <Text style={styles.dateText}>
-            Đến: {new Date(booking.endDate).toLocaleDateString('vi-VN')} ({booking.totalDays} ngày)
+            {STRINGS.BOOKING_ITEM_CARD.TO_PREFIX}{new Date(booking.endDate).toLocaleDateString('en-US')} ({booking.totalDays} {booking.totalDays === 1 ? STRINGS.BOOKING_ITEM_CARD.DAY_UNIT : STRINGS.BOOKING_ITEM_CARD.DAYS_UNIT})
           </Text>
         </View>
       </View>
@@ -71,28 +72,32 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
       {/* Extension status indicator */}
       {isPendingExtension && (
         <View style={styles.extensionPendingTag}>
-          <Ionicons name="hourglass" size={14} color="#D97706" />
+          <Ionicons name="hourglass" size={14} color={colors.light.warning} />
           <Text style={styles.extensionPendingText}>
-            Đang chờ duyệt gia hạn +{booking.extensionRequest?.requestedDays} ngày (+
-            {booking.extensionRequest?.additionalFee?.toLocaleString('vi-VN')} đ)
+            {STRINGS.BOOKING_ITEM_CARD.EXTENSION_PENDING_TAG(
+              booking.extensionRequest?.requestedDays || 0,
+              booking.extensionRequest?.additionalFee?.toLocaleString('en-US') || '0'
+            )}
           </Text>
         </View>
       )}
 
       {isApprovedExtension && (
         <View style={styles.extensionApprovedTag}>
-          <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+          <Ionicons name="checkmark-circle" size={14} color={colors.light.success} />
           <Text style={styles.extensionApprovedText}>
-            Đã gia hạn thành công (+{booking.extensionRequest?.requestedDays} ngày)
+            {STRINGS.BOOKING_ITEM_CARD.EXTENSION_APPROVED_TAG(
+              booking.extensionRequest?.requestedDays || 0
+            )}
           </Text>
         </View>
       )}
 
       {/* Footer Total */}
       <View style={styles.footer}>
-        <Text style={styles.totalLabel}>Tổng tiền:</Text>
+        <Text style={styles.totalLabel}>{STRINGS.BOOKING_ITEM_CARD.TOTAL_LABEL}</Text>
         <Text style={styles.totalAmount}>
-          {booking.totalAmount?.toLocaleString('vi-VN')} đ
+          {booking.totalAmount?.toLocaleString('en-US')} VND
         </Text>
       </View>
 
@@ -102,7 +107,7 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
           {booking.status === 'pending' && onCancel && (
             <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
               <Ionicons name="close-circle-outline" size={15} color={colors.light.error} />
-              <Text style={styles.cancelButtonText}>Hủy đơn</Text>
+              <Text style={styles.cancelButtonText}>{STRINGS.BOOKING_ITEM_CARD.CANCEL_BOOKING}</Text>
             </TouchableOpacity>
           )}
 
@@ -126,7 +131,7 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
                   isPendingExtension && styles.extendButtonTextDisabled,
                 ]}
               >
-                {isPendingExtension ? 'Chờ duyệt gia hạn' : 'Gia hạn thuê'}
+                {isPendingExtension ? STRINGS.BOOKING_ITEM_CARD.EXTENSION_PENDING : STRINGS.BOOKING_ITEM_CARD.EXTEND_RENTAL}
               </Text>
             </TouchableOpacity>
           )}
@@ -136,19 +141,19 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
               <View style={styles.completedActions}>
                 <View style={styles.reviewedBadge}>
                   <Ionicons name="checkmark-done-circle" size={15} color={colors.light.success} />
-                  <Text style={styles.reviewedBadgeText}>Đã đánh giá</Text>
+                  <Text style={styles.reviewedBadgeText}>{STRINGS.BOOKING_ITEM_CARD.REVIEWED}</Text>
                 </View>
                 {onReRent && (
                   <TouchableOpacity style={styles.reRentButton} onPress={onReRent} activeOpacity={0.8}>
-                    <Ionicons name="repeat" size={15} color="#FFFFFF" />
-                    <Text style={styles.reRentButtonText}>Thuê lại</Text>
+                    <Ionicons name="repeat" size={15} color={colors.light.white} />
+                    <Text style={styles.reRentButtonText}>{STRINGS.BOOKING_ITEM_CARD.RENT_AGAIN}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             ) : onReview ? (
               <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
-                <Ionicons name="star" size={14} color="#FFFFFF" />
-                <Text style={styles.reviewButtonText}>Đánh giá dịch vụ</Text>
+                <Ionicons name="star" size={14} color={colors.light.white} />
+                <Text style={styles.reviewButtonText}>{STRINGS.BOOKING_ITEM_CARD.REVIEW_SERVICE}</Text>
               </TouchableOpacity>
             ) : null
           )}
@@ -160,13 +165,13 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.light.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.light.warningLight,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
   },
   extensionPendingText: {
     fontSize: 12,
-    color: '#92400E',
+    color: colors.light.warning,
     fontWeight: '600',
     flex: 1,
   },
@@ -254,7 +259,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -263,7 +268,7 @@ const styles = StyleSheet.create({
   },
   extensionApprovedText: {
     fontSize: 12,
-    color: '#15803D',
+    color: colors.light.success,
     fontWeight: '600',
     flex: 1,
   },
@@ -341,12 +346,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.light.warning,
   },
   reviewButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
   reviewedBadge: {
     flexDirection: 'row',
@@ -355,12 +360,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
   },
   reviewedBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#15803D',
+    color: colors.light.success,
   },
   completedActions: {
     flexDirection: 'row',
@@ -379,6 +384,6 @@ const styles = StyleSheet.create({
   reRentButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.light.white,
   },
 });

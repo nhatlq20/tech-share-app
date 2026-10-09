@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../constants/theme';
+import { theme, STRINGS, CONFIG } from '../../constants';
 import { useAppDispatch, useAppSelector } from '../../store';
 import {
   fetchNotifications,
@@ -34,11 +34,11 @@ interface NotificationScreenProps {
 }
 
 const FILTER_TABS: { key: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'all', label: 'Tất cả', icon: 'layers-outline' },
-  { key: 'order', label: 'Đơn hàng', icon: 'cube-outline' },
-  { key: 'reminder', label: 'Nhắc nhở', icon: 'alarm-outline' },
-  { key: 'system', label: 'Hệ thống', icon: 'shield-checkmark-outline' },
-  { key: 'promo', label: 'Ưu đãi', icon: 'pricetag-outline' },
+  { key: 'all', label: STRINGS.NOTIFICATION_SCREEN.TABS.ALL, icon: 'layers-outline' },
+  { key: 'order', label: STRINGS.NOTIFICATION_SCREEN.TABS.ORDER, icon: 'cube-outline' },
+  { key: 'reminder', label: STRINGS.NOTIFICATION_SCREEN.TABS.REMINDER, icon: 'alarm-outline' },
+  { key: 'system', label: STRINGS.NOTIFICATION_SCREEN.TABS.SYSTEM, icon: 'shield-checkmark-outline' },
+  { key: 'promo', label: STRINGS.NOTIFICATION_SCREEN.TABS.PROMO, icon: 'pricetag-outline' },
 ];
 
 export function NotificationScreen({
@@ -117,11 +117,11 @@ export function NotificationScreen({
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-      if (diffMins < 1) return 'Vừa xong';
-      if (diffMins < 60) return `${diffMins} phút trước`;
-      if (diffHours < 24) return `${diffHours} giờ trước`;
-      if (diffDays === 1) return 'Hôm qua';
-      if (diffDays < 7) return `${diffDays} ngày trước`;
+      if (diffMins < 1) return STRINGS.NOTIFICATION_SCREEN.TIME.JUST_NOW;
+      if (diffMins < 60) return STRINGS.NOTIFICATION_SCREEN.TIME.MINUTES_AGO(diffMins);
+      if (diffHours < 24) return STRINGS.NOTIFICATION_SCREEN.TIME.HOURS_AGO(diffHours);
+      if (diffDays === 1) return STRINGS.NOTIFICATION_SCREEN.TIME.YESTERDAY;
+      if (diffDays < 7) return STRINGS.NOTIFICATION_SCREEN.TIME.DAYS_AGO(diffDays);
 
       return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
         .toString()
@@ -141,28 +141,28 @@ export function NotificationScreen({
           icon: 'cube-outline' as keyof typeof Ionicons.glyphMap,
           color: theme.colors.primary[600],
           bgColor: theme.colors.primary[50],
-          label: 'Đơn hàng',
+          label: STRINGS.NOTIFICATION_SCREEN.TYPES.ORDER,
         };
       case 'reminder':
         return {
           icon: 'alarm-outline' as keyof typeof Ionicons.glyphMap,
           color: theme.colors.warning[600],
           bgColor: theme.colors.warning[50],
-          label: 'Nhắc nhở',
+          label: STRINGS.NOTIFICATION_SCREEN.TYPES.REMINDER,
         };
       case 'promo':
         return {
           icon: 'pricetag-outline' as keyof typeof Ionicons.glyphMap,
           color: theme.colors.danger[600],
           bgColor: theme.colors.danger[50],
-          label: 'Khuyến mãi',
+          label: STRINGS.NOTIFICATION_SCREEN.TYPES.PROMO,
         };
       case 'message':
         return {
           icon: 'chatbubble-ellipses-outline' as keyof typeof Ionicons.glyphMap,
           color: theme.colors.success[600],
           bgColor: theme.colors.success[50],
-          label: 'Tin nhắn',
+          label: STRINGS.NOTIFICATION_SCREEN.TYPES.MESSAGE,
         };
       case 'system':
       default:
@@ -170,7 +170,7 @@ export function NotificationScreen({
           icon: 'shield-checkmark-outline' as keyof typeof Ionicons.glyphMap,
           color: theme.colors.indigo[600],
           bgColor: theme.colors.indigo[50],
-          label: 'Hệ thống',
+          label: STRINGS.NOTIFICATION_SCREEN.TYPES.SYSTEM,
         };
     }
   };
@@ -248,7 +248,7 @@ export function NotificationScreen({
                 }
               }}
               activeOpacity={0.7}
-              accessibilityLabel="Mở menu quản lý chủ máy"
+              accessibilityLabel={STRINGS.NOTIFICATION_SCREEN.MENU_ACCESSIBILITY_LABEL}
             >
               <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
@@ -257,14 +257,14 @@ export function NotificationScreen({
               style={styles.backButton}
               onPress={onBack}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Quay lại"
+              accessibilityLabel={STRINGS.NOTIFICATION_SCREEN.BACK_ACCESSIBILITY_LABEL}
             >
               <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
 
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Thông báo</Text>
+            <Text style={styles.headerTitle}>{STRINGS.NOTIFICATION_SCREEN.HEADER_TITLE}</Text>
             {unreadCount > 0 && (
               <View style={styles.unreadBadgePill}>
                 <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
@@ -280,7 +280,7 @@ export function NotificationScreen({
             activeOpacity={0.7}
           >
             <Ionicons name="checkmark-done" size={16} color={theme.colors.primary[600]} />
-            <Text style={styles.markAllText}>Đọc tất cả</Text>
+            <Text style={styles.markAllText}>{STRINGS.NOTIFICATION_SCREEN.MARK_ALL_READ}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.headerRightPlaceholder} />
@@ -323,7 +323,7 @@ export function NotificationScreen({
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-          <Text style={styles.loadingText}>Đang tải thông báo...</Text>
+          <Text style={styles.loadingText}>{STRINGS.NOTIFICATION_SCREEN.LOADING}</Text>
         </View>
       ) : (
         <FlatList
@@ -350,11 +350,11 @@ export function NotificationScreen({
                   color={theme.colors.slate[400]}
                 />
               </View>
-              <Text style={styles.emptyTitle}>Không có thông báo nào</Text>
+              <Text style={styles.emptyTitle}>{STRINGS.NOTIFICATION_SCREEN.EMPTY_TITLE}</Text>
               <Text style={styles.emptySubtitle}>
                 {filter === 'all'
-                  ? 'Bạn sẽ nhận được các cập nhật về đơn thuê và ưu đãi mới tại đây.'
-                  : 'Không có thông báo nào phù hợp với bộ lọc này.'}
+                  ? STRINGS.NOTIFICATION_SCREEN.EMPTY_SUBTITLE_ALL
+                  : STRINGS.NOTIFICATION_SCREEN.EMPTY_SUBTITLE_FILTER}
               </Text>
             </View>
           }
@@ -389,11 +389,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.borderSubtle,
   },
   backButton: {
     width: 36,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   },
   itemCardUnread: {
     borderColor: theme.colors.primary[500],
-    backgroundColor: '#FAFDFE', // Nhấn nhẹ trạng thái chưa đọc
+    backgroundColor: theme.colors.primary[50],
   },
   typeIconContainer: {
     width: 40,

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { DisputeItem, DisputeDecision } from '../../types';
 import { adminService } from '../../services/adminService';
 
@@ -84,33 +85,43 @@ export function DisputeResolverModal({
 
   const handleSubmitResolution = async () => {
     Alert.alert(
-      'Xác nhận ban hành phán quyết',
-      `Bạn có chắc chắn muốn giải quyết tranh chấp đơn #${booking?.bookingCode || ''}?\n\n• Bồi thường chủ máy: ${finalDeduct.toLocaleString('vi-VN')} đ\n• Hoàn lại khách thuê: ${finalRefund.toLocaleString('vi-VN')} đ\n\nTiền ký quỹ sẽ được điều chuyển ngay lập tức.`,
+      STRINGS.ADMIN.DISPUTE_MODAL.CONFIRM_TITLE,
+      STRINGS.ADMIN.DISPUTE_MODAL.CONFIRM_MSG(
+        booking?.bookingCode || '',
+        finalDeduct.toLocaleString('en-US'),
+        finalRefund.toLocaleString('en-US')
+      ),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: STRINGS.ADMIN.DISPUTE_MODAL.CANCEL, style: 'cancel' },
         {
-          text: 'Xác nhận thi hành',
+          text: STRINGS.ADMIN.DISPUTE_MODAL.EXECUTE_RULING,
           onPress: async () => {
             setLoading(true);
             try {
               const res = await adminService.resolveDispute(dispute._id, {
                 decision,
                 finalDeductAmount: finalDeduct,
-                note: adminNote || `Admin phán quyết: ${decision}`,
+                note: adminNote || `Admin ruling: ${decision}`,
               });
 
               if (res && res.success) {
                 Alert.alert(
-                  'Thành công! 🎉',
-                  'Đã ban hành phán quyết trọng tài và điều chuyển tiền ký quỹ thành công.'
+                  STRINGS.ADMIN.DISPUTE_MODAL.SUCCESS_TITLE,
+                  STRINGS.ADMIN.DISPUTE_MODAL.SUCCESS_MSG
                 );
                 onResolved(dispute._id, decision, finalDeduct, finalRefund);
                 onClose();
               } else {
-                Alert.alert('Thông báo', res?.message || 'Không thể giải quyết tranh chấp.');
+                Alert.alert(
+                  STRINGS.BOOKING_DETAIL.ALERT_NOTICE_TITLE,
+                  res?.message || STRINGS.ADMIN.DISPUTE_MODAL.ERROR_DEFAULT
+                );
               }
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Đã có lỗi xảy ra khi gọi API.');
+              Alert.alert(
+                STRINGS.BOOKING_DETAIL.ALERT_ERROR_TITLE,
+                err.message || STRINGS.ADMIN.DISPUTE_MODAL.ERROR_DEFAULT
+              );
             } finally {
               setLoading(false);
             }
@@ -131,9 +142,12 @@ export function DisputeResolverModal({
                 <Ionicons name="scale-outline" size={20} color={colors.light.primary} />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Phân Xử Tranh Chấp Tiền Cọc</Text>
+                <Text style={styles.modalTitle}>{STRINGS.ADMIN.DISPUTE_MODAL.MODAL_TITLE}</Text>
                 <Text style={styles.modalSubtitle}>
-                  Đơn #{booking?.bookingCode} • {booking?.deviceId?.name || 'Thiết bị'}
+                  {STRINGS.ADMIN.DISPUTE_MODAL.ORDER_PREFIX(
+                    booking?.bookingCode || '',
+                    booking?.deviceId?.name || STRINGS.BOOKING_DETAIL.DEFAULT_DEVICE_NAME
+                  )}
                 </Text>
               </View>
             </View>
@@ -143,78 +157,78 @@ export function DisputeResolverModal({
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {/* Thông tin 2 bên và số tiền cọc */}
+            {/* Parties info and deposit amount */}
             <View style={styles.partiesCard}>
               <View style={styles.partyItem}>
-                <Text style={styles.partyRoleLabel}>Chủ máy (Bên yêu cầu)</Text>
-                <Text style={styles.partyName}>{booking?.ownerId?.name || 'Chủ máy'}</Text>
+                <Text style={styles.partyRoleLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.OWNER_ROLE}</Text>
+                <Text style={styles.partyName}>{booking?.ownerId?.name || STRINGS.BOOKING_DETAIL.DEFAULT_OWNER_NAME}</Text>
                 <Text style={styles.partyPhone}>{booking?.ownerId?.phone || '0912345678'}</Text>
               </View>
               <View style={styles.partyDivider} />
               <View style={styles.partyItem}>
-                <Text style={styles.partyRoleLabel}>Khách thuê (Bên thuê)</Text>
-                <Text style={styles.partyName}>{booking?.renterId?.name || 'Khách thuê'}</Text>
+                <Text style={styles.partyRoleLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.RENTER_ROLE}</Text>
+                <Text style={styles.partyName}>{booking?.renterId?.name || STRINGS.ADMIN.DISPUTE_MODAL.RENTER_ROLE}</Text>
                 <Text style={styles.partyPhone}>{booking?.renterId?.phone || '0901234567'}</Text>
               </View>
             </View>
 
-            {/* Hộp Tài chính Ký quỹ */}
+            {/* Escrow financial box */}
             <View style={styles.escrowCard}>
               <View style={styles.escrowCol}>
-                <Text style={styles.escrowLabel}>Tổng tiền cọc Escrow giữ</Text>
+                <Text style={styles.escrowLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.TOTAL_ESCROW_LABEL}</Text>
                 <Text style={styles.escrowValuePrimary}>
-                  {depositFee.toLocaleString('vi-VN')} đ
+                  {depositFee.toLocaleString('en-US')} VND
                 </Text>
               </View>
               <View style={styles.escrowCol}>
-                <Text style={styles.escrowLabel}>Chủ máy yêu cầu trừ cọc</Text>
+                <Text style={styles.escrowLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.OWNER_CLAIMED_LABEL}</Text>
                 <Text style={styles.escrowValueWarning}>
-                  {requestedAmount.toLocaleString('vi-VN')} đ
+                  {requestedAmount.toLocaleString('en-US')} VND
                 </Text>
               </View>
             </View>
 
-            {/* Lý do tranh chấp */}
+            {/* Dispute reason */}
             <View style={styles.reasonBox}>
               <View style={styles.reasonHeader}>
                 <Ionicons name="chatbox-ellipses-outline" size={16} color={colors.light.error} />
-                <Text style={styles.reasonTitle}>Nội dung khiếu nại từ chủ máy:</Text>
+                <Text style={styles.reasonTitle}>{STRINGS.ADMIN.DISPUTE_MODAL.CLAIM_DETAILS_LABEL}</Text>
               </View>
               <Text style={styles.reasonContent}>"{dispute.reason}"</Text>
             </View>
 
-            {/* ĐỐI CHIẾU ẢNH 2 CỘT */}
-            <Text style={styles.sectionHeading}>📸 ĐỐI CHIẾU HÌNH ẢNH TRƯỚC VÀ SAU THUÊ</Text>
+            {/* 2-column image comparison */}
+            <Text style={styles.sectionHeading}>{STRINGS.ADMIN.DISPUTE_MODAL.INSPECTION_HEADING}</Text>
             <View style={styles.comparisonGrid}>
-              {/* Cột trái: Ảnh lúc bàn giao trước thuê */}
+              {/* Left col: Pre-handover photos */}
               <View style={styles.comparisonCol}>
                 <View style={styles.colHeaderRow}>
                   <Ionicons name="checkmark-circle" size={14} color={colors.light.success} />
-                  <Text style={styles.colHeaderGreen}>Ảnh trước bàn giao</Text>
+                  <Text style={styles.colHeaderGreen}>{STRINGS.ADMIN.DISPUTE_MODAL.PRE_HANDOVER_TITLE}</Text>
                 </View>
                 <Image source={{ uri: beforeImages[0] }} style={styles.proofImg} />
                 <View style={styles.proofBadgeGreen}>
-                  <Text style={styles.proofBadgeGreenText}>Nguyên vẹn lúc nhận máy</Text>
+                  <Text style={styles.proofBadgeGreenText}>{STRINGS.ADMIN.DISPUTE_MODAL.INTACT_BADGE}</Text>
                 </View>
               </View>
 
-              {/* Cột phải: Ảnh thu hồi sau thuê & Bằng chứng */}
+              {/* Right col: Return & evidence photos */}
               <View style={styles.comparisonCol}>
                 <View style={styles.colHeaderRow}>
                   <Ionicons name="alert-circle" size={14} color={colors.light.error} />
-                  <Text style={styles.colHeaderRed}>Ảnh thu hồi & Bằng chứng</Text>
+                  <Text style={styles.colHeaderRed}>{STRINGS.ADMIN.DISPUTE_MODAL.RETURN_EVIDENCE_TITLE}</Text>
                 </View>
                 <Image source={{ uri: afterImages[0] }} style={styles.proofImg} />
                 <View style={styles.proofBadgeRed}>
-                  <Text style={styles.proofBadgeRedText}>Tổn hại sau sử dụng</Text>
+                  <Text style={styles.proofBadgeRedText}>{STRINGS.ADMIN.DISPUTE_MODAL.DAMAGE_BADGE}</Text>
                 </View>
               </View>
             </View>
 
-            {/* 3 LỰA CHỌN PHÁN QUYẾT */}
-            <Text style={styles.sectionHeading}>⚖️ PHÁN QUYẾT CỦA QUẢN TRỊ VIÊN</Text>
+            {/* 3 Ruling choices */}
+            <Text style={styles.sectionHeading}>{STRINGS.ADMIN.DISPUTE_MODAL.RULING_HEADING}</Text>
 
-            {/* Lựa chọn 1: Trừ một phần (Khuyến nghị cho trường hợp trầy xước nhẹ) */}
+            {/* Choice 1: Partial deduct */}
             <TouchableOpacity
               style={[
                 styles.choiceCard,
@@ -233,40 +247,40 @@ export function DisputeResolverModal({
                   {decision === 'partial_deduct' && <View style={styles.radioDot} />}
                 </View>
                 <View style={styles.choiceTitleCol}>
-                  <Text style={styles.choiceTitle}>Trừ một phần cọc bồi thường chủ máy</Text>
+                  <Text style={styles.choiceTitle}>{STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_PARTIAL_TITLE}</Text>
                   <Text style={styles.choiceDesc}>
-                    Chủ máy nhận tiền bồi thường sửa chữa, phần cọc còn lại hoàn trả khách thuê.
+                    {STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_PARTIAL_DESC}
                   </Text>
                 </View>
               </View>
 
               {decision === 'partial_deduct' && (
                 <View style={styles.deductInputBox}>
-                  <Text style={styles.inputLabel}>Nhập số tiền trừ cọc đền bù chủ máy (VNĐ):</Text>
+                  <Text style={styles.inputLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_PARTIAL_INPUT_LABEL}</Text>
                   <View style={styles.inputRow}>
                     <TextInput
                       style={styles.numericInput}
                       keyboardType="numeric"
                       value={deductAmountText}
                       onChangeText={(val: string) => setDeductAmountText(val)}
-                      placeholder="Nhập số tiền (ví dụ: 1500000)"
+                      placeholder={STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_PARTIAL_PLACEHOLDER}
                       placeholderTextColor={colors.light.textSecondary}
                     />
-                    <Text style={styles.currencySuffix}>đ</Text>
+                    <Text style={styles.currencySuffix}>VND</Text>
                   </View>
 
-                  {/* Bảng tính toán tức thì */}
+                  {/* Calculation preview */}
                   <View style={styles.calculationPreview}>
                     <View style={styles.calcRow}>
-                      <Text style={styles.calcLabel}>Chủ máy nhận đền bù:</Text>
+                      <Text style={styles.calcLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.OWNER_COMPENSATION_LABEL}</Text>
                       <Text style={styles.calcValueOwner}>
-                        +{finalDeduct.toLocaleString('vi-VN')} đ
+                        +{finalDeduct.toLocaleString('en-US')} VND
                       </Text>
                     </View>
                     <View style={styles.calcRow}>
-                      <Text style={styles.calcLabel}>Khách thuê được hoàn lại:</Text>
+                      <Text style={styles.calcLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.RENTER_REFUND_LABEL}</Text>
                       <Text style={styles.calcValueRenter}>
-                        +{finalRefund.toLocaleString('vi-VN')} đ
+                        +{finalRefund.toLocaleString('en-US')} VND
                       </Text>
                     </View>
                   </View>
@@ -274,7 +288,7 @@ export function DisputeResolverModal({
               )}
             </TouchableOpacity>
 
-            {/* Lựa chọn 2: Hoàn 100% cọc cho khách */}
+            {/* Choice 2: Full refund to renter */}
             <TouchableOpacity
               style={[styles.choiceCard, decision === 'full_refund' && styles.choiceCardSelected]}
               onPress={() => setDecision('full_refund')}
@@ -290,16 +304,15 @@ export function DisputeResolverModal({
                   {decision === 'full_refund' && <View style={styles.radioDot} />}
                 </View>
                 <View style={styles.choiceTitleCol}>
-                  <Text style={styles.choiceTitle}>Hoàn 100% Cọc cho Khách thuê</Text>
+                  <Text style={styles.choiceTitle}>{STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_REFUND_TITLE}</Text>
                   <Text style={styles.choiceDesc}>
-                    Bằng chứng không đủ cơ sở hoặc thiết bị hao mòn tự nhiên. Khách nhận lại toàn bộ{' '}
-                    {depositFee.toLocaleString('vi-VN')} đ.
+                    {STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_REFUND_DESC(depositFee.toLocaleString('en-US'))}
                   </Text>
                 </View>
               </View>
             </TouchableOpacity>
 
-            {/* Lựa chọn 3: Trừ 100% cọc đền bù chủ máy */}
+            {/* Choice 3: Full deduct to owner */}
             <TouchableOpacity
               style={[styles.choiceCard, decision === 'full_deduct' && styles.choiceCardSelected]}
               onPress={() => setDecision('full_deduct')}
@@ -315,25 +328,24 @@ export function DisputeResolverModal({
                   {decision === 'full_deduct' && <View style={styles.radioDot} />}
                 </View>
                 <View style={styles.choiceTitleCol}>
-                  <Text style={styles.choiceTitle}>Trừ 100% Cọc bồi thường Chủ máy</Text>
+                  <Text style={styles.choiceTitle}>{STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_DEDUCT_TITLE}</Text>
                   <Text style={styles.choiceDesc}>
-                    Thiết bị hỏng hóc nặng hoặc mất mát linh kiện. Chủ máy nhận toàn bộ{' '}
-                    {depositFee.toLocaleString('vi-VN')} đ.
+                    {STRINGS.ADMIN.DISPUTE_MODAL.CHOICE_DEDUCT_DESC(depositFee.toLocaleString('en-US'))}
                   </Text>
                 </View>
               </View>
             </TouchableOpacity>
 
-            {/* Ghi chú của Admin */}
+            {/* Admin notes */}
             <View style={styles.noteInputBox}>
-              <Text style={styles.inputLabel}>Ghi chú biên bản phán quyết (tùy chọn):</Text>
+              <Text style={styles.inputLabel}>{STRINGS.ADMIN.DISPUTE_MODAL.REPORT_NOTE_LABEL}</Text>
               <TextInput
                 style={styles.textNoteInput}
                 multiline
                 numberOfLines={2}
                 value={adminNote}
                 onChangeText={setAdminNote}
-                placeholder="Ghi rõ lý do phán quyết để thông báo cho cả 2 bên..."
+                placeholder={STRINGS.ADMIN.DISPUTE_MODAL.REPORT_NOTE_PLACEHOLDER}
                 placeholderTextColor={colors.light.textSecondary}
               />
             </View>
@@ -347,7 +359,7 @@ export function DisputeResolverModal({
               disabled={loading}
               activeOpacity={0.8}
             >
-              <Text style={styles.btnCancelText}>Đóng</Text>
+              <Text style={styles.btnCancelText}>{STRINGS.ADMIN.DISPUTE_MODAL.CLOSE}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -357,11 +369,11 @@ export function DisputeResolverModal({
               activeOpacity={0.8}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={colors.light.white} size="small" />
               ) : (
                 <>
-                  <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
-                  <Text style={styles.btnSubmitText}>Ban hành Phán Quyết</Text>
+                  <Ionicons name="shield-checkmark" size={18} color={colors.light.white} />
+                  <Text style={styles.btnSubmitText}>{STRINGS.ADMIN.DISPUTE_MODAL.SUBMIT_RULING}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -484,14 +496,14 @@ const styles = StyleSheet.create({
   escrowValueWarning: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#D97706',
+    color: colors.light.warning,
   },
   reasonBox: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.light.dangerLight,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.light.dangerLight,
     marginBottom: 16,
   },
   reasonHeader: {
@@ -507,7 +519,7 @@ const styles = StyleSheet.create({
   },
   reasonContent: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.light.error,
     lineHeight: 18,
     fontStyle: 'italic',
   },
@@ -556,7 +568,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   proofBadgeGreen: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.light.successLight,
     paddingVertical: 3,
     paddingHorizontal: 6,
     borderRadius: 4,
@@ -565,10 +577,10 @@ const styles = StyleSheet.create({
   proofBadgeGreenText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#15803D',
+    color: colors.light.success,
   },
   proofBadgeRed: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.light.dangerLight,
     paddingVertical: 3,
     paddingHorizontal: 6,
     borderRadius: 4,
@@ -589,7 +601,7 @@ const styles = StyleSheet.create({
   },
   choiceCardSelected: {
     borderColor: colors.light.primary,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: colors.light.primaryLight,
   },
   choiceHeaderRow: {
     flexDirection: 'row',
@@ -740,7 +752,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   btnSubmitText: {
-    color: '#FFFFFF',
+    color: colors.light.white,
     fontSize: 13,
     fontWeight: '700',
   },
