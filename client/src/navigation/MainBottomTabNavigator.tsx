@@ -72,6 +72,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToSearch={() => console.log('[Nav] Search')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
             onNavigateToChat={() => console.log('[Nav] Chat')}
+            onNavigateToAiConsultant={() => navigation.navigate('AiChatConsultant')}
             onNavigateToOwnerDashboard={() =>
               navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')
             }

@@ -39,6 +39,7 @@ interface HomeScreenProps {
   onNavigateToSearch?: () => void;
   onNavigateToNotifications?: () => void;
   onNavigateToChat?: () => void;
+  onNavigateToAiConsultant?: () => void;
   onNavigateToOwnerDashboard?: () => void;
   /** Số tin nhắn chưa đọc — hiện badge nếu > 0 */
   unreadMessages?: number;
@@ -51,6 +52,7 @@ export function HomeScreen({
   onNavigateToWishlist,
   onNavigateToNotifications,
   onNavigateToChat,
+  onNavigateToAiConsultant,
   onNavigateToOwnerDashboard,
   unreadMessages = 2,
   unreadNotifications,
@@ -403,6 +405,18 @@ export function HomeScreen({
           }
         />
       )}
+
+      {onNavigateToAiConsultant && (
+        <TouchableOpacity
+          style={[styles.aiConsultantButton, { bottom: insets.bottom + 16 }]}
+          onPress={onNavigateToAiConsultant}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open AI rental consultant"
+        >
+          <Ionicons name="sparkles" size={23} color={colors.light.white} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -411,6 +425,21 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.light.background,
+  },
+  aiConsultantButton: {
+    position: 'absolute',
+    right: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.light.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
   listContent: {
     paddingBottom: 24,

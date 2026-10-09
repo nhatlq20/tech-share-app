@@ -29,6 +29,7 @@ import { MyDevicesScreen } from '../screens/user/MyDevicesScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BookingManageScreen, BookingManageTab } from '../screens/booking/BookingManageScreen';
 import { WishlistScreen } from '../screens/device/WishlistScreen';
+import { AiChatConsultant } from '../screens/ai/AiChatConsultant';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -61,6 +62,7 @@ export type RootStackParamList = {
       }
     | undefined;
   Notification: { from?: string } | undefined;
+  AiChatConsultant: undefined;
 };
 
 export const rootNavigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -170,6 +172,15 @@ const NotificationRoute = ({ route, navigation }: any) => {
   );
 };
 
+const AiChatConsultantRoute = ({ navigation }: any) => (
+  <AiChatConsultant
+    onBack={() => navigation.goBack()}
+    onNavigateToDeviceDetail={(deviceId) =>
+      navigation.navigate('DeviceDetail', { deviceId })
+    }
+  />
+);
+
 export function RootNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -247,6 +258,7 @@ export function RootNavigator() {
           <Stack.Group>
             <Stack.Screen name="AdminRoot" component={AdminDrawerNavigator} />
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
+            <Stack.Screen name="AiChatConsultant">{AiChatConsultantRoute}</Stack.Screen>
             <Stack.Screen name="DeviceDetail">{DeviceDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingDetail">{BookingDetailRoute}</Stack.Screen>
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
@@ -257,6 +269,7 @@ export function RootNavigator() {
           <Stack.Group>
             <Stack.Screen name="OwnerRoot" component={OwnerDrawerNavigator} />
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
+            <Stack.Screen name="AiChatConsultant">{AiChatConsultantRoute}</Stack.Screen>
             <Stack.Screen name="MyDevices">
               {({ navigation }) => (
                 <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
@@ -282,6 +295,7 @@ export function RootNavigator() {
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainBottomTabNavigator} />
+            <Stack.Screen name="AiChatConsultant">{AiChatConsultantRoute}</Stack.Screen>
             <Stack.Screen name="MyDevices">
               {({ navigation }) => (
                 <SafeAreaView style={{ flex: 1, backgroundColor: colors.light.surface }}>
