@@ -1,3 +1,4 @@
+import { model } from "mongoose";
 import Device from "../models/Device.js";
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -301,6 +302,200 @@ Cuối cùng:
     return res.status(error.status || 500).json({
       message: "AI comparison failed",
       error: error.message,
+    });
+  }
+};
+
+export const consultDevice = async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (typeof message !== "string" || !message.trim()) {
+      return res.status(400).json({
+        message: "Please enter your rental requirements",
+      });
+    }
+    const devices = await Device.find({
+      status: "available",
+      isDelete: { $ne: true },
+    })
+      .select(
+        "name brand category pricePerDay depositAmount condition description specs",
+      )
+      .limit(50)
+      .lean();
+
+    if (devices.length === 0) {
+      return res.status(200).json({
+        message: "No devices available",
+        recommendations: [],
+      });
+    }
+    const prompt = `
+Bạn là AI tư vấn thuê thiết bị công nghệ của TechShare.
+
+Nhu cầu khách hàng:
+${message}
+
+Danh sách thiết bị hiện có:
+${JSON.stringify(devices)}
+
+Nhiệm vụ:
+1. Phân tích nhu cầu thuê của khách hàng.
+2. Chọn tối đa 3 thiết bị phù hợp nhất.
+3. Giải thích tại sao mỗi thiết bị phù hợp.
+4. Ưu tiên thiết bị đáp ứng ngân sách khách hàng.
+5. Không được đề xuất thiết bị ngoài danh sách.
+6. Nếu không có thiết bị phù hợp, hãy thông báo rõ.
+
+Trả lời bằng tiếng Việt dưới dạng JSON:
+
+{
+  "reply": "Nội dung tư vấn",
+  "recommendations": [
+    {
+      "deviceId": "ID thiết bị",
+      "reason": "Lý do đề xuất"
+    }
+  ]
+}
+
+Chỉ trả về JSON.
+`;
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const result = JSON.parse(response.text);
+
+    const deviceMap = new Map(
+      devices.map((device) => [String(device._id), device]),
+    );
+
+    const recommendations = (result.recommendations || [])
+      .filter((item) => deviceMap.has(String(item.deviceId)))
+      .slice(0, 3)
+      .map((item) => ({
+        device: deviceMap.get(String(item.deviceId)),
+        reason: item.reason,
+      }));
+
+    return res.status(200).json({
+      success: true,
+      reply: result.reply,
+      recommendations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "AI consultation failed",
+    });
+  }
+};
+export const generateDeviceDescription = async (req, res) => {
+  try {
+    const { name, brand, category, pricePerDay, depositAmount, specs } =
+      req.body;
+
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof brand !== "string" ||
+      !brand.trim() ||
+      typeof category !== "string" ||
+      !category.trim()
+    ) {
+      return res.status(400).json({
+        message: "Name, brand, and category are required.",
+      });
+    }
+
+    if (
+      !Number.isFinite(pricePerDay) ||
+      pricePerDay <= 0 ||
+      !Number.isFinite(depositAmount) ||
+      depositAmount <= 0
+    ) {
+      return res.status(400).json({
+        message: "Price per day and deposit must be numbers greater than zero.",
+      });
+    }
+
+    if (
+      specs !== undefined &&
+      (typeof specs !== "object" || specs === null || Array.isArray(specs))
+    ) {
+      return res.status(400).json({
+        message: "Specifications must be an object.",
+      });
+    }
+
+    const prompt = `
+Bạn là chuyên gia viết mô tả thiết bị cho thuê trên TechShare.
+
+Hãy viết mô tả dựa trên thông tin:
+
+Tên thiết bị: ${name}
+Thương hiệu: ${brand}
+Danh mục: ${category}
+Giá thuê: ${pricePerDay} VNĐ/ngày
+Tiền đặt cọc: ${depositAmount} VNĐ
+Thông số kỹ thuật: ${JSON.stringify(specs || {})}
+
+Yêu cầu:
+- Viết bằng tiếng Việt.
+- Mô tả hấp dẫn, chuyên nghiệp.
+- Độ dài 80-120 từ.
+- Nêu bật các đặc điểm của thiết bị.
+- Không tự bịa thông số hoặc tình trạng thiết bị.
+- Chỉ trả về nội dung mô tả.
+`;
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            description: {
+              type: Type.STRING,
+            },
+          },
+          required: ["description"],
+        },
+      },
+    });
+
+    const responseText = response.text;
+    if (!responseText) {
+      throw new Error("The AI provider returned an empty response.");
+    }
+
+    const result = JSON.parse(responseText);
+    if (typeof result.description !== "string" || !result.description.trim()) {
+      throw new Error(
+        "The AI provider response did not include a description.",
+      );
+    }
+
+    return res.status(200).json({
+      message: "Generate description successfully",
+      description: result.description.trim(),
+    });
+  } catch (error) {
+    console.error("[AI generate description] Request failed:", error);
+    return res.status(500).json({
+      message:
+        process.env.NODE_ENV === "production"
+          ? "The AI service could not generate a description. Please try again."
+          : error instanceof Error
+            ? error.message
+            : "The AI service could not generate a description.",
     });
   }
 };

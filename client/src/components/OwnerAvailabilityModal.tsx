@@ -311,8 +311,8 @@ export function OwnerAvailabilityModal({
                         (isStartDate || isEndDate) && styles.selectedDate,
 
                         mode === "range" &&
-                          (isStartDate || isEndDate) &&
-                          styles.selectedDate,
+                        (isStartDate || isEndDate) &&
+                        styles.selectedDate,
                         isPast && styles.pastDate,
                       ]}
                     >
@@ -351,15 +351,15 @@ export function OwnerAvailabilityModal({
                 </>
               )
             ) : // RANGE MODE
-            !startDate ? (
-              <Text style={styles.emptyText}>No blocked dates selected.</Text>
-            ) : (
-              <>
-                <Text>Start Date: {startDate}</Text>
+              !startDate ? (
+                <Text style={styles.emptyText}>No blocked dates selected.</Text>
+              ) : (
+                <>
+                  <Text>Start Date: {startDate}</Text>
 
-                <Text>End Date: {endDate || "Please select"}</Text>
-              </>
-            )}
+                  <Text>End Date: {endDate || "Please select"}</Text>
+                </>
+              )}
           </ScrollView>
 
           <View style={styles.actions}>

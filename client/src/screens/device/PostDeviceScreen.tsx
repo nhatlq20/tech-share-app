@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import {
   Alert,
   Image,
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +22,9 @@ import { deviceService } from "../../services/deviceService";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { Device } from "../../types";
-
+import { generateDescription } from "../../services/aiService";
+import AiGenerateButton from "../../components/ai/AiGenerateButton";
+import { colors } from '../../theme/colors';
 type PostDeviceScreenProps = {
   onBack?: () => void;
   onPublished?: () => void;
@@ -73,6 +77,8 @@ export function PostDeviceScreen({
   navigation,
 }: PostDeviceScreenProps) {
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const descriptionSectionY = useRef(0);
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
@@ -103,6 +109,7 @@ export function PostDeviceScreen({
   );
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const getCurrentLocation = async () => {
     setIsGettingLocation(true);
@@ -142,7 +149,77 @@ export function PostDeviceScreen({
       setIsGettingLocation(false);
     }
   };
+  const handleGenerateDescription = async () => {
+    const pricePerDay = Number(price);
+    const deposit = Number(depositAmount);
 
+    if (!deviceName.trim() || !brand.trim() || !category.trim()) {
+      Alert.alert("Missing information", "Enter the device name, brand, and category first.");
+      return;
+    }
+
+    if (
+      !price.trim() ||
+      !depositAmount.trim() ||
+      !Number.isFinite(pricePerDay) ||
+      !Number.isFinite(deposit) ||
+      pricePerDay <= 0 ||
+      deposit <= 0
+    ) {
+      Alert.alert(
+        "Invalid price",
+        "Enter a rental price and deposit greater than zero.",
+      );
+      return;
+    }
+
+    const specs: Record<string, string> = {};
+    specifications.forEach((item: Specification) => {
+      const name = item.name.trim();
+      const value = item.value.trim();
+      if (name && value) {
+        specs[name] = value;
+      }
+    });
+
+    try {
+      Keyboard.dismiss();
+      setIsGenerating(true);
+      const response = await generateDescription({
+        name: deviceName.trim(),
+        brand: brand.trim(),
+        category: category.trim(),
+        pricePerDay,
+        depositAmount: deposit,
+        specs,
+      });
+
+      setDescription(response.description);
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({
+          y: descriptionSectionY.current,
+          animated: true,
+        });
+      });
+    } catch (error: unknown) {
+      let message = "Could not generate the description. Please try again.";
+
+      if (axios.isAxiosError(error)) {
+        const serverMessage: unknown = error.response?.data?.message;
+        if (typeof serverMessage === "string") {
+          message = serverMessage;
+        } else if (!error.response) {
+          message = "Cannot connect to the server. Check your connection and try again.";
+        }
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+
+      Alert.alert("Description generation failed", message);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
   useEffect(() => {
     if (!token) return;
 
@@ -240,14 +317,14 @@ export function PostDeviceScreen({
         throw new Error("Please add at least one device image.");
       }
 
-      const selectedImages = photoUris.filter((uri: string): uri is string =>Boolean(uri),);
+      const selectedImages = photoUris.filter((uri: string): uri is string => Boolean(uri),);
       if (selectedImages.length === 0) {
         throw new Error("Please add at least one valid device image.");
       }
 
       let uploadedImages: string[];
       try {
-        uploadedImages = await Promise.all(selectedImages.map((uri: string, index: number) => deviceService.uploadDeviceImage(token, uri, index),), );
+        uploadedImages = await Promise.all(selectedImages.map((uri: string, index: number) => deviceService.uploadDeviceImage(token, uri, index),),);
       } catch (error: any) {
         throw new Error(
           error?.response?.data?.message ?? "Could not upload device image.",
@@ -273,7 +350,7 @@ export function PostDeviceScreen({
       } catch (error: any) {
         throw new Error(
           error?.response?.data?.message ??
-            "Images uploaded, but device creation failed.",
+          "Images uploaded, but device creation failed.",
         );
       }
 
@@ -284,7 +361,7 @@ export function PostDeviceScreen({
         [{ text: "Done", onPress: () => onPublished?.() }],
       );
     } catch (error: any) {
-      const message =error?.response?.data?.message ??error?.message ?? "Could not publish this device. Please try again.";
+      const message = error?.response?.data?.message ?? error?.message ?? "Could not publish this device. Please try again.";
       setPublishError(message);
     } finally {
       setIsPublishing(false);
@@ -374,6 +451,7 @@ export function PostDeviceScreen({
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -691,8 +769,8 @@ export function PostDeviceScreen({
               style={[
                 styles.currencyTextInput,
                 submitted &&
-                  !depositAmount.trim() &&
-                  styles.currencyTextInputError,
+                !depositAmount.trim() &&
+                styles.currencyTextInputError,
               ]}
             />
             <Text style={styles.currency}>VND</Text>
@@ -705,7 +783,12 @@ export function PostDeviceScreen({
           </Text>
         </View>
 
-        <View style={styles.section}>
+        <View
+          style={styles.section}
+          onLayout={(event) => {
+            descriptionSectionY.current = event.nativeEvent.layout.y;
+          }}
+        >
           <SectionTitle title="Description" />
           <View
             style={[
@@ -727,6 +810,8 @@ export function PostDeviceScreen({
           {submitted && !description.trim() && (
             <Text style={styles.errorText}>Description is required</Text>
           )}
+
+
         </View>
 
         <View style={styles.section}>
@@ -752,19 +837,18 @@ export function PostDeviceScreen({
             disabled={isPublishing}
             activeOpacity={0.8}
           >
-            <Text style={styles.publishText}>
+
+
+            <Text style={[styles.publishText]} >
               {isPublishing ? "Publishing..." : "Publish Listing"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.draftButton}
-            onPress={handleSaveDraft}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.draftText}>
-              {draftSaved ? "Draft Saved" : "Save Draft"}
-            </Text>
-          </TouchableOpacity>
+          <AiGenerateButton
+
+            onPress={handleGenerateDescription}
+            loading={isGenerating}
+          />
+
           {draftSaved && (
             <Text style={styles.successText}>
               Your draft has been saved on this device.
@@ -1078,7 +1162,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.light.primary,
   },
   publishText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
   draftButton: {
