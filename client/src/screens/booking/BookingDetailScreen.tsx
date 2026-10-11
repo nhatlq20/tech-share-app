@@ -13,7 +13,9 @@ import {
   RefreshControl,
   Modal,
   Pressable,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { STRINGS } from '../../constants/strings';
@@ -23,6 +25,7 @@ import { ExtensionModal } from '../../components/booking/ExtensionModal';
 import { ReviewModal } from '../../components/booking/ReviewModal';
 import { HandoverQrModal } from '../../components/booking/HandoverQrModal';
 import { HandoverCameraModal } from '../../components/booking/HandoverCameraModal';
+import { BookingCancelModal } from '../../components/booking/BookingCancelModal';
 
 interface BookingDetailScreenProps {
   bookingId: string;
@@ -54,6 +57,15 @@ export function BookingDetailScreen({
   onNavigateToDeviceDetail,
   onNavigateToBookingCreate,
 }: BookingDetailScreenProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
+  );
+  const bottomInset = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 24 : 16
+  );
   const [booking, setBooking] = useState(null as Booking | null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,6 +76,7 @@ export function BookingDetailScreen({
   const [handoverCameraModalVisible, setHandoverCameraModalVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState(null as string | null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -104,34 +117,24 @@ export function BookingDetailScreen({
   };
 
   const handleCancelBooking = () => {
-    if (!booking) return;
+    setCancelModalVisible(true);
+  };
 
-    Alert.alert(
-      STRINGS.BOOKING_DETAIL.CONFIRM_CANCEL_TITLE,
-      STRINGS.BOOKING_DETAIL.CONFIRM_CANCEL_MSG(booking.bookingCode),
-      [
-        { text: STRINGS.BOOKING_DETAIL.KEEP_BOOKING, style: 'cancel' },
-        {
-          text: STRINGS.BOOKING_DETAIL.CONFIRM_CANCEL_ACTION,
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsCancelling(true);
-              await bookingService.cancelBooking(booking._id, STRINGS.BOOKING_DETAIL.CANCEL_REASON_DEFAULT);
-              Alert.alert(STRINGS.BOOKING_DETAIL.ALERT_SUCCESS_TITLE, STRINGS.BOOKING_DETAIL.CANCEL_SUCCESS);
-              fetchDetail();
-            } catch (err: any) {
-              Alert.alert(
-                STRINGS.BOOKING_DETAIL.ALERT_ERROR_TITLE,
-                err.response?.data?.message || STRINGS.BOOKING_DETAIL.CANCEL_ERROR
-              );
-            } finally {
-              setIsCancelling(false);
-            }
-          },
-        },
-      ]
-    );
+  const executeCancelBooking = async () => {
+    if (!booking) return;
+    try {
+      setIsCancelling(true);
+      await bookingService.cancelBooking(booking._id, STRINGS.BOOKING_DETAIL.CANCEL_REASON_DEFAULT);
+      setCancelModalVisible(false);
+      fetchDetail();
+    } catch (err: any) {
+      Alert.alert(
+        STRINGS.BOOKING_DETAIL.ALERT_ERROR_TITLE,
+        err.response?.data?.message || STRINGS.BOOKING_DETAIL.CANCEL_ERROR
+      );
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleReRent = () => {
@@ -193,8 +196,9 @@ export function BookingDetailScreen({
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.light.surface} />
       {/* ── TOP HEADER ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <TouchableOpacity style={styles.headerBackBtn} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={colors.light.textPrimary} />
         </TouchableOpacity>
@@ -210,7 +214,7 @@ export function BookingDetailScreen({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + bottomInset }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -546,7 +550,7 @@ export function BookingDetailScreen({
       </ScrollView>
 
       {/* ── BOTTOM ACTION BAR ── */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: bottomInset + 10 }]}>
         {booking.status === 'pending' && (
           <TouchableOpacity
             style={[styles.cancelBtn, isCancelling && { opacity: 0.6 }]}
@@ -672,6 +676,15 @@ export function BookingDetailScreen({
           </View>
         </Pressable>
       </Modal>
+
+      {/* CUSTOM CANCEL CONFIRMATION MODAL */}
+      <BookingCancelModal
+        visible={cancelModalVisible}
+        bookingCode={booking.bookingCode}
+        isCancelling={isCancelling}
+        onClose={() => setCancelModalVisible(false)}
+        onConfirm={executeCancelBooking}
+      />
     </View>
   );
 }
@@ -720,7 +733,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.light.surface,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 44 : 14,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.light.border,
@@ -1021,7 +1033,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.light.border,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    paddingBottom: 12,
   },
   cancelBtn: {
     flexDirection: 'row',
