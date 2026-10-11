@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch } from 'react-redux';
 import { theme, STRINGS, CONFIG } from '../../constants';
 import { bookingService, Booking } from '../../services/bookingService';
 import { socketService } from '../../services/socketService';
+import { resetUnreadMessages } from '../../store/slices/notificationSlice';
 
 export interface OwnerMessagesScreenProps {
   navigation?: any;
@@ -32,6 +34,7 @@ export function OwnerMessagesScreen({
   onNavigateToChat,
 }: OwnerMessagesScreenProps) {
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
@@ -57,6 +60,7 @@ export function OwnerMessagesScreen({
   }, []);
 
   useEffect(() => {
+    dispatch(resetUnreadMessages());
     fetchBookings();
 
     // Listen to real-time incoming messages to refresh list

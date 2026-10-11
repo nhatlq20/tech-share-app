@@ -17,7 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { STRINGS } from '../../constants/strings';
-import { useAppSelector } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { resetUnreadMessages } from '../../store/slices/notificationSlice';
 import {
   ChatMessage,
   ChatBookingInfo,
@@ -49,10 +50,11 @@ export function ChatDetailScreen({
   onBack,
 }: ChatDetailScreenProps) {
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const effectiveBookingId = propBookingId || route?.params?.bookingId || '';
 
   const currentUser = useAppSelector((state) => state.auth.user);
-  const currentUserId = currentUser?._id || '';
+  const currentUserId = String(currentUser?._id || currentUser?.id || '');
 
   const [booking, setBooking] = useState(null as ChatBookingInfo | null);
   const [otherUser, setOtherUser] = useState(null as ChatOtherUser | null);
@@ -110,6 +112,7 @@ export function ChatDetailScreen({
   // Initial load and WebSocket (Socket.IO) Real-time Event Subscription
   useEffect(() => {
     isMountedRef.current = true;
+    dispatch(resetUnreadMessages());
 
     // 1. Fetch chat history once on screen mount
     loadChatHistory(true);
@@ -125,6 +128,7 @@ export function ChatDetailScreen({
     // 3. Listen for incoming messages in real-time via WebSocket
     const unsubscribe = socketService.onNewMessage((incomingMsg: ChatMessage) => {
       if (incomingMsg.bookingId !== effectiveBookingId) return;
+      dispatch(resetUnreadMessages());
 
       setMessages((prev: ChatMessage[]) => {
         // Prevent duplicate messages if already present
@@ -387,6 +391,18 @@ export function ChatDetailScreen({
           <View style={styles.loadingWrapper}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           </View>
+        ) : messages.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons
+                name="chatbubbles-outline"
+                size={36}
+                color={theme.colors.slate[400]}
+              />
+            </View>
+            <Text style={styles.emptyTitle}>{STRINGS.CHAT.EMPTY_CHAT_TITLE}</Text>
+            <Text style={styles.emptySubtitle}>{STRINGS.CHAT.EMPTY_CHAT_SUBTITLE}</Text>
+          </View>
         ) : (
           <FlatList
             data={messages}
@@ -396,23 +412,11 @@ export function ChatDetailScreen({
               <MessageBubble
                 message={item}
                 currentUserId={currentUserId}
+                otherUserId={otherUser?._id}
               />
             )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <View style={styles.emptyIconCircle}>
-                  <Ionicons
-                    name="chatbubbles-outline"
-                    size={36}
-                    color={theme.colors.slate[400]}
-                  />
-                </View>
-                <Text style={styles.emptyTitle}>{STRINGS.CHAT.EMPTY_CHAT_TITLE}</Text>
-                <Text style={styles.emptySubtitle}>{STRINGS.CHAT.EMPTY_CHAT_SUBTITLE}</Text>
-              </View>
-            }
           />
         )}
       </View>
@@ -551,11 +555,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: theme.spacing.xl * 2,
     paddingHorizontal: theme.spacing.lg,
-    transform: [{ scaleY: -1 }], // Counteract inverted FlatList so empty state displays upright
   },
   emptyIconCircle: {
     width: 68,

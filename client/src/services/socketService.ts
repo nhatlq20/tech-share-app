@@ -60,6 +60,13 @@ export const socketService = {
   },
 
   /**
+   * Lấy ID booking của room chat hiện tại đang mở
+   */
+  getActiveBookingId: (): string | null => {
+    return activeBookingId;
+  },
+
+  /**
    * Kết nối tới Socket.IO Server và gia nhập room của user
    */
   connect: (userId: string) => {

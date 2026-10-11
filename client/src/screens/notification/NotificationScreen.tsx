@@ -87,7 +87,12 @@ export function NotificationScreen({
     }
 
     // Điều hướng theo ngữ cảnh thông báo (Issue #38 tiêu chí A2)
-    if (item.type === 'order' || item.type === 'reminder') {
+    if (item.type === 'message') {
+      const bookingId = item.relatedId || item.data?.bookingId;
+      if (bookingId && navigation?.navigate) {
+        navigation.navigate('ChatDetail', { bookingId: String(bookingId) });
+      }
+    } else if (item.type === 'order' || item.type === 'reminder') {
       const bookingId = item.relatedId || item.data?.bookingId;
       if (onNavigateToBooking) {
         onNavigateToBooking(bookingId ? String(bookingId) : undefined);

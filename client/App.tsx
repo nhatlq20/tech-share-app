@@ -8,6 +8,8 @@ import {
   fetchNotifications,
   fetchUnreadCount,
   syncNotificationsFromFirebase,
+  receiveRealtimeNotification,
+  incrementUnreadMessages,
 } from './src/store/slices/notificationSlice';
 import { fetchWishlist, clearWishlist } from './src/store/slices/wishlistSlice';
 import { socketService } from './src/services/socketService';
@@ -16,6 +18,7 @@ import { wishlistService } from './src/services/wishlistService';
 import { InAppNotificationBanner } from './src/components/common/InAppNotificationBanner';
 import { Notification } from './src/types';
 import { theme } from './src/constants/theme';
+import { STRINGS } from './src/constants/strings';
 
 LogBox.ignoreLogs(['Require cycle:']);
 
@@ -49,13 +52,18 @@ function AppContent() {
       return;
     }
 
+    const uid = String(userId);
+
+    // 1. Kết nối Socket.IO
+    socketService.connect(uid);
+
     // Reset tracking khi user thay đổi
     isInitialFirebaseLoad.current = true;
     knownNotificationIds.current.clear();
 
-    // 1. Lắng nghe thông báo thời gian thực từ Firebase Firestore
+    // 2. Lắng nghe thông báo thời gian thực từ Firebase Firestore
     const unsubscribeFirebase = firebaseNotificationService.subscribeUserNotifications(
-      String(userId),
+      uid,
       (notifications) => {
         if (isInitialFirebaseLoad.current) {
           notifications.forEach((n) => knownNotificationIds.current.add(String(n._id)));
@@ -66,7 +74,10 @@ function AppContent() {
             (n) => !n.isRead && !knownNotificationIds.current.has(String(n._id))
           );
           if (newUnread) {
-            setActiveBannerNotif(newUnread);
+            const activeBookingId = socketService.getActiveBookingId();
+            if (newUnread.type !== 'message' || String(newUnread.relatedId) !== String(activeBookingId)) {
+              setActiveBannerNotif(newUnread);
+            }
           }
           notifications.forEach((n) => knownNotificationIds.current.add(String(n._id)));
         }
@@ -76,13 +87,62 @@ function AppContent() {
       }
     );
 
-    // 2. Tải dữ liệu ban đầu
+    // 3. Lắng nghe thông báo realtime từ Socket.IO
+    const unsubscribeSocketNotif = socketService.onNewNotification((notification) => {
+      dispatch(receiveRealtimeNotification(notification));
+      const notifId = String(notification._id);
+      if (!knownNotificationIds.current.has(notifId)) {
+        knownNotificationIds.current.add(notifId);
+        const activeBookingId = socketService.getActiveBookingId();
+        if (notification.type !== 'message' || String(notification.relatedId) !== String(activeBookingId)) {
+          setActiveBannerNotif(notification);
+        }
+      }
+    });
+
+    // 4. Lắng nghe tin nhắn mới từ Socket.IO realtime
+    const unsubscribeSocketMsg = socketService.onNewMessage((msg) => {
+      const isFromOther = String(msg.senderId) !== uid;
+      if (isFromOther) {
+        dispatch(incrementUnreadMessages());
+
+        const activeBookingId = socketService.getActiveBookingId();
+        if (String(activeBookingId) !== String(msg.bookingId)) {
+          const fakeNotifId = `msg_${msg._id}`;
+          if (!knownNotificationIds.current.has(fakeNotifId)) {
+            knownNotificationIds.current.add(fakeNotifId);
+            let bodyText = msg.text || '';
+            if (msg.messageType === 'image' || msg.mediaUrl) {
+              bodyText = 'Sent a photo attachment.';
+            } else if (msg.messageType === 'location' || msg.locationData) {
+              bodyText = 'Shared GPS location.';
+            }
+
+            setActiveBannerNotif({
+              _id: fakeNotifId,
+              recipient: uid,
+              title: STRINGS.CHAT.INCOMING_MESSAGE_TITLE || 'New Message',
+              body: bodyText || 'You received a new message.',
+              type: 'message',
+              relatedId: msg.bookingId,
+              data: { bookingId: msg.bookingId },
+              isRead: false,
+              createdAt: msg.createdAt || new Date().toISOString(),
+            });
+          }
+        }
+      }
+    });
+
+    // 5. Tải dữ liệu ban đầu
     dispatch(fetchUnreadCount() as any);
     dispatch(fetchNotifications(undefined) as any);
     dispatch(fetchWishlist() as any);
 
     return () => {
       unsubscribeFirebase();
+      unsubscribeSocketNotif();
+      unsubscribeSocketMsg();
       socketService.disconnect();
     };
   }, [dispatch, isAuthenticated, userId]);
@@ -90,7 +150,12 @@ function AppContent() {
   const handleBannerPress = (notif: Notification) => {
     setActiveBannerNotif(null);
     if (rootNavigationRef.isReady()) {
-      rootNavigationRef.navigate('Notification');
+      if (notif.type === 'message' && (notif.relatedId || notif.data?.bookingId)) {
+        const targetBookingId = String(notif.relatedId || notif.data?.bookingId);
+        rootNavigationRef.navigate('ChatDetail', { bookingId: targetBookingId });
+      } else {
+        rootNavigationRef.navigate('Notification');
+      }
     }
   };
 

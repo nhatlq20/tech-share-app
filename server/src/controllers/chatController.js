@@ -217,7 +217,7 @@ export const sendMessage = async (req, res) => {
         userId: receiverId,
         title: `${senderName} sent a message`,
         body: notifBody || 'You received a new message.',
-        type: 'order',
+        type: 'message',
         relatedId: bookingId,
         data: { screen: 'ChatDetail', bookingId: bookingId.toString() },
       }).catch((err) => {

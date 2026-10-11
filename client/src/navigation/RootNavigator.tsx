@@ -209,14 +209,6 @@ export function RootNavigator() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null as boolean | null);
 
   useEffect(() => {
-    if (isAuthenticated && user?._id) {
-      socketService.connect(user._id);
-    } else {
-      socketService.disconnect();
-    }
-  }, [isAuthenticated, user?._id]);
-
-  useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)
       .then((value) => setHasSeenOnboarding(value === 'true'))
       .catch(() => setHasSeenOnboarding(false));

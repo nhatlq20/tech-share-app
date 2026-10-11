@@ -7,6 +7,7 @@ export type NotificationFilter = 'all' | 'order' | 'reminder' | 'system' | 'prom
 interface NotificationState {
   items: Notification[];
   unreadCount: number;
+  unreadMessagesCount: number;
   total: number;
   filter: NotificationFilter;
   isLoading: boolean;
@@ -17,6 +18,7 @@ interface NotificationState {
 const initialState: NotificationState = {
   items: [],
   unreadCount: 0,
+  unreadMessagesCount: 0,
   total: 0,
   filter: 'all',
   isLoading: false,
@@ -40,6 +42,7 @@ export const fetchNotifications = createAsyncThunk(
         return {
           data: [],
           unreadCount: 0,
+          unreadMessagesCount: 0,
           total: 0,
           isRefresh: params?.isRefresh ?? false,
         };
@@ -54,10 +57,12 @@ export const fetchNotifications = createAsyncThunk(
         filtered = filtered.filter((n) => !n.isRead);
       }
       const unreadCount = (fbNotifs || []).filter((n) => !n.isRead).length;
+      const unreadMessagesCount = (fbNotifs || []).filter((n) => !n.isRead && n.type === 'message').length;
 
       return {
         data: filtered,
         unreadCount,
+        unreadMessagesCount,
         total: filtered.length,
         isRefresh: params?.isRefresh ?? false,
       };
@@ -135,6 +140,7 @@ export const notificationSlice = createSlice({
       state.items = action.payload;
       state.total = action.payload.length;
       state.unreadCount = action.payload.filter((n) => !n.isRead).length;
+      state.unreadMessagesCount = action.payload.filter((n) => !n.isRead && n.type === 'message').length;
       state.isLoading = false;
       state.isRefreshing = false;
       state.error = null;
@@ -147,6 +153,9 @@ export const notificationSlice = createSlice({
         state.total += 1;
         if (!action.payload.isRead) {
           state.unreadCount = (state.unreadCount || 0) + 1;
+          if (action.payload.type === 'message') {
+            state.unreadMessagesCount = (state.unreadMessagesCount || 0) + 1;
+          }
         }
       }
     },
@@ -156,9 +165,19 @@ export const notificationSlice = createSlice({
     setUnreadCount: (state, action: PayloadAction<number>) => {
       state.unreadCount = Math.max(0, action.payload);
     },
+    incrementUnreadMessages: (state) => {
+      state.unreadMessagesCount = (state.unreadMessagesCount || 0) + 1;
+    },
+    resetUnreadMessages: (state) => {
+      state.unreadMessagesCount = 0;
+    },
+    setUnreadMessagesCount: (state, action: PayloadAction<number>) => {
+      state.unreadMessagesCount = Math.max(0, action.payload);
+    },
     clearNotifications: (state) => {
       state.items = [];
       state.unreadCount = 0;
+      state.unreadMessagesCount = 0;
       state.total = 0;
       state.error = null;
     },
@@ -179,6 +198,7 @@ export const notificationSlice = createSlice({
         state.isRefreshing = false;
         state.items = action.payload.data;
         state.unreadCount = action.payload.unreadCount;
+        state.unreadMessagesCount = action.payload.unreadMessagesCount;
         state.total = action.payload.total;
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
@@ -198,6 +218,9 @@ export const notificationSlice = createSlice({
       if (item && !item.isRead) {
         item.isRead = true;
         state.unreadCount = Math.max(0, state.unreadCount - 1);
+        if (item.type === 'message') {
+          state.unreadMessagesCount = Math.max(0, (state.unreadMessagesCount || 0) - 1);
+        }
       }
     });
 
@@ -207,6 +230,7 @@ export const notificationSlice = createSlice({
         item.isRead = true;
       });
       state.unreadCount = 0;
+      state.unreadMessagesCount = 0;
     });
 
     // Delete notification
@@ -214,6 +238,9 @@ export const notificationSlice = createSlice({
       const target = state.items.find((n) => n._id === action.payload);
       if (target && !target.isRead) {
         state.unreadCount = Math.max(0, state.unreadCount - 1);
+        if (target.type === 'message') {
+          state.unreadMessagesCount = Math.max(0, (state.unreadMessagesCount || 0) - 1);
+        }
       }
       state.items = state.items.filter((n) => n._id !== action.payload);
       state.total = Math.max(0, state.total - 1);
@@ -227,6 +254,9 @@ export const {
   receiveRealtimeNotification,
   incrementUnreadCount,
   setUnreadCount,
+  incrementUnreadMessages,
+  resetUnreadMessages,
+  setUnreadMessagesCount,
   clearNotifications,
 } = notificationSlice.actions;
 

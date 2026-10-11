@@ -106,6 +106,9 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
   const unreadNotifications = useSelector(
     (state: RootState) => state.notifications?.unreadCount ?? 0
   );
+  const unreadMessagesCount = useSelector(
+    (state: RootState) => state.notifications?.unreadMessagesCount ?? 0
+  );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -227,13 +230,22 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                 </Text>
               </View>
 
-              {/* Badge số lượng thông báo hoặc việc cần làm */}
+              {/* Badge số lượng thông báo hoặc việc cần làm hoặc tin nhắn mới */}
               {item.id === 'notifications' && unreadNotifications > 0 ? (
                 <View style={[styles.menuBadge, styles.menuBadgeRed]}>
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
                     {unreadNotifications > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
                       ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
                       : unreadNotifications}{' '}
+                    {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
+                  </Text>
+                </View>
+              ) : item.id === 'messages' && unreadMessagesCount > 0 ? (
+                <View style={[styles.menuBadge, styles.menuBadgeRed]}>
+                  <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
+                    {unreadMessagesCount > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
+                      ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
+                      : unreadMessagesCount}{' '}
                     {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
                   </Text>
                 </View>

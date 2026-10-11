@@ -14,7 +14,8 @@ import { ChatMessage, LocationData } from '../../types';
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  currentUserId: string;
+  currentUserId?: string;
+  otherUserId?: string;
   onPressImage?: (url: string) => void;
   onPressLocation?: (location: LocationData) => void;
 }
@@ -22,10 +23,19 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   currentUserId,
+  otherUserId,
   onPressImage,
   onPressLocation,
 }: MessageBubbleProps) {
-  const isSent = String(message.senderId) === String(currentUserId);
+  const msgSender = String(message.senderId || '');
+  const myId = String(currentUserId || '');
+  const otherId = String(otherUserId || '');
+
+  const isSent = Boolean(
+    message.isSending ||
+    (myId && msgSender && msgSender === myId) ||
+    (otherId && msgSender && msgSender !== otherId)
+  );
   const timeFormatted = message.createdAt
     ? new Date(message.createdAt).toLocaleTimeString([], {
         hour: '2-digit',

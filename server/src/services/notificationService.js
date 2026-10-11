@@ -3,6 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import { getIO } from '../socket.js';
 
 // Initialize Expo push notification instance
 const expo = new Expo();
@@ -62,13 +63,23 @@ export const createAndSendNotification = async ({
   try {
     // 1. Create Notification in MongoDB Atlas
     const notification = await Notification.create({
-      userId,
-      title,
-      body,
-      type,
-      relatedId,
-      isRead: false,
-    });
+       userId,
+       title,
+       body,
+       type,
+       relatedId,
+       isRead: false,
+     });
+
+    // Real-time socket emission to user's personal room
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(`user_${userId}`).emit('new_notification', notification);
+      }
+    } catch (socketErr) {
+      console.warn('⚠️ [Socket.IO] Notification emit warning:', socketErr.message);
+    }
 
     // 2. Sync to Firebase Firestore for Real-time Cloud updates (non-blocking)
     try {

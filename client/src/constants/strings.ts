@@ -1736,6 +1736,8 @@ export const STRINGS = {
     },
     ERROR_LOAD_MESSAGES: 'Failed to load messages',
     ERROR_SEND_MESSAGE: 'Failed to send message',
+    INCOMING_MESSAGE_TITLE: 'New Message',
+    VIEW_MESSAGE: 'View',
   },
 } as const;
 
