@@ -32,6 +32,7 @@ interface BookingManageScreenProps {
   onOpenDrawer?: () => void;
   onNavigateToBookingDetail?: (bookingId: string) => void;
   onNavigateToNotifications?: () => void;
+  onNavigateToChat?: (bookingId: string) => void;
 }
 
 const REJECT_REASONS = STRINGS.BOOKING_MANAGE.REJECT_REASONS;
@@ -43,6 +44,7 @@ export function BookingManageScreen({
   onOpenDrawer,
   onNavigateToBookingDetail,
   onNavigateToNotifications,
+  onNavigateToChat,
 }: BookingManageScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -623,6 +625,13 @@ export function BookingManageScreen({
               onPress={handleCardPress}
               onScanQr={() => setScannerVisible(true)}
               onRateRenter={handleOpenRateRenter}
+              onChat={(b) => {
+                if (onNavigateToChat) {
+                  onNavigateToChat(b._id);
+                } else if (navigation?.navigate) {
+                  navigation.navigate('ChatDetail', { bookingId: b._id });
+                }
+              }}
               renterReview={reviewMap[item._id]}
               isUpdating={isUpdatingOrder}
             />

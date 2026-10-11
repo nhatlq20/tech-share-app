@@ -32,6 +32,22 @@ export const initSocket = (httpServer) => {
       }
     });
 
+    // Client emit khi vào màn hình Chat của một đơn thuê cụ thể
+    socket.on('join_chat', (bookingId) => {
+      if (bookingId) {
+        socket.join(`chat_${bookingId}`);
+        console.log(`💬 [Socket.IO] Socket ${socket.id} joined room chat_${bookingId}`);
+      }
+    });
+
+    // Client emit khi thoát màn hình Chat
+    socket.on('leave_chat', (bookingId) => {
+      if (bookingId) {
+        socket.leave(`chat_${bookingId}`);
+        console.log(`🚪 [Socket.IO] Socket ${socket.id} left room chat_${bookingId}`);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`🔌 [Socket.IO] Client disconnected: ${socket.id}`);
     });

@@ -52,6 +52,12 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
     isActionHighlight: true,
   },
   {
+    id: 'messages',
+    label: STRINGS.OWNER_SIDEBAR.MENU_MESSAGES,
+    icon: 'chatbubbles-outline',
+    targetScreen: 'OwnerMessages',
+  },
+  {
     id: 'fleet',
     label: STRINGS.OWNER_SIDEBAR.MENU_FLEET,
     icon: 'cube-outline',
@@ -99,6 +105,9 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
   const user = useSelector((state: RootState) => state.auth.user);
   const unreadNotifications = useSelector(
     (state: RootState) => state.notifications?.unreadCount ?? 0
+  );
+  const unreadMessagesCount = useSelector(
+    (state: RootState) => state.notifications?.unreadMessagesCount ?? 0
   );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -221,14 +230,21 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                 </Text>
               </View>
 
-              {/* Badge số lượng thông báo hoặc việc cần làm */}
+              {/* Badge số lượng thông báo hoặc việc cần làm hoặc tin nhắn mới */}
               {item.id === 'notifications' && unreadNotifications > 0 ? (
                 <View style={[styles.menuBadge, styles.menuBadgeRed]}>
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
                     {unreadNotifications > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
                       ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
-                      : unreadNotifications}{' '}
-                    {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
+                      : unreadNotifications}
+                  </Text>
+                </View>
+              ) : item.id === 'messages' && unreadMessagesCount > 0 ? (
+                <View style={[styles.menuBadge, styles.menuBadgeRed]}>
+                  <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
+                    {unreadMessagesCount > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
+                      ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
+                      : unreadMessagesCount}
                   </Text>
                 </View>
               ) : item.badgeCount && item.badgeCount > 0 ? (
@@ -246,7 +262,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                         : styles.menuBadgeTextBlue,
                     ]}
                   >
-                    {item.badgeCount} {STRINGS.OWNER_SIDEBAR.TASKS_SUFFIX}
+                    {item.badgeCount}
                   </Text>
                 </View>
               ) : null}
@@ -396,8 +412,11 @@ const styles = StyleSheet.create({
   },
 
   menuBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: theme.radii.full,
   },
   menuBadgeRed: {
@@ -411,8 +430,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
   },
   menuBadgeText: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '700',
+    textAlign: 'center',
   },
   menuBadgeTextRed: {
     color: theme.colors.danger[600],

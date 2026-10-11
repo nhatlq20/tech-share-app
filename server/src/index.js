@@ -15,6 +15,7 @@ import voucherRoutes from './routes/voucherRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import aiRoutes from "./routes/aiRoutes.js";
+import chatRoutes from './routes/chatRoutes.js';
 import { initSocket } from './socket.js';
 import { startReminderScheduler, stopReminderScheduler } from './services/reminderScheduler.js';
 
@@ -53,6 +54,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/chats', chatRoutes);
 
 // 404 & Error Handler Middlewares
 app.use(notFound);

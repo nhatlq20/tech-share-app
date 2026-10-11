@@ -13,6 +13,7 @@ interface BookingItemCardProps {
   onExtend?: () => void;
   onReview?: () => void;
   onReRent?: () => void;
+  onChat?: () => void;
 }
 
 const STATUS_CONFIG = {
@@ -24,7 +25,7 @@ const STATUS_CONFIG = {
   rejected: { label: STRINGS.BOOKING_DETAIL.STATUS.rejected, color: colors.light.error, icon: 'close-circle-outline' },
 };
 
-export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview, onReRent }: BookingItemCardProps) {
+export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview, onReRent, onChat }: BookingItemCardProps) {
   const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
   const deviceName = booking.deviceId?.name || 'Device';
   const deviceImage = booking.deviceId?.images?.[0] || 'https://via.placeholder.com/150';
@@ -102,63 +103,68 @@ export function BookingItemCard({ booking, onPress, onCancel, onExtend, onReview
       </View>
 
       {/* Action Row */}
-      {(booking.status === 'pending' || isActive || booking.status === 'completed') && (
-        <View style={styles.actionRow}>
-          {booking.status === 'pending' && onCancel && (
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Ionicons name="close-circle-outline" size={15} color={colors.light.error} />
-              <Text style={styles.cancelButtonText}>{STRINGS.BOOKING_ITEM_CARD.CANCEL_BOOKING}</Text>
-            </TouchableOpacity>
-          )}
+      <View style={styles.actionRow}>
+        {onChat && (
+          <TouchableOpacity style={styles.chatButton} onPress={onChat} activeOpacity={0.8}>
+            <Ionicons name="chatbubble-ellipses-outline" size={15} color={colors.light.primary} />
+            <Text style={styles.chatButtonText}>Chat</Text>
+          </TouchableOpacity>
+        )}
 
-          {isActive && onExtend && (
-            <TouchableOpacity
+        {booking.status === 'pending' && onCancel && (
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Ionicons name="close-circle-outline" size={15} color={colors.light.error} />
+            <Text style={styles.cancelButtonText}>{STRINGS.BOOKING_ITEM_CARD.CANCEL_BOOKING}</Text>
+          </TouchableOpacity>
+        )}
+
+        {isActive && onExtend && (
+          <TouchableOpacity
+            style={[
+              styles.extendButton,
+              isPendingExtension && styles.extendButtonDisabled,
+            ]}
+            onPress={onExtend}
+            disabled={isPendingExtension}
+          >
+            <Ionicons
+              name={isPendingExtension ? 'time-outline' : 'calendar-outline'}
+              size={15}
+              color={isPendingExtension ? colors.light.textSecondary : colors.light.primary}
+            />
+            <Text
               style={[
-                styles.extendButton,
-                isPendingExtension && styles.extendButtonDisabled,
+                styles.extendButtonText,
+                isPendingExtension && styles.extendButtonTextDisabled,
               ]}
-              onPress={onExtend}
-              disabled={isPendingExtension}
             >
-              <Ionicons
-                name={isPendingExtension ? 'time-outline' : 'calendar-outline'}
-                size={15}
-                color={isPendingExtension ? colors.light.textSecondary : colors.light.primary}
-              />
-              <Text
-                style={[
-                  styles.extendButtonText,
-                  isPendingExtension && styles.extendButtonTextDisabled,
-                ]}
-              >
-                {isPendingExtension ? STRINGS.BOOKING_ITEM_CARD.EXTENSION_PENDING : STRINGS.BOOKING_ITEM_CARD.EXTEND_RENTAL}
-              </Text>
-            </TouchableOpacity>
-          )}
+              {isPendingExtension ? STRINGS.BOOKING_ITEM_CARD.EXTENSION_PENDING : STRINGS.BOOKING_ITEM_CARD.EXTEND_RENTAL}
+            </Text>
+          </TouchableOpacity>
+        )}
 
-          {booking.status === 'completed' && (
-            booking.isReviewed ? (
-              <View style={styles.completedActions}>
-                <View style={styles.reviewedBadge}>
-                  <Ionicons name="checkmark-done-circle" size={15} color={colors.light.success} />
-                  <Text style={styles.reviewedBadgeText}>{STRINGS.BOOKING_ITEM_CARD.REVIEWED}</Text>
-                </View>
-                {onReRent && (
-                  <TouchableOpacity style={styles.reRentButton} onPress={onReRent} activeOpacity={0.8}>
-                    <Ionicons name="repeat" size={15} color={colors.light.white} />
-                    <Text style={styles.reRentButtonText}>{STRINGS.BOOKING_ITEM_CARD.RENT_AGAIN}</Text>
-                  </TouchableOpacity>
-                )}
+        {booking.status === 'completed' && (
+          booking.isReviewed ? (
+            <View style={styles.completedActions}>
+              <View style={styles.reviewedBadge}>
+                <Ionicons name="checkmark-done-circle" size={15} color={colors.light.success} />
+                <Text style={styles.reviewedBadgeText}>{STRINGS.BOOKING_ITEM_CARD.REVIEWED}</Text>
               </View>
-            ) : onReview ? (
-              <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
-                <Ionicons name="star" size={14} color={colors.light.white} />
-                <Text style={styles.reviewButtonText}>{STRINGS.BOOKING_ITEM_CARD.REVIEW_SERVICE}</Text>
-              </TouchableOpacity>
-            ) : null
-          )}
-        </View>
-      )}
+              {onReRent && (
+                <TouchableOpacity style={styles.reRentButton} onPress={onReRent} activeOpacity={0.8}>
+                  <Ionicons name="repeat" size={15} color={colors.light.white} />
+                  <Text style={styles.reRentButtonText}>{STRINGS.BOOKING_ITEM_CARD.RENT_AGAIN}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : onReview ? (
+            <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
+              <Ionicons name="star" size={14} color={colors.light.white} />
+              <Text style={styles.reviewButtonText}>{STRINGS.BOOKING_ITEM_CARD.REVIEW_SERVICE}</Text>
+            </TouchableOpacity>
+          ) : null
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -314,6 +320,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.light.error,
+  },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.light.primary,
+    backgroundColor: colors.light.primaryLight + '25',
+  },
+  chatButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.primary,
   },
   extendButton: {
     flexDirection: 'row',

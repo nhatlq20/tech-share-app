@@ -60,7 +60,7 @@ export function HomeScreen({
   onNavigateToChat,
   onNavigateToAiConsultant,
   onNavigateToOwnerDashboard,
-  unreadMessages = 2,
+  unreadMessages = 0,
   unreadNotifications,
 }: HomeScreenProps) {
   const insets = useSafeAreaInsets();

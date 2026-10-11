@@ -90,6 +90,8 @@ export function InAppNotificationBanner({
         return { name: 'time' as const, bg: theme.colors.warning[50], color: theme.colors.warning[600] };
       case 'promo':
         return { name: 'gift' as const, bg: theme.colors.indigo[50], color: theme.colors.indigo[600] };
+      case 'message':
+        return { name: 'chatbubbles' as const, bg: theme.colors.primary[50], color: theme.colors.primary[600] };
       default:
         return { name: 'notifications' as const, bg: theme.colors.slate[100], color: theme.colors.slate[800] };
     }

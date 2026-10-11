@@ -32,6 +32,7 @@ interface BookingDetailScreenProps {
   onBack: () => void;
   onNavigateToDeviceDetail?: (deviceId: string) => void;
   onNavigateToBookingCreate?: (deviceId: string) => void;
+  onNavigateToChat?: (bookingId: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -56,6 +57,7 @@ export function BookingDetailScreen({
   onBack,
   onNavigateToDeviceDetail,
   onNavigateToBookingCreate,
+  onNavigateToChat,
 }: BookingDetailScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -363,6 +365,22 @@ export function BookingDetailScreen({
               <Ionicons name="mail-outline" size={16} color={colors.light.primary} />
               <Text style={[styles.ownerActionBtnText, { color: colors.light.primary }]}>
                 {STRINGS.BOOKING_DETAIL.EMAIL}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.ownerActionBtn, { backgroundColor: colors.light.primary }]}
+              onPress={() => {
+                if (onNavigateToChat) {
+                  onNavigateToChat(booking._id);
+                } else {
+                  (navigation as any)?.navigate?.('ChatDetail', { bookingId: booking._id });
+                }
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.light.white} />
+              <Text style={[styles.ownerActionBtnText, { color: colors.light.white }]}>
+                Chat
               </Text>
             </TouchableOpacity>
           </View>

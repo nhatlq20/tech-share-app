@@ -42,8 +42,13 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{ token: string; user: AuthUser }>
     ) => {
+      const u = action.payload.user;
       state.token = action.payload.token;
-      state.user = action.payload.user;
+      state.user = {
+        ...u,
+        _id: u._id || u.id,
+        id: u.id || u._id || '',
+      };
       state.isAuthenticated = true;
       setApiAuthToken(action.payload.token);
     },

@@ -30,6 +30,8 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BookingManageScreen, BookingManageTab } from '../screens/booking/BookingManageScreen';
 import { WishlistScreen } from '../screens/device/WishlistScreen';
 import { AiChatConsultant } from '../screens/ai/AiChatConsultant';
+import { ChatDetailScreen } from '../screens/chat/ChatDetailScreen';
+import { OwnerMessagesScreen } from '../screens/owner/OwnerMessagesScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -63,6 +65,9 @@ export type RootStackParamList = {
     | undefined;
   Notification: { from?: string } | undefined;
   AiChatConsultant: undefined;
+  ChatDetail: { bookingId: string };
+  MessagesInbox: { from?: 'owner' | 'renter' } | undefined;
+  OwnerMessages: { from?: 'owner' | 'renter' } | undefined;
 };
 
 export const rootNavigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -113,6 +118,7 @@ const BookingDetailRoute = ({ route, navigation }: any) => (
     onBack={() => navigation.goBack()}
     onNavigateToDeviceDetail={(deviceId) => navigation.navigate('DeviceDetail', { deviceId })}
     onNavigateToBookingCreate={(deviceId) => navigation.navigate('BookingCreate', { deviceId })}
+    onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
   />
 );
 
@@ -123,6 +129,16 @@ const BookingManageRoute = ({ route, navigation }: any) => (
     onBack={() => navigation.goBack()}
     onNavigateToBookingDetail={(bookingId) => navigation.navigate('BookingDetail', { bookingId })}
     onNavigateToNotifications={() => navigation.navigate('Notification', { from: 'owner' })}
+    onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
+  />
+);
+
+const ChatDetailRoute = ({ route, navigation }: any) => (
+  <ChatDetailScreen
+    route={route}
+    navigation={navigation}
+    bookingId={route.params?.bookingId}
+    onBack={() => navigation.goBack()}
   />
 );
 
@@ -140,6 +156,8 @@ const NotificationRoute = ({ route, navigation }: any) => {
 
   return (
     <NotificationScreen
+      navigation={navigation}
+      onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
       onBack={() => {
         if (navigation.canGoBack()) {
           navigation.goBack();
@@ -181,11 +199,41 @@ const AiChatConsultantRoute = ({ navigation }: any) => (
   />
 );
 
+const MessagesInboxRoute = ({ route, navigation }: any) => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isRenter = route?.params?.from === 'renter' || user?.role === 'renter';
+
+  return (
+    <OwnerMessagesScreen
+      navigation={navigation}
+      route={route}
+      isRenterMode={isRenter}
+      onBack={() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('MainTabs');
+        }
+      }}
+      onNavigateToChat={(bookingId: string) =>
+        navigation.navigate('ChatDetail', { bookingId })
+      }
+    />
+  );
+};
+
 export function RootNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isAdmin = isAuthenticated && user?.role === 'admin';
   const isOwner = isAuthenticated && user?.role === 'owner';
+
+  useEffect(() => {
+    const currentUserId = user?.id || (user as any)?._id;
+    if (isAuthenticated && currentUserId) {
+      socketService.connect(String(currentUserId));
+    }
+  }, [isAuthenticated, user]);
 
   const handleLogout = () => {
     socketService.disconnect();
@@ -264,6 +312,7 @@ export function RootNavigator() {
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="Wishlist">{WishlistRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
           </Stack.Group>
         ) : isOwner ? (
           <Stack.Group>
@@ -291,6 +340,9 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
+            <Stack.Screen name="MessagesInbox">{MessagesInboxRoute}</Stack.Screen>
+            <Stack.Screen name="OwnerMessages">{MessagesInboxRoute}</Stack.Screen>
           </Stack.Group>
         ) : (
           <Stack.Group>
@@ -337,6 +389,9 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
+            <Stack.Screen name="MessagesInbox">{MessagesInboxRoute}</Stack.Screen>
+            <Stack.Screen name="OwnerMessages">{MessagesInboxRoute}</Stack.Screen>
           </Stack.Group>
         )}
       </Stack.Navigator>

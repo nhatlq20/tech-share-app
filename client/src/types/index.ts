@@ -492,3 +492,57 @@ export type BlockedDate = {
   endDate: string;
   reason?: string;
 };
+
+// ==========================================
+// 11. Phân hệ Nhắn tin Trực tiếp (In-App Chat)
+// ==========================================
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
+export type ChatMessageType = 'text' | 'image' | 'location' | 'template';
+
+export interface ChatMessage {
+  _id: string;
+  bookingId: string;
+  senderId: string;
+  receiverId?: string;
+  messageType: ChatMessageType;
+  text?: string;
+  mediaUrl?: string;
+  locationData?: LocationData;
+  createdAt: string;
+  isSending?: boolean;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+}
+
+export interface ChatBookingInfo {
+  _id: string;
+  bookingCode?: string;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  device?: {
+    _id: string;
+    title: string;
+    image?: string;
+    brand?: string;
+  } | null;
+}
+
+export interface ChatOtherUser {
+  _id: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+  phone?: string;
+}
+
+export interface ChatHistoryResponse {
+  booking: ChatBookingInfo;
+  otherUser: ChatOtherUser;
+  messages: ChatMessage[];
+}
+

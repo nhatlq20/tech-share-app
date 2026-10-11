@@ -27,6 +27,7 @@ interface MyBookingsScreenProps {
   onNavigateToDeviceDetail?: (deviceId: string) => void;
   onNavigateToBookingCreate?: (deviceId: string) => void;
   onNavigateToHome?: () => void;
+  onNavigateToChat?: (bookingId: string) => void;
 }
 
 const TABS = [
@@ -43,6 +44,7 @@ export function MyBookingsScreen({
   onNavigateToBookingDetail,
   onNavigateToDeviceDetail,
   onNavigateToBookingCreate,
+  onNavigateToChat,
 }: MyBookingsScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -223,6 +225,7 @@ export function MyBookingsScreen({
               onExtend={() => openExtendModal(item)}
               onReview={() => openReviewModal(item)}
               onReRent={() => handleReRent(item)}
+              onChat={() => onNavigateToChat && onNavigateToChat(item._id)}
             />
           )}
           ListEmptyComponent={renderEmpty}
