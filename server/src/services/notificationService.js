@@ -3,7 +3,6 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { getIO } from '../socket.js';
 
 // Initialize Expo push notification instance
 const expo = new Expo();
@@ -59,7 +58,6 @@ export const createAndSendNotification = async ({
   type = 'system',
   relatedId = null,
   data = {},
-  io = null,
 }) => {
   try {
     // 1. Create Notification in MongoDB Atlas
@@ -94,12 +92,6 @@ export const createAndSendNotification = async ({
         });
     } catch (fbError) {
       console.warn('⚠️ [Firebase Firestore] Error:', fbError.message);
-    }
-
-    // 2. Emit real-time Socket event if user is active online
-    const socketIO = io || getIO();
-    if (socketIO) {
-      socketIO.to(`user_${userId}`).emit('new_notification', notification);
     }
 
     // 3. Query recipient User to dispatch remote push notification

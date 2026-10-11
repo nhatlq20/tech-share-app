@@ -7,7 +7,6 @@ import { RootState, store } from './src/store';
 import {
   fetchNotifications,
   fetchUnreadCount,
-  receiveRealtimeNotification,
   syncNotificationsFromFirebase,
 } from './src/store/slices/notificationSlice';
 import { fetchWishlist, clearWishlist } from './src/store/slices/wishlistSlice';
@@ -77,20 +76,13 @@ function AppContent() {
       }
     );
 
-    // 2. Kết nối Socket.io song song (hỗ trợ chat / fallback)
-    socketService.connect(userId);
+    // 2. Tải dữ liệu ban đầu
     dispatch(fetchUnreadCount() as any);
     dispatch(fetchNotifications(undefined) as any);
     dispatch(fetchWishlist() as any);
 
-    const unsubscribeSocket = socketService.onNewNotification((notification) => {
-      dispatch(receiveRealtimeNotification(notification));
-      setActiveBannerNotif(notification);
-    });
-
     return () => {
       unsubscribeFirebase();
-      unsubscribeSocket();
       socketService.disconnect();
     };
   }, [dispatch, isAuthenticated, userId]);

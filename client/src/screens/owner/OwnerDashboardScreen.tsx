@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, STRINGS, CONFIG } from '../../constants';
 import { useAppSelector } from '../../store';
-import { socketService } from '../../services/socketService';
 import { bookingService, Booking } from '../../services/bookingService';
 import { deviceService } from '../../services/deviceService';
 import {
@@ -197,16 +196,14 @@ export function OwnerDashboardScreen({
     fetchOwnerOrders();
   }, [fetchAnalytics, fetchOwnerOrders]);
 
-  // ── LẮNG NGHE THÔNG BÁO THỜI GIAN THỰC ──
+  // ── LẮNG NGHE THÔNG BÁO THỜI GIAN THỰC TỪ FIREBASE (QUA REDUX) ──
+  const latestNotif = useAppSelector((state) => state.notifications.items[0]);
   useEffect(() => {
-    const unsub = socketService.onNewNotification((notif) => {
-      if (notif.type === 'order' || notif.type === 'reminder') {
-        fetchOwnerOrders();
-        fetchAnalytics();
-      }
-    });
-    return () => unsub();
-  }, [fetchOwnerOrders, fetchAnalytics]);
+    if (latestNotif && (latestNotif.type === 'order' || latestNotif.type === 'reminder')) {
+      fetchOwnerOrders();
+      fetchAnalytics();
+    }
+  }, [latestNotif?._id, fetchOwnerOrders, fetchAnalytics]);
 
   // ── ĐỒNG BỘ CHỨC NĂNG TAB KHI NHẬN PARAMS TỪ SIDEBAR HOẶC NAVIGATION ──
   useEffect(() => {
@@ -220,14 +217,6 @@ export function OwnerDashboardScreen({
     }
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   }, [route?.params?.initialSection, route?.params?._t, navigation]);
-
-  const handleSelectTab = (tab: OwnerTab) => {
-    setSelectedTab(tab);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    if (navigation?.setParams) {
-      navigation.setParams({ initialSection: tab });
-    }
-  };
 
   // ── TỔNG HỢP & ĐỒNG BỘ DỮ LIỆU THỐNG KÊ (DATA CONSISTENCY PIPELINE) ──
   const dashboardData: OwnerDashboardData = useMemo(() => {
@@ -1097,7 +1086,6 @@ export function OwnerDashboardScreen({
         onClose={() => setShowLogoutModal(false)}
         onConfirm={() => {
           setShowLogoutModal(false);
-          socketService.disconnect();
           onLogout?.();
         }}
         subtitle={STRINGS.OWNER_DASHBOARD.LOGOUT_MODAL_SUBTITLE}
