@@ -8,9 +8,11 @@ let activeBookingId: string | null = null;
 
 type NotificationListener = (notification: Notification) => void;
 type MessageListener = (message: ChatMessage) => void;
+type MessagesReadListener = (data: { bookingId: string; readBy: string }) => void;
 
 let notificationListeners: NotificationListener[] = [];
 let messageListeners: MessageListener[] = [];
+let messagesReadListeners: MessagesReadListener[] = [];
 
 export const socketService = {
   /**
@@ -30,6 +32,16 @@ export const socketService = {
     messageListeners.push(listener);
     return () => {
       messageListeners = messageListeners.filter(l => l !== listener);
+    };
+  },
+
+  /**
+   * Đăng ký nhận sự kiện tin nhắn đã đọc
+   */
+  onMessagesRead: (listener: MessagesReadListener) => {
+    messagesReadListeners.push(listener);
+    return () => {
+      messagesReadListeners = messagesReadListeners.filter(l => l !== listener);
     };
   },
 
@@ -121,6 +133,17 @@ export const socketService = {
             listener(message);
           } catch (e) {
             console.warn('Listener error in onNewMessage:', e);
+          }
+        });
+      });
+
+      socket.on('messages_read', (data: { bookingId: string; readBy: string }) => {
+        console.log('👀 [Socket.IO Client] Tin nhắn đã đọc:', data.bookingId);
+        messagesReadListeners.forEach(listener => {
+          try {
+            listener(data);
+          } catch (e) {
+            console.warn('Listener error in onMessagesRead:', e);
           }
         });
       });

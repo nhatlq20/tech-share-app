@@ -1,8 +1,207 @@
+import mongoose from 'mongoose';
 import Message from '../models/Message.js';
 import Booking from '../models/Booking.js';
 import User from '../models/User.js';
+import Device from '../models/Device.js';
 import { createAndSendNotification } from '../services/notificationService.js';
 import { getIO } from '../socket.js';
+
+/**
+ * GET /api/chats/conversations
+ * Lấy danh sách cuộc trò chuyện với khách hàng / chủ thiết bị
+ * Sắp xếp theo tin nhắn mới nhất nằm trên cùng (Realtime)
+ */
+export const getConversations = async (req, res) => {
+  try {
+    const currentUserId = req.auth?.id || req.auth?.userId || req.auth?._id;
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
+    const { role } = req.query; // 'owner' hoặc 'renter'
+
+    const userObjId = mongoose.Types.ObjectId.isValid(currentUserId)
+      ? new mongoose.Types.ObjectId(currentUserId)
+      : currentUserId;
+
+    // Tìm tất cả thiết bị thuộc sở hữu của user nếu là owner
+    const myDevices = await Device.find({
+      $or: [
+        { ownerId: currentUserId },
+        { ownerId: userObjId },
+        { owner: currentUserId },
+        { owner: userObjId },
+      ],
+    }).select('_id');
+    const myDeviceIds = myDevices.map((d) => d._id);
+
+    let bookingQuery;
+    if (role === 'owner') {
+      bookingQuery = {
+        $or: [
+          { ownerId: currentUserId },
+          { ownerId: userObjId },
+          ...(myDeviceIds.length > 0 ? [{ deviceId: { $in: myDeviceIds } }] : []),
+        ],
+      };
+    } else if (role === 'renter') {
+      bookingQuery = {
+        $or: [{ renterId: currentUserId }, { renterId: userObjId }],
+      };
+    } else {
+      bookingQuery = {
+        $or: [
+          { ownerId: currentUserId },
+          { ownerId: userObjId },
+          { renterId: currentUserId },
+          { renterId: userObjId },
+          ...(myDeviceIds.length > 0 ? [{ deviceId: { $in: myDeviceIds } }] : []),
+        ],
+      };
+    }
+
+    const bookings = await Booking.find(bookingQuery)
+      .populate('renterId', 'name avatar role phone email isVerified')
+      .populate('ownerId', 'name avatar role phone email isVerified')
+      .populate('deviceId', 'name title images brand model category')
+      .lean();
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+      });
+    }
+
+    const bookingIds = bookings.map((b) => b._id);
+
+    // Aggregation: Lấy tin nhắn mới nhất cho từng booking
+    const latestMessagesAgg = await Message.aggregate([
+      { $match: { bookingId: { $in: bookingIds } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$bookingId',
+          messageId: { $first: '$_id' },
+          senderId: { $first: '$senderId' },
+          receiverId: { $first: '$receiverId' },
+          type: { $first: '$type' },
+          content: { $first: '$content' },
+          mediaUrl: { $first: '$mediaUrl' },
+          status: { $first: '$status' },
+          createdAt: { $first: '$createdAt' },
+        },
+      },
+    ]);
+
+    const latestMessageMap = new Map();
+    latestMessagesAgg.forEach((msg) => {
+      latestMessageMap.set(String(msg._id), msg);
+    });
+
+    // Aggregation: Đếm số lượng tin nhắn chưa đọc mà người nhận là currentUserId
+    const unreadAgg = await Message.aggregate([
+      {
+        $match: {
+          bookingId: { $in: bookingIds },
+          receiverId: { $in: [userObjId, String(currentUserId)] },
+          status: { $ne: 'read' },
+        },
+      },
+      {
+        $group: {
+          _id: '$bookingId',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const unreadMap = new Map();
+    unreadAgg.forEach((u) => {
+      unreadMap.set(String(u._id), u.count);
+    });
+
+    const conversations = bookings.map((b) => {
+      const bId = String(b._id);
+      const isOwner = String(b.ownerId?._id || b.ownerId) === String(currentUserId);
+      const otherUser = isOwner ? b.renterId : b.ownerId;
+      const device = b.deviceId;
+      const latestMsg = latestMessageMap.get(bId);
+      const unreadCount = unreadMap.get(bId) || 0;
+
+      let previewText = 'Chưa có tin nhắn';
+      if (latestMsg) {
+        if (latestMsg.type === 'image') previewText = '📷 [Hình ảnh]';
+        else if (latestMsg.type === 'location') previewText = '📍 [Vị trí]';
+        else if (latestMsg.content) previewText = latestMsg.content;
+      }
+
+      const lastActivityAt = latestMsg?.createdAt
+        ? new Date(latestMsg.createdAt).toISOString()
+        : new Date(b.updatedAt || b.createdAt).toISOString();
+
+      return {
+        bookingId: bId,
+        bookingCode: b.bookingCode || '',
+        bookingStatus: b.status,
+        startDate: b.startDate,
+        endDate: b.endDate,
+        otherUser: otherUser
+          ? {
+              _id: String(otherUser._id || otherUser),
+              name: otherUser.name || 'User',
+              avatar: otherUser.avatar || '',
+              phone: otherUser.phone || '',
+              isVerified: Boolean(otherUser.isVerified),
+              role: otherUser.role || (isOwner ? 'renter' : 'owner'),
+            }
+          : null,
+        device: device
+          ? {
+              _id: String(device._id || device),
+              title: device.title || device.name || 'Thiết bị',
+              image: device.images?.[0] || '',
+              brand: device.brand || '',
+            }
+          : null,
+        lastMessage: latestMsg
+          ? {
+              _id: String(latestMsg.messageId),
+              text: previewText,
+              senderId: String(latestMsg.senderId),
+              isFromMe: String(latestMsg.senderId) === String(currentUserId),
+              createdAt: latestMsg.createdAt
+                ? new Date(latestMsg.createdAt).toISOString()
+                : new Date().toISOString(),
+              status: latestMsg.status || 'sent',
+            }
+          : null,
+        unreadCount,
+        lastActivityAt,
+      };
+    });
+
+    // Sắp xếp danh sách: Tin nhắn mới nhất nằm trên cùng
+    conversations.sort(
+      (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: conversations,
+    });
+  } catch (error) {
+    console.error('❌ [getConversations] Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve conversations',
+      error: error.message,
+    });
+  }
+};
 
 /**
  * GET /api/chats/:bookingId
@@ -46,6 +245,42 @@ export const getChatHistory = async (req, res) => {
 
     const otherUser = isRenter ? booking.ownerId : booking.renterId;
 
+    // Đánh dấu tất cả tin nhắn gửi đến currentUserId trong booking này là 'read'
+    const userObjId = mongoose.Types.ObjectId.isValid(currentUserId)
+      ? new mongoose.Types.ObjectId(currentUserId)
+      : currentUserId;
+
+    await Message.updateMany(
+      {
+        bookingId: booking._id,
+        $or: [
+          { receiverId: userObjId },
+          { receiverId: String(currentUserId) },
+          { senderId: { $ne: userObjId } },
+        ],
+        status: { $ne: 'read' },
+      },
+      {
+        $set: { status: 'read' },
+      }
+    );
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(`chat_${booking._id}`).emit('messages_read', {
+          bookingId: String(booking._id),
+          readBy: String(currentUserId),
+        });
+        io.to(`user_${currentUserId}`).emit('messages_read', {
+          bookingId: String(booking._id),
+          readBy: String(currentUserId),
+        });
+      }
+    } catch (socketErr) {
+      console.warn('⚠️ [Socket.IO] Failed to emit messages_read:', socketErr.message);
+    }
+
     // Fetch messages sorted newest first (for inverted FlatList)
     const rawMessages = await Message.find({ bookingId })
       .sort({ createdAt: -1 })
@@ -68,6 +303,7 @@ export const getChatHistory = async (req, res) => {
             }
           : undefined,
       createdAt: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
+      status: m.status || 'sent',
     }));
 
     return res.status(200).json({
@@ -189,6 +425,7 @@ export const sendMessage = async (req, res) => {
       mediaUrl: newMessage.mediaUrl || '',
       locationData: location,
       createdAt: newMessage.createdAt.toISOString(),
+      status: newMessage.status || 'sent',
     };
 
     // Emit real-time message via Socket.IO to booking room and receiver room
@@ -295,6 +532,75 @@ export const uploadChatImage = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error uploading chat image',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * PATCH /api/chats/:bookingId/read
+ * Đánh dấu đã đọc tất cả tin nhắn trong một booking
+ */
+export const markChatMessagesAsRead = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const currentUserId = req.auth?.id || req.auth?.userId || req.auth?._id;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
+    const userObjId = mongoose.Types.ObjectId.isValid(currentUserId)
+      ? new mongoose.Types.ObjectId(currentUserId)
+      : currentUserId;
+
+    const bookingObjId = mongoose.Types.ObjectId.isValid(bookingId)
+      ? new mongoose.Types.ObjectId(bookingId)
+      : bookingId;
+
+    await Message.updateMany(
+      {
+        $or: [{ bookingId: bookingObjId }, { bookingId: String(bookingId) }],
+        $or: [
+          { receiverId: userObjId },
+          { receiverId: String(currentUserId) },
+          { senderId: { $ne: userObjId } },
+        ],
+        status: { $ne: 'read' },
+      },
+      {
+        $set: { status: 'read' },
+      }
+    );
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(`chat_${bookingId}`).emit('messages_read', {
+          bookingId: String(bookingId),
+          readBy: String(currentUserId),
+        });
+        io.to(`user_${currentUserId}`).emit('messages_read', {
+          bookingId: String(bookingId),
+          readBy: String(currentUserId),
+        });
+      }
+    } catch (socketErr) {
+      console.warn('⚠️ [Socket.IO] Failed to emit messages_read:', socketErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Messages marked as read',
+    });
+  } catch (error) {
+    console.error('❌ [markChatMessagesAsRead] Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to mark messages as read',
       error: error.message,
     });
   }

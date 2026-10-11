@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -116,6 +116,9 @@ export function ChatDetailScreen({
 
     // 1. Fetch chat history once on screen mount
     loadChatHistory(true);
+    if (effectiveBookingId) {
+      chatService.markChatAsRead(effectiveBookingId).catch(() => {});
+    }
 
     // 2. Connect socket if needed & join booking chat room
     if (currentUserId) {
@@ -129,6 +132,7 @@ export function ChatDetailScreen({
     const unsubscribe = socketService.onNewMessage((incomingMsg: ChatMessage) => {
       if (incomingMsg.bookingId !== effectiveBookingId) return;
       dispatch(resetUnreadMessages());
+      chatService.markChatAsRead(effectiveBookingId).catch(() => {});
 
       setMessages((prev: ChatMessage[]) => {
         // Prevent duplicate messages if already present
@@ -299,6 +303,68 @@ export function ChatDetailScreen({
 
   const statusBadge = getStatusBadgeStyle(booking?.status);
 
+  const formatTimeDivider = useCallback((dateString?: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+
+      const isToday =
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const isYesterday =
+        date.getDate() === yesterday.getDate() &&
+        date.getMonth() === yesterday.getMonth() &&
+        date.getFullYear() === yesterday.getFullYear();
+
+      const timeString = date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      if (isToday) {
+        return timeString;
+      }
+      if (isYesterday) {
+        return `Hôm qua ${timeString}`;
+      }
+
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const isThisYear = date.getFullYear() === now.getFullYear();
+
+      if (isThisYear) {
+        return `${day}/${month} ${timeString}`;
+      }
+      return `${day}/${month}/${date.getFullYear()} ${timeString}`;
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const isSentMessage = useCallback(
+    (m?: ChatMessage) => {
+      if (!m) return false;
+      const sId = String(m.senderId || '');
+      const myId = String(currentUserId || '');
+      const otherId = String(otherUser?._id || '');
+      return Boolean(
+        m.isSending ||
+        (myId && sId && sId === myId) ||
+        (otherId && sId && sId !== otherId)
+      );
+    },
+    [currentUserId, otherUser?._id]
+  );
+
+  const latestSentIndex = useMemo(() => {
+    return messages.findIndex((m: ChatMessage) => isSentMessage(m));
+  }, [messages, isSentMessage]);
+
   return (
     <KeyboardAvoidingView
       style={styles.screenContainer}
@@ -408,13 +474,57 @@ export function ChatDetailScreen({
             data={messages}
             inverted
             keyExtractor={(item: ChatMessage) => item._id}
-            renderItem={({ item }: { item: ChatMessage }) => (
-              <MessageBubble
-                message={item}
-                currentUserId={currentUserId}
-                otherUserId={otherUser?._id}
-              />
-            )}
+            renderItem={({ item, index }: { item: ChatMessage; index: number }) => {
+              const isSent = isSentMessage(item);
+              const isLatestSentMessage = isSent && index === latestSentIndex;
+
+              // Rule 1: Avatar đối phương chỉ hiện ở dưới cùng bên trái của cụm tin nhắn cuối cùng (28x28).
+              // Ở danh sách inverted, tin nhắn dưới nó trên màn hình là messages[index - 1].
+              let isLastInReceivedCluster = false;
+              if (!isSent) {
+                if (index === 0) {
+                  isLastInReceivedCluster = true;
+                } else {
+                  const nextMessageBelow = messages[index - 1];
+                  if (isSentMessage(nextMessageBelow)) {
+                    isLastInReceivedCluster = true;
+                  }
+                }
+              }
+
+              // Rule 2: Dấu thời gian (Timestamp) gom nhóm: hiện dòng giữa màn hình nếu cách tin trước > 30 phút.
+              // Ở danh sách inverted, tin nhắn trên nó trên màn hình là messages[index + 1].
+              let showTimeDivider = false;
+              let timeDividerText = '';
+              if (index === messages.length - 1) {
+                showTimeDivider = true;
+                timeDividerText = formatTimeDivider(item.createdAt);
+              } else {
+                const prevMessageAbove = messages[index + 1];
+                if (item.createdAt && prevMessageAbove?.createdAt) {
+                  const diffMs = Math.abs(
+                    new Date(item.createdAt).getTime() - new Date(prevMessageAbove.createdAt).getTime()
+                  );
+                  if (diffMs >= 30 * 60 * 1000) {
+                    showTimeDivider = true;
+                    timeDividerText = formatTimeDivider(item.createdAt);
+                  }
+                }
+              }
+
+              return (
+                <MessageBubble
+                  message={item}
+                  currentUserId={currentUserId}
+                  otherUserId={otherUser?._id}
+                  otherUserAvatar={otherUser?.avatar}
+                  isLastInReceivedCluster={isLastInReceivedCluster}
+                  isLatestSentMessage={isLatestSentMessage}
+                  showTimeDivider={showTimeDivider}
+                  timeDividerText={timeDividerText}
+                />
+              );
+            }}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />

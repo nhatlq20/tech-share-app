@@ -513,6 +513,7 @@ export interface ChatMessage {
   locationData?: LocationData;
   createdAt: string;
   isSending?: boolean;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
 }
 
 export interface ChatBookingInfo {

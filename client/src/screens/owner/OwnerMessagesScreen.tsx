@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,72 +13,154 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { theme, STRINGS, CONFIG } from '../../constants';
-import { bookingService, Booking } from '../../services/bookingService';
+import { chatService, ChatConversationItem } from '../../services/chatService';
 import { socketService } from '../../services/socketService';
 import { resetUnreadMessages } from '../../store/slices/notificationSlice';
+import { RootState } from '../../store';
 
 export interface OwnerMessagesScreenProps {
   navigation?: any;
+  route?: any;
   onOpenDrawer?: () => void;
   onNavigateToChat?: (bookingId: string) => void;
+  isRenterMode?: boolean;
+  onBack?: () => void;
 }
 
 type FilterTab = 'all' | 'renting' | 'pending' | 'completed';
 
 export function OwnerMessagesScreen({
   navigation,
+  route,
   onOpenDrawer,
   onNavigateToChat,
+  isRenterMode,
+  onBack,
 }: OwnerMessagesScreenProps) {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.user?.id || (state.auth.user as any)?._id
+  );
+  const userRole = useSelector((state: RootState) => state.auth.user?.role);
+  const isRenter = Boolean(
+    isRenterMode ||
+    route?.params?.from === 'renter' ||
+    route?.params?.isRenterMode ||
+    (userRole === 'renter' && !onOpenDrawer)
+  );
+
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
 
-  const [bookings, setBookings] = useState([] as Booking[]);
+  const [conversations, setConversations] = useState([] as ChatConversationItem[]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all' as FilterTab);
 
-  const fetchBookings = useCallback(async (isSilent = false) => {
+  // Lấy danh sách cuộc trò chuyện gần nhất từ API (sắp xếp tin nhắn mới nhất lên đầu)
+  const fetchConversations = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
-      const data = await bookingService.getOwnerBookings();
-      setBookings(Array.isArray(data) ? data : []);
+      const roleParam = isRenter ? 'renter' : 'owner';
+      const data = await chatService.getConversations(roleParam);
+      setConversations(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.warn('Failed to load owner conversations:', err?.message);
+      console.warn('Failed to load conversations:', err?.message);
     } finally {
       if (!isSilent) setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isRenter]);
 
   useEffect(() => {
+    if (currentUserId) {
+      socketService.connect(String(currentUserId));
+    }
     dispatch(resetUnreadMessages());
-    fetchBookings();
+    fetchConversations();
 
-    // Listen to real-time incoming messages to refresh list
-    const unsubscribe = socketService.onNewMessage(() => {
-      fetchBookings(true);
+    // Lắng nghe tin nhắn mới theo thời gian thực (Socket.IO):
+    // Cập nhật ngay tin nhắn mới nhất và đưa cuộc trò chuyện lên đầu danh sách
+    const unsubscribe = socketService.onNewMessage((newMsg) => {
+      setConversations((prev: ChatConversationItem[]) => {
+        const foundIndex = prev.findIndex((c: ChatConversationItem) => c.bookingId === newMsg.bookingId);
+        if (foundIndex >= 0) {
+          const item = prev[foundIndex];
+          const updatedItem: ChatConversationItem = {
+            ...item,
+            lastMessage: {
+              _id: newMsg._id,
+              text:
+                newMsg.text ||
+                (newMsg.messageType === 'image'
+                  ? '📷 [Hình ảnh]'
+                  : newMsg.messageType === 'location'
+                  ? '📍 [Vị trí]'
+                  : 'Tin nhắn mới'),
+              senderId: newMsg.senderId,
+              isFromMe: false,
+              createdAt: newMsg.createdAt || new Date().toISOString(),
+              status: newMsg.status || 'sent',
+            },
+            unreadCount: (item.unreadCount || 0) + 1,
+            lastActivityAt: newMsg.createdAt || new Date().toISOString(),
+          };
+          const rest = prev.filter((_: ChatConversationItem, idx: number) => idx !== foundIndex);
+          return [updatedItem, ...rest];
+        }
+        return prev;
+      });
+
+      // Đồng bộ lại từ server trong nền
+      fetchConversations(true);
+    });
+
+    // Lắng nghe sự kiện tin nhắn đã đọc để xóa chấm đỏ/badge
+    const unsubRead = socketService.onMessagesRead((data) => {
+      setConversations((prev: ChatConversationItem[]) =>
+        prev.map((c: ChatConversationItem) =>
+          c.bookingId === data.bookingId ? { ...c, unreadCount: 0 } : c
+        )
+      );
     });
 
     return () => {
       unsubscribe();
+      unsubRead();
     };
-  }, [fetchBookings]);
+  }, [fetchConversations, dispatch, currentUserId]);
+
+  // Tự động làm mới danh sách tin nhắn mỗi khi quay lại màn hình
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations(true);
+    }, [fetchConversations])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchBookings(true);
+    fetchConversations(true);
   };
 
   const handleOpenChat = (bookingId: string) => {
+    // 1. Optimistic update: xóa badge unread ngay lập tức trên UI
+    setConversations((prev: ChatConversationItem[]) =>
+      prev.map((c: ChatConversationItem) =>
+        c.bookingId === bookingId ? { ...c, unreadCount: 0 } : c
+      )
+    );
+
+    // 2. Gửi request đánh dấu đã đọc lên server
+    chatService.markChatAsRead(bookingId).catch(() => {});
+
     if (onNavigateToChat) {
       onNavigateToChat(bookingId);
     } else if (navigation?.navigate) {
@@ -86,26 +168,58 @@ export function OwnerMessagesScreen({
     }
   };
 
-  // Filter conversations based on tab and search keyword
-  const filteredBookings = bookings.filter((item: Booking) => {
-    // 1. Tab filter
-    if (activeTab === 'renting' && item.status !== 'active') return false;
-    if (activeTab === 'pending' && item.status !== 'pending') return false;
-    if (activeTab === 'completed' && item.status !== 'completed') return false;
+  // Lọc cuộc trò chuyện theo tab và từ khóa tìm kiếm
+  const filteredConversations = useMemo(() => {
+    return conversations.filter((item: ChatConversationItem) => {
+      // 1. Lọc theo trạng thái đơn
+      if (activeTab === 'renting' && item.bookingStatus !== 'active') return false;
+      if (activeTab === 'pending' && item.bookingStatus !== 'pending') return false;
+      if (activeTab === 'completed' && item.bookingStatus !== 'completed') return false;
 
-    // 2. Search query filter
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
+      // 2. Lọc theo từ khóa tìm kiếm (tên khách, thiết bị, mã đơn, nội dung tin nhắn)
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
 
-    const renter: any = typeof item.renterId === 'object' ? item.renterId : null;
-    const device: any = typeof item.deviceId === 'object' ? item.deviceId : null;
+      const renterName = item.otherUser?.name ? item.otherUser.name.toLowerCase() : '';
+      const deviceTitle = item.device?.title ? item.device.title.toLowerCase() : '';
+      const bookingCode = item.bookingCode ? item.bookingCode.toLowerCase() : '';
+      const lastMsgText = item.lastMessage?.text ? item.lastMessage.text.toLowerCase() : '';
 
-    const renterName = renter?.name ? String(renter.name).toLowerCase() : '';
-    const deviceName = (device?.name || device?.title) ? String(device.name || device.title).toLowerCase() : '';
-    const bookingCode = String(item.bookingCode || '').toLowerCase();
+      return (
+        renterName.includes(q) ||
+        deviceTitle.includes(q) ||
+        bookingCode.includes(q) ||
+        lastMsgText.includes(q)
+      );
+    });
+  }, [conversations, activeTab, searchQuery]);
 
-    return renterName.includes(q) || deviceName.includes(q) || bookingCode.includes(q);
-  });
+  const formatConversationTime = (isoString?: string): string => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+      if (diffMins < 1) return 'Vừa xong';
+      if (diffMins < 60) return `${diffMins}p`;
+      if (diffHours < 24 && date.getDate() === now.getDate()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth()) {
+        return 'Hôm qua';
+      }
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      return `${day}/${month}`;
+    } catch {
+      return '';
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -121,10 +235,16 @@ export function OwnerMessagesScreen({
           text: theme.colors.warning[600],
           label: STRINGS.OWNER_MESSAGES.PENDING_TAB,
         };
-      case 'completed':
+      case 'approved':
         return {
           bg: theme.colors.primary[50],
-          text: theme.colors.primary[700],
+          text: theme.colors.primary[600],
+          label: 'ĐÃ DUYỆT',
+        };
+      case 'completed':
+        return {
+          bg: theme.colors.slate[100],
+          text: theme.colors.slate[600],
           label: STRINGS.OWNER_MESSAGES.COMPLETED_TAB,
         };
       default:
@@ -140,27 +260,51 @@ export function OwnerMessagesScreen({
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.card} />
 
-      {/* ── 1. TOP HEADER WITH DRAWER BUTTON ── */}
+      {/* ── 1. TOP HEADER WITH BACK / DRAWER BUTTON ── */}
       <View style={[styles.topBar, { paddingTop: topInset + theme.spacing.sm }]}>
         <View style={styles.topBarLeft}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={STRINGS.OWNER_MESSAGES.MENU_ACCESSIBILITY_LABEL}
-            onPress={() => {
-              if (onOpenDrawer) {
-                onOpenDrawer();
-              } else if (navigation?.openDrawer) {
-                navigation.openDrawer();
-              }
-            }}
-            style={styles.hamburgerButton}
-            activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
-          >
-            <Ionicons name="menu-outline" size={24} color={theme.colors.slate[900]} />
-          </TouchableOpacity>
+          {isRenter ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Quay lại"
+              onPress={() => {
+                if (onBack) {
+                  onBack();
+                } else if (navigation?.goBack) {
+                  navigation.goBack();
+                }
+              }}
+              style={styles.hamburgerButton}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.slate[900]} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={STRINGS.OWNER_MESSAGES.MENU_ACCESSIBILITY_LABEL}
+              onPress={() => {
+                if (onOpenDrawer) {
+                  onOpenDrawer();
+                } else if (navigation?.openDrawer) {
+                  navigation.openDrawer();
+                }
+              }}
+              style={styles.hamburgerButton}
+              activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
+            >
+              <Ionicons name="menu-outline" size={24} color={theme.colors.slate[900]} />
+            </TouchableOpacity>
+          )}
           <View style={styles.topBarTitleCol}>
-            <Text style={styles.topBarTitle}>{STRINGS.OWNER_MESSAGES.TOP_BAR_TITLE}</Text>
-            <Text style={styles.topBarSubtitle}>{STRINGS.OWNER_MESSAGES.TOP_BAR_SUBTITLE}</Text>
+            <Text style={styles.topBarTitle}>
+              {isRenter ? 'Tin nhắn với chủ máy' : STRINGS.OWNER_MESSAGES.TOP_BAR_TITLE}
+            </Text>
+            <Text style={styles.topBarSubtitle}>
+              {isRenter
+                ? 'Lịch sử trao đổi và hỗ trợ từ các chủ thiết bị'
+                : STRINGS.OWNER_MESSAGES.TOP_BAR_SUBTITLE}
+            </Text>
           </View>
         </View>
       </View>
@@ -171,7 +315,11 @@ export function OwnerMessagesScreen({
           <Ionicons name="search-outline" size={18} color={theme.colors.slate[400]} />
           <TextInput
             style={styles.searchInput}
-            placeholder={STRINGS.OWNER_MESSAGES.SEARCH_PLACEHOLDER}
+            placeholder={
+              isRenter
+                ? 'Tìm kiếm chủ máy, thiết bị, tin nhắn...'
+                : STRINGS.OWNER_MESSAGES.SEARCH_PLACEHOLDER
+            }
             placeholderTextColor={theme.colors.slate[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -209,7 +357,7 @@ export function OwnerMessagesScreen({
         })}
       </View>
 
-      {/* ── 4. CONVERSATIONS LIST ── */}
+      {/* ── 4. CHAT CONVERSATIONS INBOX LIST (MỚI NHẤT TRÊN CÙNG) ── */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -217,8 +365,8 @@ export function OwnerMessagesScreen({
         </View>
       ) : (
         <FlatList
-          data={filteredBookings}
-          keyExtractor={(item: Booking) => item._id}
+          data={filteredConversations}
+          keyExtractor={(item: ChatConversationItem) => item.bookingId}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -229,41 +377,63 @@ export function OwnerMessagesScreen({
               tintColor={theme.colors.primary[600]}
             />
           }
-          renderItem={({ item }: { item: Booking }) => {
-            const renter: any = typeof item.renterId === 'object' ? item.renterId : null;
-            const device: any = typeof item.deviceId === 'object' ? item.deviceId : null;
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="chatbubbles-outline" size={40} color={theme.colors.slate[400]} />
+              </View>
+              <Text style={styles.emptyTitle}>Chưa có cuộc trò chuyện nào</Text>
+              <Text style={styles.emptySubtitle}>
+                {isRenter
+                  ? 'Khi bạn gửi tin nhắn hoặc trao đổi với các chủ thiết bị, danh sách cuộc trò chuyện sẽ hiển thị tại đây.'
+                  : 'Khi khách hàng gửi tin nhắn trao đổi về đơn thuê, các đoạn chat sẽ xuất hiện tại đây.'}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }: { item: ChatConversationItem }) => {
+            const partnerName =
+              item.otherUser?.name ||
+              (isRenter ? 'Chủ thiết bị' : STRINGS.OWNER_MESSAGES.DEFAULT_RENTER_NAME);
+            const partnerAvatar =
+              item.otherUser?.avatar ||
+              (isRenter
+                ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
+                : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400');
 
-            const renterName = renter?.name || STRINGS.OWNER_MESSAGES.DEFAULT_RENTER_NAME;
-            const renterAvatar = renter?.avatar || 'https://via.placeholder.com/80';
-            const renterPhone = renter?.phone || '';
+            const statusBadge = getStatusBadge(item.bookingStatus);
+            const timeStr = formatConversationTime(item.lastActivityAt);
+            const hasUnread = (item.unreadCount || 0) > 0;
 
-            const deviceName = device?.name || device?.title || 'Tech Device';
-            const deviceImage =
-              device?.images?.[0] || 'https://via.placeholder.com/120';
-
-            const statusBadge = getStatusBadge(item.status);
-            const startDateStr = item.startDate
-              ? new Date(item.startDate).toLocaleDateString([], { month: 'short', day: 'numeric' })
-              : '';
-            const endDateStr = item.endDate
-              ? new Date(item.endDate).toLocaleDateString([], { month: 'short', day: 'numeric' })
-              : '';
+            const isFromMe = item.lastMessage?.isFromMe ?? false;
+            const lastMsgPrefix = isFromMe ? 'Bạn: ' : '';
+            const previewText = item.lastMessage?.text || 'Chưa có tin nhắn';
 
             return (
               <TouchableOpacity
-                style={styles.conversationCard}
-                onPress={() => handleOpenChat(item._id)}
-                activeOpacity={0.85}
+                style={[styles.conversationRow, hasUnread && styles.conversationRowUnread]}
+                onPress={() => handleOpenChat(item.bookingId)}
+                activeOpacity={0.7}
               >
-                {/* Top: Renter Info & Status Pill */}
-                <View style={styles.cardHeader}>
-                  <Image source={{ uri: renterAvatar }} style={styles.renterAvatar} />
-                  <View style={styles.renterInfoCol}>
-                    <View style={styles.renterNameRow}>
-                      <Text style={styles.renterName} numberOfLines={1}>
-                        {renterName}
+                {/* Avatar đối phương + Huy hiệu ảnh thiết bị */}
+                <View style={styles.avatarWrapper}>
+                  <Image source={{ uri: partnerAvatar }} style={styles.renterAvatar} />
+                  {item.device?.image ? (
+                    <Image source={{ uri: item.device.image }} style={styles.deviceMiniThumb} />
+                  ) : null}
+                </View>
+
+                {/* Nội dung tóm tắt cuộc trò chuyện */}
+                <View style={styles.chatInfoCol}>
+                  {/* Dòng 1: Tên đối phương + Huy hiệu xác thực + Thời gian */}
+                  <View style={styles.nameTimeRow}>
+                    <View style={styles.nameContainer}>
+                      <Text
+                        style={[styles.renterNameText, hasUnread && styles.renterNameTextUnread]}
+                        numberOfLines={1}
+                      >
+                        {partnerName}
                       </Text>
-                      {renter?.isVerified && (
+                      {item.otherUser?.isVerified && (
                         <Ionicons
                           name="checkmark-circle"
                           size={14}
@@ -272,80 +442,53 @@ export function OwnerMessagesScreen({
                         />
                       )}
                     </View>
-                    {renterPhone ? (
-                      <Text style={styles.renterPhone}>
-                        <Ionicons name="call-outline" size={11} color={theme.colors.slate[400]} />{' '}
-                        {renterPhone}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View
-                    style={[
-                      styles.statusPill,
-                      { backgroundColor: statusBadge.bg },
-                    ]}
-                  >
-                    <Text style={[styles.statusPillText, { color: statusBadge.text }]}>
-                      {statusBadge.label}
+                    <Text style={[styles.timeText, hasUnread && styles.timeTextUnread]}>
+                      {timeStr}
                     </Text>
                   </View>
-                </View>
 
-                {/* Middle: Device & Order Info */}
-                <View style={styles.deviceRow}>
-                  <Image source={{ uri: deviceImage }} style={styles.deviceThumb} />
-                  <View style={styles.deviceInfoCol}>
-                    <Text style={styles.deviceName} numberOfLines={1}>
-                      {deviceName}
-                    </Text>
-                    <Text style={styles.bookingCodeText}>
-                      {STRINGS.OWNER_MESSAGES.ORDER_CODE_PREFIX}
-                      {item.bookingCode}
-                    </Text>
-                    {startDateStr && endDateStr ? (
-                      <Text style={styles.dateRangeText}>
-                        <Ionicons name="calendar-outline" size={11} color={theme.colors.slate[400]} />{' '}
-                        {startDateStr} - {endDateStr} ({item.totalDays}d)
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-
-                {/* Bottom: Action bar */}
-                <View style={styles.cardFooter}>
-                  <View style={styles.chatActionBtn}>
+                  {/* Dòng 2: Ngữ cảnh đơn thuê & Thiết bị */}
+                  <View style={styles.deviceContextRow}>
                     <Ionicons
-                      name="chatbubble-ellipses-outline"
-                      size={15}
-                      color={theme.colors.primary[700]}
+                      name="hardware-chip-outline"
+                      size={12}
+                      color={theme.colors.slate[400]}
                     />
-                    <Text style={styles.chatActionBtnText}>
-                      {STRINGS.OWNER_MESSAGES.CHAT_BUTTON}
+                    <Text style={styles.deviceContextText} numberOfLines={1}>
+                      {item.device?.title || item.bookingCode}
                     </Text>
+                    <View style={[styles.miniStatusBadge, { backgroundColor: statusBadge.bg }]}>
+                      <Text style={[styles.miniStatusText, { color: statusBadge.text }]}>
+                        {statusBadge.label}
+                      </Text>
+                    </View>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={theme.colors.slate[400]}
-                  />
+
+                  {/* Dòng 3: Tin nhắn mới nhất + Badge tin nhắn chưa đọc */}
+                  <View style={styles.lastMessageRow}>
+                    <Text
+                      style={[
+                        styles.previewMessageText,
+                        hasUnread && styles.previewMessageTextUnread,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {lastMsgPrefix}
+                      {previewText}
+                    </Text>
+
+                    {hasUnread && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>
+                          {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </TouchableOpacity>
             );
           }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons
-                  name="chatbubbles-outline"
-                  size={42}
-                  color={theme.colors.slate[400]}
-                />
-              </View>
-              <Text style={styles.emptyTitle}>{STRINGS.OWNER_MESSAGES.EMPTY_TITLE}</Text>
-              <Text style={styles.emptySubtitle}>{STRINGS.OWNER_MESSAGES.EMPTY_DESC}</Text>
-            </View>
-          }
         />
       )}
     </View>
@@ -360,19 +503,20 @@ const styles = StyleSheet.create({
   topBar: {
     backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderSubtle,
+    borderBottomColor: theme.colors.slate[100],
+    ...theme.shadows.sm,
   },
   topBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm + 4,
+    gap: theme.spacing.sm,
   },
   hamburgerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.md,
+    width: 38,
+    height: 38,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.slate[100],
@@ -381,7 +525,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topBarTitle: {
-    ...theme.typography.subheading,
+    ...theme.typography.heading,
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.slate[900],
@@ -390,41 +534,40 @@ const styles = StyleSheet.create({
     ...theme.typography.caption,
     fontSize: 12,
     color: theme.colors.slate[500],
-    marginTop: 2,
+    marginTop: 1,
   },
   searchWrapper: {
     backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm + 2,
+    paddingVertical: theme.spacing.sm,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.slate[100],
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.spacing.sm + 4,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.spacing.md,
     height: 40,
-    gap: theme.spacing.xs + 2,
+    gap: theme.spacing.xs,
   },
   searchInput: {
     flex: 1,
-    ...theme.typography.body,
-    fontSize: 14,
-    color: theme.colors.slate[900],
+    fontSize: 13.5,
+    color: theme.colors.slate[800],
     paddingVertical: 0,
   },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm + 2,
-    gap: theme.spacing.xs + 4,
+    paddingBottom: theme.spacing.sm,
+    gap: theme.spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderSubtle,
+    borderBottomColor: theme.colors.slate[100],
   },
   tabButton: {
-    paddingVertical: 6,
     paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: theme.radii.full,
     backgroundColor: theme.colors.slate[100],
   },
@@ -439,140 +582,32 @@ const styles = StyleSheet.create({
   },
   tabButtonTextActive: {
     color: theme.colors.white,
-    fontWeight: '700',
+  },
+  listContent: {
+    paddingVertical: theme.spacing.xs,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
+    padding: theme.spacing.xl,
   },
   loadingText: {
     ...theme.typography.body,
+    color: theme.colors.slate[500],
+    marginTop: theme.spacing.sm,
     fontSize: 13,
-    color: theme.colors.slate[500],
-  },
-  listContent: {
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
-  },
-  conversationCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    ...theme.shadows.card,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm + 2,
-    paddingBottom: theme.spacing.sm + 2,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.slate[100],
-  },
-  renterAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.slate[200],
-  },
-  renterInfoCol: {
-    flex: 1,
-  },
-  renterNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  renterName: {
-    ...theme.typography.body,
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.slate[900],
-  },
-  renterPhone: {
-    ...theme.typography.caption,
-    fontSize: 12,
-    color: theme.colors.slate[500],
-    marginTop: 2,
-  },
-  statusPill: {
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: theme.radii.full,
-  },
-  statusPillText: {
-    ...theme.typography.caption,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  deviceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm + 2,
-    paddingVertical: theme.spacing.sm + 2,
-  },
-  deviceThumb: {
-    width: 46,
-    height: 46,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.slate[100],
-  },
-  deviceInfoCol: {
-    flex: 1,
-  },
-  deviceName: {
-    ...theme.typography.body,
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: theme.colors.slate[800],
-  },
-  bookingCodeText: {
-    ...theme.typography.caption,
-    fontSize: 11.5,
-    color: theme.colors.slate[400],
-    marginTop: 1,
-  },
-  dateRangeText: {
-    ...theme.typography.caption,
-    fontSize: 11.5,
-    color: theme.colors.slate[500],
-    marginTop: 2,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.slate[100],
-  },
-  chatActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.primary[50],
-  },
-  chatActionBtnText: {
-    ...theme.typography.caption,
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.primary[700],
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: theme.spacing.xl * 2,
-    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing['2xl'],
+    paddingHorizontal: theme.spacing.xl,
   },
   emptyIconCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: theme.colors.slate[100],
     alignItems: 'center',
     justifyContent: 'center',
@@ -580,16 +615,148 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...theme.typography.subheading,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: theme.colors.slate[800],
-    marginBottom: 6,
+    marginBottom: 4,
   },
   emptySubtitle: {
-    ...theme.typography.body,
+    ...theme.typography.caption,
     fontSize: 13,
     color: theme.colors.slate[500],
     textAlign: 'center',
     lineHeight: 18,
+  },
+
+  // ── Conversation Inbox Item ──
+  conversationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.slate[100],
+  },
+  conversationRowUnread: {
+    backgroundColor: theme.colors.primary[50] + '33', // Subtle highlight for unread
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  renterAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: theme.colors.slate[200],
+  },
+  deviceMiniBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: theme.colors.card,
+    backgroundColor: theme.colors.slate[200],
+  },
+  deviceMiniThumb: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.card,
+    backgroundColor: theme.colors.slate[200],
+  },
+  chatInfoCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  nameTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  renterNameText: {
+    ...theme.typography.body,
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: theme.colors.slate[800],
+  },
+  renterNameTextUnread: {
+    fontWeight: '700',
+    color: theme.colors.slate[900],
+  },
+  timeText: {
+    ...theme.typography.caption,
+    fontSize: 11,
+    color: theme.colors.slate[400],
+  },
+  timeTextUnread: {
+    color: theme.colors.primary[600],
+    fontWeight: '600',
+  },
+  deviceContextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  deviceContextText: {
+    ...theme.typography.caption,
+    fontSize: 11.5,
+    color: theme.colors.slate[500],
+    flex: 1,
+  },
+  miniStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: theme.radii.full,
+  },
+  miniStatusText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  lastMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewMessageText: {
+    ...theme.typography.caption,
+    fontSize: 13,
+    color: theme.colors.slate[500],
+    flex: 1,
+    marginRight: 8,
+  },
+  previewMessageTextUnread: {
+    color: theme.colors.slate[900],
+    fontWeight: '600',
+  },
+  unreadBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.danger[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  unreadBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
 });

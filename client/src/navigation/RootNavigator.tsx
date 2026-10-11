@@ -31,6 +31,7 @@ import { BookingManageScreen, BookingManageTab } from '../screens/booking/Bookin
 import { WishlistScreen } from '../screens/device/WishlistScreen';
 import { AiChatConsultant } from '../screens/ai/AiChatConsultant';
 import { ChatDetailScreen } from '../screens/chat/ChatDetailScreen';
+import { OwnerMessagesScreen } from '../screens/owner/OwnerMessagesScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -65,6 +66,8 @@ export type RootStackParamList = {
   Notification: { from?: string } | undefined;
   AiChatConsultant: undefined;
   ChatDetail: { bookingId: string };
+  MessagesInbox: { from?: 'owner' | 'renter' } | undefined;
+  OwnerMessages: { from?: 'owner' | 'renter' } | undefined;
 };
 
 export const rootNavigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -196,11 +199,41 @@ const AiChatConsultantRoute = ({ navigation }: any) => (
   />
 );
 
+const MessagesInboxRoute = ({ route, navigation }: any) => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isRenter = route?.params?.from === 'renter' || user?.role === 'renter';
+
+  return (
+    <OwnerMessagesScreen
+      navigation={navigation}
+      route={route}
+      isRenterMode={isRenter}
+      onBack={() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('MainTabs');
+        }
+      }}
+      onNavigateToChat={(bookingId: string) =>
+        navigation.navigate('ChatDetail', { bookingId })
+      }
+    />
+  );
+};
+
 export function RootNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isAdmin = isAuthenticated && user?.role === 'admin';
   const isOwner = isAuthenticated && user?.role === 'owner';
+
+  useEffect(() => {
+    const currentUserId = user?.id || (user as any)?._id;
+    if (isAuthenticated && currentUserId) {
+      socketService.connect(String(currentUserId));
+    }
+  }, [isAuthenticated, user]);
 
   const handleLogout = () => {
     socketService.disconnect();
@@ -308,6 +341,8 @@ export function RootNavigator() {
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
             <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
+            <Stack.Screen name="MessagesInbox">{MessagesInboxRoute}</Stack.Screen>
+            <Stack.Screen name="OwnerMessages">{MessagesInboxRoute}</Stack.Screen>
           </Stack.Group>
         ) : (
           <Stack.Group>
@@ -355,6 +390,8 @@ export function RootNavigator() {
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
             <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
+            <Stack.Screen name="MessagesInbox">{MessagesInboxRoute}</Stack.Screen>
+            <Stack.Screen name="OwnerMessages">{MessagesInboxRoute}</Stack.Screen>
           </Stack.Group>
         )}
       </Stack.Navigator>

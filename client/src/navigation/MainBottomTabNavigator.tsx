@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +9,11 @@ import { ProfileScreen } from '../screens/user/ProfileScreen';
 import { AiCompareScreen } from '../screens/ai/AiCompareScreen';
 import { BottomTabNavigator as CustomTabBar } from '../components/navigation/BottomTabNavigator';
 import { clearAuth } from '../store/slices/authSlice';
+import {
+  setUnreadMessagesCount,
+  incrementUnreadMessages,
+} from '../store/slices/notificationSlice';
+import { chatService } from '../services/chatService';
 import { socketService } from '../services/socketService';
 import { RootState } from '../store';
 import { ScreenType } from '../types';
@@ -30,6 +35,33 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
   const unreadNotificationsCount = useSelector(
     (state: RootState) => state.notifications?.unreadCount ?? 0
   );
+  const unreadMessagesCount = useSelector(
+    (state: RootState) => state.notifications?.unreadMessagesCount ?? 0
+  );
+
+  useEffect(() => {
+    const loadUnreadMessages = async () => {
+      try {
+        const role = user?.role === 'owner' ? 'owner' : 'renter';
+        const list = await chatService.getConversations(role);
+        if (Array.isArray(list)) {
+          const totalUnread = list.reduce((acc, item) => acc + (item.unreadCount || 0), 0);
+          dispatch(setUnreadMessagesCount(totalUnread));
+        }
+      } catch {
+        // Fallback silently
+      }
+    };
+
+    loadUnreadMessages();
+  }, [user?.role, dispatch]);
+
+  useEffect(() => {
+    const unsub = socketService.onNewMessage(() => {
+      dispatch(incrementUnreadMessages());
+    });
+    return () => unsub();
+  }, [dispatch]);
 
   const handleLogout = useCallback(() => {
     socketService.disconnect();
@@ -71,12 +103,18 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToWishlist={() => navigation.navigate('Wishlist')}
             onNavigateToSearch={() => console.log('[Nav] Search')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
-            onNavigateToChat={() => navigation.navigate('Bookings')}
+            onNavigateToChat={() => {
+              if (user?.role === 'owner') {
+                navigation.navigate('OwnerRoot', { screen: 'OwnerMessages' });
+              } else {
+                navigation.navigate('MessagesInbox', { from: 'renter' });
+              }
+            }}
             onNavigateToAiConsultant={() => navigation.navigate('AiChatConsultant')}
             onNavigateToOwnerDashboard={() =>
               navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')
             }
-            unreadMessages={2}
+            unreadMessages={unreadMessagesCount}
             unreadNotifications={unreadNotificationsCount}
           />
         )}
