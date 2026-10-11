@@ -25,6 +25,7 @@ import { ReviewListSection } from '../../components/device/ReviewListSection';
 import { getAIReview } from '../../services/aiService';
 import type { AIReview } from '../../types/ai';
 import { AiReviewModal } from '../../components/ai/AiReviewModal';
+import { Modal } from 'react-native';
 
 interface DeviceDetailScreenProps {
   deviceId: string;
@@ -74,7 +75,8 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const aiRequestInProgress = useRef(false);
-
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const handleToggleFavorite = () => {
     if (!isAuthenticated) {
       Alert.alert(
@@ -98,13 +100,15 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
       setAiReview(data);
       setShowAiModal(true);
     } catch (err: unknown) {
-      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-      Alert.alert(
-        STRINGS.DEVICE_DETAIL.AI_ERROR_TITLE,
+      const status = axios.isAxiosError(err)
+        ? err.response?.status
+        : undefined;
+      setErrorMessage(
         status === 503
           ? STRINGS.DEVICE_DETAIL.AI_BUSY_MSG
           : STRINGS.DEVICE_DETAIL.AI_ERROR_MSG
       );
+      setShowErrorModal(true);
     } finally {
       aiRequestInProgress.current = false;
       setAiLoading(false);
@@ -131,8 +135,8 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
             status === 404
               ? STRINGS.DEVICE_DETAIL.NOT_FOUND
               : status === 400
-              ? STRINGS.DEVICE_DETAIL.INVALID_ID
-              : STRINGS.DEVICE_DETAIL.LOAD_ERROR
+                ? STRINGS.DEVICE_DETAIL.INVALID_ID
+                : STRINGS.DEVICE_DETAIL.LOAD_ERROR
           );
         }
       } finally {
@@ -434,6 +438,32 @@ export function DeviceDetailScreen({ deviceId, onBack, onBookNow, hideBookNow }:
         review={aiReview}
         onClose={() => setShowAiModal(false)}
       />
+
+      <Modal
+        visible={showErrorModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              {STRINGS.DEVICE_DETAIL.AI_ERROR_TITLE}
+            </Text>
+
+            <Text style={styles.modalMessage}>
+              {errorMessage}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.okButton}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -801,5 +831,45 @@ const styles = StyleSheet.create({
     color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+
+   modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  modalContainer: {
+    width: "85%",
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+
+  modalMessage: {
+    fontSize: 15,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+
+  okButton: {
+    backgroundColor: colors.light.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+  },
+
+  okButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

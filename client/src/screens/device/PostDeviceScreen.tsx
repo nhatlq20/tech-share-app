@@ -25,6 +25,7 @@ import { Device } from "../../types";
 import { generateDescription } from "../../services/aiService";
 import AiGenerateButton from "../../components/ai/AiGenerateButton";
 import { colors } from '../../theme/colors';
+import { STRINGS } from "../../constants";
 type PostDeviceScreenProps = {
   onBack?: () => void;
   onPublished?: () => void;
