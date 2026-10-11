@@ -643,7 +643,7 @@ export const STRINGS = {
     PENDING_DESC: (days: number) => `You have requested to extend by ${days} day(s). Please wait for the owner to respond before submitting a new request.`,
     SECTION_LABEL: 'Select number of days to extend:',
     DAYS_UNIT: 'days',
-    DAYS_CHIP: (days: number) => `+${days} days`,
+    DAYS_CHIP: (days: number) => `+${days}d`,
     CURRENT_RETURN_LABEL: 'Current return date:',
     NEW_RETURN_LABEL: 'New estimated return date:',
     DAILY_RATE_LABEL: 'Daily rate:',

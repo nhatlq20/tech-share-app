@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { STRINGS } from '../../constants/strings';
@@ -28,6 +30,11 @@ export function ExtensionModal({
   booking,
   onSuccess,
 }: ExtensionModalProps) {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 24 : 16
+  );
   const [additionalDays, setAdditionalDays] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -113,7 +120,7 @@ export function ExtensionModal({
   return (
     <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: bottomInset + 12 }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerIcon}>
@@ -176,8 +183,12 @@ export function ExtensionModal({
                         key={days}
                         style={[styles.chip, isSelected && styles.chipSelected]}
                         onPress={() => setAdditionalDays(days)}
+                        activeOpacity={0.7}
                       >
-                        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                        <Text
+                          style={[styles.chipText, isSelected && styles.chipTextSelected]}
+                          numberOfLines={1}
+                        >
                           {STRINGS.EXTENSION_MODAL.DAYS_CHIP(days)}
                         </Text>
                       </TouchableOpacity>
@@ -208,18 +219,7 @@ export function ExtensionModal({
                     {dailyRate.toLocaleString('en-US')} {STRINGS.EXTENSION_MODAL.RATE_UNIT}
                   </Text>
                 </View>
-
-                <View style={styles.previewRow}>
-                  <Text style={styles.previewFeeLabel}>{STRINGS.EXTENSION_MODAL.ADDITIONAL_FEE_LABEL}</Text>
-                  <Text style={styles.previewFeeValue}>
-                    {STRINGS.EXTENSION_MODAL.FEE_PREFIX}{additionalFee.toLocaleString('en-US')} VND
-                  </Text>
-                </View>
               </View>
-
-              <Text style={styles.noticeText}>
-                {STRINGS.EXTENSION_MODAL.NOTICE_TEXT}
-              </Text>
 
               {/* Action Buttons */}
               <View style={styles.actions}>
@@ -354,25 +354,31 @@ const styles = StyleSheet.create({
   },
   chipsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    borderRadius: 12,
     backgroundColor: colors.light.surface,
     borderWidth: 1,
     borderColor: colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipSelected: {
     backgroundColor: colors.light.primary,
     borderColor: colors.light.primary,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.light.textSecondary,
+    textAlign: 'center',
   },
   chipTextSelected: {
     color: colors.light.white,
@@ -383,7 +389,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: colors.light.border,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   previewRow: {
     flexDirection: 'row',

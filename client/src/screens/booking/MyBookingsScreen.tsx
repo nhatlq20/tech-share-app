@@ -7,8 +7,6 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
-  Modal,
-  TextInput,
   Alert,
   Platform,
   StatusBar,
@@ -21,6 +19,7 @@ import { STRINGS } from '../../constants/strings';
 import { BookingItemCard } from '../../components/booking/BookingItemCard';
 import { ExtensionModal } from '../../components/booking/ExtensionModal';
 import { ReviewModal } from '../../components/booking/ReviewModal';
+import { BookingCancelModal } from '../../components/booking/BookingCancelModal';
 import { bookingService, Booking } from '../../services/bookingService';
 
 interface MyBookingsScreenProps {
@@ -38,8 +37,6 @@ const TABS = [
   { id: 'completed', label: STRINGS.MY_BOOKINGS.TABS.COMPLETED, status: 'completed' },
   { id: 'cancelled', label: STRINGS.MY_BOOKINGS.TABS.CANCELLED, status: 'cancelled' },
 ];
-
-const CANCEL_REASONS = STRINGS.MY_BOOKINGS.CANCEL_REASONS;
 
 export function MyBookingsScreen({
   onNavigateToHome,
@@ -59,7 +56,6 @@ export function MyBookingsScreen({
 
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [selectedBookingToCancel, setSelectedBookingToCancel] = useState(null as Booking | null);
-  const [cancelReason, setCancelReason] = useState('');
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
@@ -126,25 +122,24 @@ export function MyBookingsScreen({
 
   const openCancelModal = (booking: Booking) => {
     setSelectedBookingToCancel(booking);
-    setCancelReason('');
     setCancelModalVisible(true);
   };
 
   const handleConfirmCancel = async () => {
     if (!selectedBookingToCancel) return;
-    if (!cancelReason.trim()) {
-      Alert.alert(STRINGS.MY_BOOKINGS.ALERT_CANCEL_SELECT_REASON, STRINGS.MY_BOOKINGS.ALERT_CANCEL_SELECT_REASON);
-      return;
-    }
-
     try {
       setIsSubmittingCancel(true);
-      await bookingService.cancelBooking(selectedBookingToCancel._id, cancelReason);
-      Alert.alert(STRINGS.MY_BOOKINGS.ALERT_CANCEL_SUCCESS, STRINGS.MY_BOOKINGS.ALERT_CANCEL_SUCCESS);
+      await bookingService.cancelBooking(
+        selectedBookingToCancel._id,
+        STRINGS.BOOKING_DETAIL.CANCEL_REASON_DEFAULT
+      );
       setCancelModalVisible(false);
       fetchBookings(activeTab);
     } catch (error: any) {
-      Alert.alert(STRINGS.COMMON.ERROR, error.response?.data?.message || STRINGS.MY_BOOKINGS.ALERT_CANCEL_ERROR_DEFAULT);
+      Alert.alert(
+        STRINGS.BOOKING_DETAIL.ALERT_ERROR_TITLE,
+        error.response?.data?.message || STRINGS.BOOKING_DETAIL.CANCEL_ERROR
+      );
     } finally {
       setIsSubmittingCancel(false);
     }
@@ -259,73 +254,13 @@ export function MyBookingsScreen({
       />
 
       {/* CANCEL MODAL */}
-      <Modal
+      <BookingCancelModal
         visible={cancelModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCancelModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{STRINGS.BOOKING_DETAIL.CANCEL_BOOKING}</Text>
-            <Text style={styles.modalDesc}>
-              {STRINGS.MY_BOOKINGS.CANCEL_MODAL_DESC(selectedBookingToCancel?.bookingCode || '')}
-            </Text>
-
-            <View style={styles.reasonsContainer}>
-              {CANCEL_REASONS.map((reason, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.reasonChip,
-                    cancelReason === reason && styles.reasonChipActive
-                  ]}
-                  onPress={() => setCancelReason(reason)}
-                >
-                  <Text
-                    style={[
-                      styles.reasonChipText,
-                      cancelReason === reason && styles.reasonChipTextActive
-                    ]}
-                  >
-                    {reason}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              style={styles.reasonInput}
-              placeholder={STRINGS.MY_BOOKINGS.REASON_PLACEHOLDER}
-              placeholderTextColor={colors.light.textMuted}
-              value={cancelReason}
-              onChangeText={setCancelReason}
-              multiline
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalBtnCancel}
-                onPress={() => setCancelModalVisible(false)}
-                disabled={isSubmittingCancel}
-              >
-                <Text style={styles.modalBtnCancelText}>{STRINGS.HANDOVER_QR.CLOSE}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtnConfirm, isSubmittingCancel && { opacity: 0.7 }]}
-                onPress={handleConfirmCancel}
-                disabled={isSubmittingCancel}
-              >
-                {isSubmittingCancel ? (
-                  <ActivityIndicator size="small" color={colors.light.white} />
-                ) : (
-                  <Text style={styles.modalBtnConfirmText}>{STRINGS.BOOKING_DETAIL.CONFIRM_CANCEL_ACTION}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        bookingCode={selectedBookingToCancel?.bookingCode}
+        isCancelling={isSubmittingCancel}
+        onClose={() => setCancelModalVisible(false)}
+        onConfirm={handleConfirmCancel}
+      />
     </View>
   );
 }
@@ -429,88 +364,5 @@ const styles = StyleSheet.create({
     color: colors.light.white,
     fontSize: 14,
     fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.light.textPrimary,
-    marginBottom: 8,
-  },
-  modalDesc: {
-    fontSize: 14,
-    color: colors.light.textSecondary,
-    marginBottom: 16,
-  },
-  reasonsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  reasonChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-  },
-  reasonChipActive: {
-    backgroundColor: colors.light.primaryLight,
-    borderColor: colors.light.primary,
-  },
-  reasonChipText: {
-    fontSize: 13,
-    color: colors.light.textSecondary,
-  },
-  reasonChipTextActive: {
-    color: colors.light.primaryDark,
-    fontWeight: '600',
-  },
-  reasonInput: {
-    borderWidth: 1,
-    borderColor: colors.light.border,
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  modalBtnCancel: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  modalBtnCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.light.textSecondary,
-  },
-  modalBtnConfirm: {
-    backgroundColor: colors.light.error,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  modalBtnConfirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.light.white,
   },
 });

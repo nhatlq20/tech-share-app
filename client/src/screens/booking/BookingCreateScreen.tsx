@@ -26,7 +26,8 @@ import { STRINGS } from '../../constants/strings';
 import { useAppSelector } from '../../store';
 import { VoucherInput } from './components/VoucherInput';
 import { PriceBreakdownCard } from './components/PriceBreakdownCard';
-import BookingResultModal from './components/BookingResultModal';
+import { BookingSuccessModal } from './components/BookingSuccessModal';
+
 interface BookingCreateScreenProps {
   deviceId: string;
   onBack: () => void;
@@ -70,6 +71,10 @@ export function BookingCreateScreen({
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
   );
+  const bottomInset = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 24 : 16
+  );
   const [device, setDevice] = useState(null as Device | null);
   const [loading, setLoading] = useState(true);
 
@@ -85,22 +90,8 @@ export function BookingCreateScreen({
   const [pickerConfig, setPickerConfig] = useState({ visible: false, type: 'start' as 'start' | 'end' });
   const [appliedVoucher, setAppliedVoucher] = useState(null as any);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
-  const [resultModal, setResultModal] = useState({
-    type: 'success' as 'success' | 'error',
-    title: '',
-    message: '',
-  });
-
-  const showBookingResult = (
-    type: 'success' | 'error',
-    title: string,
-    message: string
-  ) => {
-    setResultModal({ type, title, message });
-    setShowResultModal(true);
-  };
   useEffect(() => {
     if (currentUser?.address && !deliveryAddress) {
       setDeliveryAddress(currentUser.address);
@@ -248,6 +239,28 @@ export function BookingCreateScreen({
     return diffDays === 0 ? 1 : diffDays; // minimum 1 day
   };
 
+  const handleQuickSelectDuration = (days: number) => {
+    let base = startDate;
+    if (!base) {
+      base = new Date();
+      base.setMinutes(0, 0, 0);
+      base.setHours(base.getHours() + 1);
+      setStartDate(base);
+    }
+    const newEnd = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+    const rangeConflict = checkOverlapWithBusy(base, newEnd);
+    if (rangeConflict) {
+      const fromStr = formatDateOnly(new Date(rangeConflict.startDate));
+      const toStr = formatDateOnly(new Date(rangeConflict.endDate));
+      Alert.alert(
+        STRINGS.BOOKING_CREATE.SCHEDULE_CONFLICT_TITLE,
+        `The device is already booked during (${fromStr} - ${toStr}). Please choose a different duration or select specific dates!`
+      );
+      return;
+    }
+    setEndDate(newEnd);
+  };
+
 
   if (loading) {
     return (
@@ -359,12 +372,7 @@ export function BookingCreateScreen({
             : device.addressText || '',
       });
 
-      showBookingResult(
-        'success',
-        STRINGS.BOOKING_CREATE.SUCCESS_TITLE,
-        STRINGS.BOOKING_CREATE.SUCCESS_MSG
-      );
-
+      setSuccessModalVisible(true);
     } catch (error: any) {
       const responseData = error.response?.data;
 
@@ -410,7 +418,7 @@ export function BookingCreateScreen({
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 + bottomInset }]} showsVerticalScrollIndicator={false}>
         {/* Device Summary */}
         <View style={styles.deviceCard}>
           <Image
@@ -430,7 +438,7 @@ export function BookingCreateScreen({
           </View>
         </View>
 
-        {/* Date Picker Section */}
+        {/* Date Picker Section - Intuitive Rental Schedule */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderLeft}>
@@ -456,109 +464,184 @@ export function BookingCreateScreen({
               <Text style={styles.activeBusyAlertText}>
                 Device is currently rented until{' '}
                 <Text style={{ fontWeight: '700' }}>
-                  {new Date(currentActiveBooking.endDate).toLocaleDateString('en-US')}
+                  {formatDateOnly(new Date(currentActiveBooking.endDate))}
                 </Text>
                 . Please select a pickup date after this time!
               </Text>
             </View>
           )}
 
-          <View style={styles.dateSelectionContainer}>
-            {/* Box 1: Start Date */}
+          {/* Connected Step Cards */}
+          <View style={styles.scheduleCardsWrapper}>
+            {/* Step 1: Pickup */}
             <TouchableOpacity
               style={[
-                styles.dateCard,
-                startDate ? styles.dateCardActive : undefined,
+                styles.scheduleCard,
+                startDate ? styles.scheduleCardActive : styles.scheduleCardEmpty,
               ]}
               onPress={() => openPicker('start')}
               activeOpacity={0.7}
             >
-              <View style={styles.dateCardHeader}>
-                <View style={[styles.dateCardIconWrap, startDate ? styles.dateCardIconWrapActive : undefined]}>
-                  <Ionicons
-                    name="log-in-outline"
-                    size={14}
-                    color={startDate ? colors.light.primary : colors.light.textSecondary}
-                  />
+              <View style={styles.scheduleCardHeader}>
+                <View style={styles.scheduleStepBadgeRow}>
+                  <View style={[styles.stepDot, { backgroundColor: '#10B981' }]} />
+                  <Text style={[styles.scheduleStepBadgeText, { color: '#047857' }]}>
+                    STEP 1: PICKUP
+                  </Text>
                 </View>
-                <Text style={[styles.dateCardLabel, startDate ? styles.dateCardLabelActive : undefined]}>
-                  {STRINGS.BOOKING_DETAIL.PICKUP}
-                </Text>
+                <View style={startDate ? styles.scheduleActionBadgeActive : styles.scheduleActionBadgeEmpty}>
+                  <Ionicons
+                    name={startDate ? "create-outline" : "add-circle-outline"}
+                    size={14}
+                    color={startDate ? colors.light.primary : colors.light.white}
+                  />
+                  <Text style={startDate ? styles.scheduleActionTextActive : styles.scheduleActionTextEmpty}>
+                    {startDate ? "Change" : "Select date"}
+                  </Text>
+                </View>
               </View>
 
-              {startDate ? (
-                <View style={styles.dateCardBody}>
-                  <Text style={styles.dateCardTime}>{formatTimeOnly(startDate)}</Text>
-                  <Text style={styles.dateCardDate}>{formatDateOnly(startDate)}</Text>
-                  <Text style={styles.dateCardSub}>{getDayOfWeekName(startDate)}</Text>
+              <View style={styles.scheduleCardBody}>
+                <View style={[styles.scheduleIconCircle, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                  <Ionicons name="log-in" size={20} color="#059669" />
                 </View>
-              ) : (
-                <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
-                  <View style={styles.dateCardActionBadge}>
-                    <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Select time</Text>
-                  </View>
+                <View style={styles.scheduleTextContent}>
+                  {startDate ? (
+                    <>
+                      <Text style={styles.scheduleDateHero}>
+                        {formatDateOnly(startDate)}{' '}
+                        <Text style={styles.scheduleDayName}>({getDayOfWeekName(startDate)})</Text>
+                      </Text>
+                      <View style={styles.scheduleTimeRow}>
+                        <Ionicons name="time-outline" size={13} color={colors.light.primary} />
+                        <Text style={styles.scheduleTimeBadge}>Pickup time: {formatTimeOnly(startDate)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.schedulePlaceholderTitle}>No pickup date selected</Text>
+                      <Text style={styles.schedulePlaceholderSub}>Tap here to select pickup date & time</Text>
+                    </>
+                  )}
                 </View>
-              )}
+              </View>
             </TouchableOpacity>
 
-            {/* Arrow connector */}
-            <View style={styles.dateArrowWrap}>
-              <View style={styles.dateArrowCircle}>
-                <Ionicons name="arrow-forward" size={13} color={colors.light.primary} />
-              </View>
+            {/* Timeline Connector & Duration */}
+            <View style={styles.scheduleTimelineRow}>
+              <View style={styles.scheduleTimelineLine} />
+              {startDate && endDate && rentalDays > 0 ? (
+                <View style={styles.scheduleDurationPill}>
+                  <Ionicons name="timer-outline" size={14} color={colors.light.primary} />
+                  <Text style={styles.scheduleDurationPillText}>
+                    Total: <Text style={{ fontWeight: '800' }}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</Text> ({rentalDays * 24} hrs)
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.scheduleArrowCircle}>
+                  <Ionicons name="arrow-down" size={13} color={colors.light.textSecondary} />
+                </View>
+              )}
+              <View style={styles.scheduleTimelineLine} />
             </View>
 
-            {/* Box 2: End Date */}
+            {/* Step 2: Return */}
             <TouchableOpacity
               style={[
-                styles.dateCard,
-                endDate ? styles.dateCardActive : undefined,
+                styles.scheduleCard,
+                endDate ? styles.scheduleCardActive : styles.scheduleCardEmpty,
               ]}
               onPress={() => openPicker('end')}
               activeOpacity={0.7}
             >
-              <View style={styles.dateCardHeader}>
-                <View style={[styles.dateCardIconWrap, endDate ? styles.dateCardIconWrapActive : undefined]}>
-                  <Ionicons
-                    name="log-out-outline"
-                    size={14}
-                    color={endDate ? colors.light.primary : colors.light.textSecondary}
-                  />
+              <View style={styles.scheduleCardHeader}>
+                <View style={styles.scheduleStepBadgeRow}>
+                  <View style={[styles.stepDot, { backgroundColor: '#F59E0B' }]} />
+                  <Text style={[styles.scheduleStepBadgeText, { color: '#B45309' }]}>
+                    STEP 2: RETURN
+                  </Text>
                 </View>
-                <Text style={[styles.dateCardLabel, endDate ? styles.dateCardLabelActive : undefined]}>
-                  {STRINGS.BOOKING_DETAIL.RETURN}
-                </Text>
+                <View style={endDate ? styles.scheduleActionBadgeActive : styles.scheduleActionBadgeEmpty}>
+                  <Ionicons
+                    name={endDate ? "create-outline" : "add-circle-outline"}
+                    size={14}
+                    color={endDate ? colors.light.primary : colors.light.white}
+                  />
+                  <Text style={endDate ? styles.scheduleActionTextActive : styles.scheduleActionTextEmpty}>
+                    {endDate ? "Change" : "Select date"}
+                  </Text>
+                </View>
               </View>
 
-              {endDate ? (
-                <View style={styles.dateCardBody}>
-                  <Text style={styles.dateCardTime}>{formatTimeOnly(endDate)}</Text>
-                  <Text style={styles.dateCardDate}>{formatDateOnly(endDate)}</Text>
-                  <Text style={styles.dateCardSub}>{getDayOfWeekName(endDate)}</Text>
+              <View style={styles.scheduleCardBody}>
+                <View style={[styles.scheduleIconCircle, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+                  <Ionicons name="log-out" size={20} color="#D97706" />
                 </View>
-              ) : (
-                <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
-                  <View style={styles.dateCardActionBadge}>
-                    <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Select time</Text>
-                  </View>
+                <View style={styles.scheduleTextContent}>
+                  {endDate ? (
+                    <>
+                      <Text style={styles.scheduleDateHero}>
+                        {formatDateOnly(endDate)}{' '}
+                        <Text style={styles.scheduleDayName}>({getDayOfWeekName(endDate)})</Text>
+                      </Text>
+                      <View style={styles.scheduleTimeRow}>
+                        <Ionicons name="time-outline" size={13} color="#D97706" />
+                        <Text style={[styles.scheduleTimeBadge, { color: '#B45309' }]}>
+                          Return time: {formatTimeOnly(endDate)}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.schedulePlaceholderTitle}>No return date selected</Text>
+                      <Text style={styles.schedulePlaceholderSub}>
+                        {startDate ? 'Choose when you will return the device to owner' : 'Please select pickup date first'}
+                      </Text>
+                    </>
+                  )}
                 </View>
-              )}
+              </View>
             </TouchableOpacity>
           </View>
 
-          {/* Duration Summary Pill */}
-          {startDate && endDate && rentalDays > 0 && (
-            <View style={styles.durationSummaryBar}>
-              <Ionicons name="checkmark-circle" size={15} color={colors.light.primary} />
-              <Text style={styles.durationSummaryText}>
-                Total rental duration: <Text style={styles.durationSummaryBold}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</Text> ({rentalDays * 24} hours)
-              </Text>
+          {/* Quick Duration Shortcuts */}
+          <View style={styles.quickDurationBox}>
+            <View style={styles.quickDurationHeader}>
+              <Ionicons name="flash-outline" size={13} color={colors.light.primary} />
+              <Text style={styles.quickDurationTitle}>Quick duration presets:</Text>
             </View>
-          )}
+            <View style={styles.quickChipsRow}>
+              {[
+                { days: 1, label: '1 day' },
+                { days: 2, label: '2 days' },
+                { days: 3, label: '3 days' },
+                { days: 5, label: '5 days' },
+                { days: 7, label: '1 week' },
+              ].map((item) => {
+                const isSelected = rentalDays === item.days && endDate !== null;
+                return (
+                  <TouchableOpacity
+                    key={item.days}
+                    style={[
+                      styles.quickChip,
+                      isSelected && styles.quickChipSelected,
+                    ]}
+                    onPress={() => handleQuickSelectDuration(item.days)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        isSelected && styles.quickChipTextSelected,
+                      ]}
+                    >
+                      +{item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* ── Delivery Method Section (Phương thức nhận máy) ── */}
@@ -710,7 +793,7 @@ export function BookingCreateScreen({
       </ScrollView>
 
       {/* Bottom Sticky Action Bar */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: bottomInset + 10 }]}>
         <View>
           <Text style={styles.bottomPriceSub}>{STRINGS.BOOKING_CREATE.TOTAL_PAYMENT}</Text>
           <Text style={styles.bottomPriceMain}>
@@ -744,20 +827,27 @@ export function BookingCreateScreen({
         onConfirm={handleConfirmPicker}
       />
 
-      <BookingResultModal
-        visible={showResultModal}
-        type={resultModal.type}
-        title={resultModal.title}
-        message={resultModal.message}
+      <BookingSuccessModal
+        visible={successModalVisible}
+        deviceTitle={device?.title}
+        startDate={startDate}
+        endDate={endDate}
+        rentalDays={rentalDays}
+        totalAmount={totalAmount}
+        onViewBookings={() => {
+          setSuccessModalVisible(false);
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            onBack();
+          }
+        }}
         onClose={() => {
-          setShowResultModal(false);
-
-          if (resultModal.type === 'success') {
-            if (onSuccess) {
-              onSuccess();
-            } else {
-              onBack();
-            }
+          setSuccessModalVisible(false);
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            onBack();
           }
         }}
       />
@@ -1338,140 +1428,209 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 16,
   },
-  dateSelectionContainer: {
+  scheduleCardsWrapper: {
+    gap: 0,
+    marginTop: 4,
+  },
+  scheduleCard: {
+    backgroundColor: colors.light.surface,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    padding: 12,
+  },
+  scheduleCardActive: {
+    borderColor: colors.light.primary,
+    backgroundColor: colors.light.surface,
+    shadowColor: colors.light.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scheduleCardEmpty: {
+    borderColor: colors.light.border,
+    backgroundColor: colors.light.borderSubtle + '25',
+  },
+  scheduleCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  dateCard: {
-    flex: 1,
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.light.border,
-    padding: 12,
-    minHeight: 90,
-  },
-  dateCardActive: {
-    borderColor: colors.light.primary,
-    backgroundColor: colors.light.primaryLight,
-  },
-  dateCardHeader: {
+  scheduleStepBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 6,
   },
-  dateCardIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: colors.light.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.light.border,
+  stepDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
-  dateCardIconWrapActive: {
-    backgroundColor: colors.light.primaryLight,
-    borderColor: colors.light.primary,
-  },
-  dateCardLabel: {
+  scheduleStepBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: colors.light.textSecondary,
-    textTransform: 'uppercase',
-  },
-  dateCardLabelActive: {
-    color: colors.light.primary,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  dateCardBody: {
-    alignItems: 'flex-start',
-  },
-  dateCardTime: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.light.textPrimary,
-    letterSpacing: 0.5,
-  },
-  dateCardDate: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.light.primary,
-    marginTop: 1,
-  },
-  dateCardSub: {
-    fontSize: 11,
-    color: colors.light.textSecondary,
-    marginTop: 1,
-  },
-  dateCardPlaceholder: {
-    paddingVertical: 2,
-  },
-  datePlaceholderPrompt: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.light.textSecondary,
-    marginBottom: 6,
-  },
-  dateCardActionBadge: {
+  scheduleActionBadgeActive: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.light.surface,
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-    alignSelf: 'flex-start',
+    backgroundColor: colors.light.primaryLight,
   },
-  dateCardActionText: {
+  scheduleActionTextActive: {
     fontSize: 11,
     fontWeight: '700',
     color: colors.light.primary,
   },
-  dateArrowWrap: {
+  scheduleActionBadgeEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: colors.light.primary,
+  },
+  scheduleActionTextEmpty: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.light.white,
+  },
+  scheduleCardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scheduleIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
-  dateArrowCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  scheduleTextContent: {
+    flex: 1,
+  },
+  scheduleDateHero: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.light.textPrimary,
+    marginBottom: 3,
+  },
+  scheduleDayName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.light.textSecondary,
+  },
+  scheduleTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  scheduleTimeBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.light.primary,
+  },
+  schedulePlaceholderTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.light.textPrimary,
+    marginBottom: 2,
+  },
+  schedulePlaceholderSub: {
+    fontSize: 11,
+    color: colors.light.textSecondary,
+    lineHeight: 15,
+  },
+  scheduleTimelineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  scheduleTimelineLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.light.border,
+  },
+  scheduleDurationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.light.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.light.primaryLight,
+    marginHorizontal: 8,
+  },
+  scheduleDurationPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.light.primary,
+  },
+  scheduleArrowCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.light.border,
-    shadowColor: colors.light.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
+    marginHorizontal: 8,
   },
-  durationSummaryBar: {
+  quickDurationBox: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.light.border,
+  },
+  quickDurationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.light.primaryLight,
-    borderWidth: 1,
-    borderColor: colors.light.borderDefault,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 10,
+    gap: 5,
+    marginBottom: 8,
   },
-  durationSummaryText: {
-    fontSize: 12,
-    color: colors.light.textPrimary,
-    flex: 1,
-  },
-  durationSummaryBold: {
+  quickDurationTitle: {
+    fontSize: 11,
     fontWeight: '700',
-    color: colors.light.primary,
+    color: colors.light.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  quickChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  quickChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.light.surface,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  quickChipSelected: {
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primary,
+  },
+  quickChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.light.textPrimary,
+  },
+  quickChipTextSelected: {
+    color: colors.light.white,
+    fontWeight: '700',
   },
   deliveryOptionsContainer: {
     gap: 12,
@@ -1604,7 +1763,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.light.border,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
