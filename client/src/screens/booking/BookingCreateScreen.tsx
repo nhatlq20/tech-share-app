@@ -140,6 +140,9 @@ export function BookingCreateScreen({
     for (const b of busyRanges) {
       const bStart = new Date(b.startDate);
       const bEnd = new Date(b.endDate);
+      if (bEnd.getHours() === 0 && bEnd.getMinutes() === 0 && bEnd.getSeconds() === 0) {
+        bEnd.setHours(23, 59, 59, 999);
+      }
       // Hai khoảng thời gian [start, end] và [bStart, bEnd] trùng nhau khi start < bEnd và end > bStart
       if (start < bEnd && end > bStart) {
         return b;

@@ -102,20 +102,31 @@ export function MyDevicesScreen({ onBack }: MyDevicesScreenProps) {
     setModalVisible(true);
   };
 
-  const blockedDates = async(
-     deviceId: string,
-     bockedDates : BlockedDate[],
-  )=> {
-     if (!token) return;
+  const blockedDates = async (
+    deviceId: string,
+    newBlockedDates: BlockedDate[],
+  ) => {
+    if (!token) return;
 
-       try {
-          await deviceService.updateBlockDate(token,deviceId,bockedDates) 
-
-       } catch (error) {
-         console.error("Update blockedDates failed:", error);
-       }
-
-  }
+    try {
+      await deviceService.updateBlockDate(token, deviceId, newBlockedDates);
+      setDevices((previous: OwnedDevice[]) =>
+        previous.map((device: OwnedDevice) =>
+          device._id === deviceId
+            ? { ...device, blockedDates: newBlockedDates }
+            : device,
+        ),
+      );
+      if (selectedDevice && selectedDevice._id === deviceId) {
+        setSelectedDevice((prev: OwnedDevice | null) =>
+          prev ? { ...prev, blockedDates: newBlockedDates } : null,
+        );
+      }
+    } catch (error) {
+      console.error("Update blockedDates failed:", error);
+      throw error;
+    }
+  };
 
   return (
     <View style={styles.container}>

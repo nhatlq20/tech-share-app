@@ -340,14 +340,15 @@ export const updateBlockedDates = async (req, res) => {
       });
     }
 
-    if (devices.ownerId.toString() !== req.auth.id) {
+    const userId = req.auth?.id || req.auth?._id;
+    if (devices.ownerId.toString() !== userId?.toString()) {
       return res.status(403).json({
         success: false,
         message: "You are not the owner of this device",
       });
     }
 
-    devices.blockedDates = blockedDates;
+    devices.blockedDates = Array.isArray(blockedDates) ? blockedDates : [];
     await devices.save();
 
     return res.status(200).json({
