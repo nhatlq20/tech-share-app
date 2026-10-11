@@ -153,6 +153,8 @@ const NotificationRoute = ({ route, navigation }: any) => {
 
   return (
     <NotificationScreen
+      navigation={navigation}
+      onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
       onBack={() => {
         if (navigation.canGoBack()) {
           navigation.goBack();

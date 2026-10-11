@@ -140,6 +140,11 @@ export function OwnerDrawerNavigator({ navigation }: any) {
           <NotificationScreen
             {...props}
             onOpenDrawer={() => props.navigation.openDrawer()}
+            onNavigateToChat={(bookingId?: string) => {
+              if (bookingId) {
+                navigation.navigate('ChatDetail', { bookingId });
+              }
+            }}
             onNavigateToBooking={(bookingId?: string) => {
               if (bookingId) {
                 navigation.navigate('BookingDetail', { bookingId });

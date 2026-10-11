@@ -236,8 +236,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
                     {unreadNotifications > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
                       ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
-                      : unreadNotifications}{' '}
-                    {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
+                      : unreadNotifications}
                   </Text>
                 </View>
               ) : item.id === 'messages' && unreadMessagesCount > 0 ? (
@@ -245,8 +244,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                   <Text style={[styles.menuBadgeText, styles.menuBadgeTextRed]}>
                     {unreadMessagesCount > CONFIG.LIMITS.MAX_UNREAD_DISPLAY
                       ? `${CONFIG.LIMITS.MAX_UNREAD_DISPLAY}+`
-                      : unreadMessagesCount}{' '}
-                    {STRINGS.OWNER_SIDEBAR.NEW_SUFFIX}
+                      : unreadMessagesCount}
                   </Text>
                 </View>
               ) : item.badgeCount && item.badgeCount > 0 ? (
@@ -264,7 +262,7 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                         : styles.menuBadgeTextBlue,
                     ]}
                   >
-                    {item.badgeCount} {STRINGS.OWNER_SIDEBAR.TASKS_SUFFIX}
+                    {item.badgeCount}
                   </Text>
                 </View>
               ) : null}
@@ -414,8 +412,11 @@ const styles = StyleSheet.create({
   },
 
   menuBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: theme.radii.full,
   },
   menuBadgeRed: {
@@ -429,8 +430,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
   },
   menuBadgeText: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '700',
+    textAlign: 'center',
   },
   menuBadgeTextRed: {
     color: theme.colors.danger[600],

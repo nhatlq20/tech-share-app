@@ -10,6 +10,8 @@ import {
   syncNotificationsFromFirebase,
   receiveRealtimeNotification,
   incrementUnreadMessages,
+  markItemAsRead,
+  markNotificationRead,
 } from './src/store/slices/notificationSlice';
 import { fetchWishlist, clearWishlist } from './src/store/slices/wishlistSlice';
 import { socketService } from './src/services/socketService';
@@ -149,6 +151,10 @@ function AppContent() {
 
   const handleBannerPress = (notif: Notification) => {
     setActiveBannerNotif(null);
+    if (!notif.isRead) {
+      dispatch(markItemAsRead(notif._id));
+      dispatch(markNotificationRead(notif._id) as any);
+    }
     if (rootNavigationRef.isReady()) {
       if (notif.type === 'message' && (notif.relatedId || notif.data?.bookingId)) {
         const targetBookingId = String(notif.relatedId || notif.data?.bookingId);

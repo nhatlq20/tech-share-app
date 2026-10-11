@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 import Notification from '../models/Notification.js';
@@ -86,17 +87,13 @@ export const markAsRead = async (req, res) => {
     const userId = req.auth?.id || req.auth?._id;
     const { id } = req.params;
 
-    const notification = await Notification.findOneAndUpdate(
-      { _id: id, userId },
-      { $set: { isRead: true } },
-      { new: true }
-    );
-
-    if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thông báo hoặc bạn không có quyền',
-      });
+    let notification = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      notification = await Notification.findOneAndUpdate(
+        { _id: id, userId },
+        { $set: { isRead: true } },
+        { new: true }
+      );
     }
 
     // Sync to Firebase Firestore (non-blocking)
@@ -110,7 +107,7 @@ export const markAsRead = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: notification,
+      data: notification || { _id: id, isRead: true },
       unreadCount,
     });
   } catch (error) {
@@ -179,13 +176,8 @@ export const deleteNotification = async (req, res) => {
     const userId = req.auth?.id || req.auth?._id;
     const { id } = req.params;
 
-    const notification = await Notification.findOneAndDelete({ _id: id, userId });
-
-    if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thông báo cần xóa',
-      });
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      await Notification.findOneAndDelete({ _id: id, userId });
     }
 
     // Sync to Firebase Firestore (non-blocking)

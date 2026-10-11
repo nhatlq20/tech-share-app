@@ -20,6 +20,8 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotificationItem,
+  markItemAsRead,
+  markAllItemsAsRead,
   setFilter,
   NotificationFilter,
 } from '../../store/slices/notificationSlice';
@@ -31,6 +33,7 @@ interface NotificationScreenProps {
   navigation?: any;
   onNavigateToBooking?: (bookingId?: string) => void;
   onNavigateToDevice?: (deviceId?: string) => void;
+  onNavigateToChat?: (bookingId?: string) => void;
 }
 
 const FILTER_TABS: { key: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -47,6 +50,7 @@ export function NotificationScreen({
   navigation,
   onNavigateToBooking,
   onNavigateToDevice,
+  onNavigateToChat,
 }: NotificationScreenProps) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
@@ -78,19 +82,27 @@ export function NotificationScreen({
   };
 
   const handleMarkAllRead = () => {
+    dispatch(markAllItemsAsRead());
     dispatch(markAllNotificationsRead());
   };
 
   const handlePressItem = (item: Notification) => {
+    // 1. Cập nhật đã đọc tức thì trên UI và đồng bộ server
     if (!item.isRead) {
+      dispatch(markItemAsRead(item._id));
       dispatch(markNotificationRead(item._id));
     }
 
-    // Điều hướng theo ngữ cảnh thông báo (Issue #38 tiêu chí A2)
+    // 2. Điều hướng theo ngữ cảnh thông báo (Issue #38 tiêu chí A2)
     if (item.type === 'message') {
-      const bookingId = item.relatedId || item.data?.bookingId;
-      if (bookingId && navigation?.navigate) {
-        navigation.navigate('ChatDetail', { bookingId: String(bookingId) });
+      const bookingId = item.relatedId || item.data?.bookingId || (item as any).bookingId;
+      if (bookingId) {
+        const bId = String(bookingId);
+        if (onNavigateToChat) {
+          onNavigateToChat(bId);
+        } else if (navigation?.navigate) {
+          navigation.navigate('ChatDetail', { bookingId: bId });
+        }
       }
     } else if (item.type === 'order' || item.type === 'reminder') {
       const bookingId = item.relatedId || item.data?.bookingId;
