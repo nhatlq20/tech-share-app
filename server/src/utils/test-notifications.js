@@ -91,8 +91,8 @@ const runNotificationTests = async () => {
     // Tạo thông báo đơn hàng
     const orderNotif = await createAndSendNotification({
       userId: testUserId,
-      title: '[TEST] Đơn thuê đã được duyệt 🎉',
-      body: 'Chủ máy đã xác nhận lịch hẹn giao thiết bị.',
+      title: '[TEST] Booking Request Approved 🎉',
+      body: 'The owner confirmed the device handover schedule.',
       type: 'order',
       data: { bookingId: '64e0a12f9b1c2b001a444441' },
     });
@@ -102,8 +102,8 @@ const runNotificationTests = async () => {
     // Tạo thông báo nhắc hạn (reminder)
     const reminderNotif = await createAndSendNotification({
       userId: testUserId,
-      title: '[TEST] Nhắc nhở hạn trả máy còn 6 tiếng ⏳',
-      body: 'Vui lòng chuẩn bị thiết bị để bàn giao đúng hẹn.',
+      title: '[TEST] Reminder: 6 Hours Until Return ⏳',
+      body: 'Please prepare device for timely return handover.',
       type: 'reminder',
     });
     assert(reminderNotif && reminderNotif.type === 'reminder', 'Tạo thông báo loại reminder thành công', `ID: ${reminderNotif._id}`);
@@ -112,8 +112,8 @@ const runNotificationTests = async () => {
     // Tạo thông báo hệ thống (system)
     const systemNotif = await createAndSendNotification({
       userId: testUserId,
-      title: '[TEST] Hồ sơ eKYC thành công ✅',
-      body: 'Bạn đã nhận được Tích Xanh Uy Tín trên TechShare.',
+      title: '[TEST] eKYC Verification Successful ✅',
+      body: 'You received the Verified Badge on TechShare.',
       type: 'system',
     });
     assert(systemNotif && systemNotif.type === 'system', 'Tạo thông báo loại system thành công', `ID: ${systemNotif._id}`);

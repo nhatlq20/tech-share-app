@@ -423,8 +423,8 @@ export const resolveDispute = async (req, res) => {
     if (renter) {
       await createAndSendNotification({
         userId: renter._id,
-        title: 'Phán quyết tranh chấp tiền cọc ⚖️',
-        body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn được hoàn ${refundAmount.toLocaleString()} đ tiền cọc.`,
+        title: 'Deposit Dispute Ruling ⚖️',
+        body: `Order #${booking.bookingCode} dispute resolved by Admin: You have been refunded ${refundAmount.toLocaleString('en-US')} VND from deposit.`,
         type: 'system',
         relatedId: booking._id,
         data: { bookingId: booking._id.toString() },
@@ -433,8 +433,8 @@ export const resolveDispute = async (req, res) => {
     if (owner) {
       await createAndSendNotification({
         userId: owner._id,
-        title: 'Phán quyết tranh chấp tiền cọc ⚖️',
-        body: `Đơn #${booking.bookingCode} đã có phán quyết từ Admin: Bạn nhận được ${deductAmount.toLocaleString()} đ tiền bồi thường thiệt hại.`,
+        title: 'Deposit Dispute Ruling ⚖️',
+        body: `Order #${booking.bookingCode} dispute resolved by Admin: You received ${deductAmount.toLocaleString('en-US')} VND in damage compensation.`,
         type: 'system',
         relatedId: booking._id,
         data: { bookingId: booking._id.toString() },
@@ -548,10 +548,10 @@ export const approveEkyc = async (req, res) => {
       // Bắn thông báo chúc mừng
       await createAndSendNotification({
         userId: user._id,
-        title: 'Hồ sơ eKYC đã được phê duyệt! 🎉',
+        title: 'eKYC Application Approved! 🎉',
         body: isOwnerApplication
-          ? 'Chúc mừng bạn! Hồ sơ CCCD đã được xác thực thành công. Bạn đã nhận được Tích Xanh Uy Tín và được nâng cấp thành Chủ máy (Owner) có quyền đăng thiết bị cho thuê trên TechShare.'
-          : 'Chúc mừng bạn! Danh tính của bạn đã được xác thực thành công. Bạn có thể thuê thiết bị trên TechShare.',
+          ? 'Congratulations! Your ID verification was successful. You received a Verified Badge and have been upgraded to Owner status to list devices on TechShare.'
+          : 'Congratulations! Your identity has been verified successfully. You can now rent equipment on TechShare.',
         type: 'system',
       });
     }
@@ -604,8 +604,8 @@ export const rejectEkyc = async (req, res) => {
 
       await createAndSendNotification({
         userId: user._id,
-        title: 'Hồ sơ eKYC chưa được phê duyệt ⚠️',
-        body: `Hồ sơ xác minh căn cước của bạn đã bị từ chối. Lý do: ${request.rejectReason}. Vui lòng chụp lại ảnh rõ nét và gửi lại.`,
+        title: 'eKYC Verification Needs Review ⚠️',
+        body: `Your identity verification was not approved. Reason: ${request.rejectReason}. Please submit clear photos and try again.`,
         type: 'system',
       });
     }

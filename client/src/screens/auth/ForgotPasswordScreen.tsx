@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '../../config/api';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 interface ForgotPasswordScreenProps {
   onNavigateToLogin: () => void;
@@ -65,7 +66,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   const handleSearchAccount = async () => {
     const trimmed = identifier.trim();
     if (!trimmed) {
-      setErrorMsg('Please enter your username or email');
+      setErrorMsg(STRINGS.AUTH.ERR_ENTER_IDENTIFIER);
       return;
     }
 
@@ -84,13 +85,13 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setStep('otp');
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg(res.data.message || 'An OTP verification code has been sent to your email');
+        setInfoMsg(res.data.message || STRINGS.AUTH.OTP_SENT_SUCCESS);
         setTimeout(() => {
           otpInputRefs.current[0]?.focus();
         }, 400);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Account not found or failed to send OTP code';
+      const msg = err?.response?.data?.message || STRINGS.AUTH.ERR_ACCOUNT_NOT_FOUND;
       setErrorMsg(msg);
       if (err?.response?.data?.remainingSeconds) {
         setCountdown(err.response.data.remainingSeconds);
@@ -121,11 +122,11 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
       if (res.data?.success) {
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg('A new OTP code has been sent to your email');
+        setInfoMsg(STRINGS.AUTH.NEW_OTP_SENT);
         otpInputRefs.current[0]?.focus();
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Unable to resend OTP code. Please try again later.');
+      setErrorMsg(err?.response?.data?.message || STRINGS.AUTH.ERR_RESEND_FAILED);
     } finally {
       setLoading(false);
     }
@@ -167,7 +168,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   const handleVerifyOtp = async () => {
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Please enter all 6 digits of the OTP code');
+      setErrorMsg(STRINGS.AUTH.ERR_OTP_DIGITS);
       return;
     }
 
@@ -187,7 +188,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setInfoMsg('');
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Incorrect OTP code or expired.');
+      setErrorMsg(err?.response?.data?.message || STRINGS.AUTH.ERR_VERIFY_OTP);
     } finally {
       setLoading(false);
     }
@@ -196,23 +197,23 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
   // Step 3: Reset Password
   const handleResetPassword = async () => {
     if (!newPassword) {
-      setErrorMsg('Please enter your new password');
+      setErrorMsg(STRINGS.AUTH.ERR_REQUIRED_FIELDS);
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMsg('New password must be at least 6 characters');
+      setErrorMsg(STRINGS.AUTH.ERR_PASSWORD_MIN_LEN);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMsg('Password confirmation does not match');
+      setErrorMsg(STRINGS.AUTH.ERR_PASSWORDS_MISMATCH);
       return;
     }
 
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Invalid OTP code, please return to the previous step');
+      setErrorMsg(STRINGS.AUTH.ERR_OTP_DIGITS);
       return;
     }
 
@@ -231,7 +232,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         setStep('success');
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Password reset failed. Please try again.');
+      setErrorMsg(err?.response?.data?.message || STRINGS.AUTH.ERR_RESET_FAILED);
     } finally {
       setLoading(false);
     }
@@ -364,20 +365,20 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="key-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Find Your Account</Text>
+            <Text style={styles.cardSectionTitle}>{STRINGS.AUTH.FIND_ACCOUNT_TITLE}</Text>
             <Text style={styles.cardSectionDesc}>
-              Enter your username or email associated with your account. We will send an OTP verification code to your inbox.
+              {STRINGS.AUTH.FIND_ACCOUNT_DESC}
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Username or Email *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.IDENTIFIER_FORGOT_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="person-circle-outline" size={20} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. nhatle or nhatle@gmail.com"
+                  placeholder={STRINGS.AUTH.IDENTIFIER_FORGOT_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={identifier}
                   onChangeText={(text: string) => {
@@ -400,7 +401,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.btnContentRow}>
-                  <Text style={styles.primaryBtnText}>FIND ACCOUNT & SEND OTP</Text>
+                  <Text style={styles.primaryBtnText}>{STRINGS.AUTH.FIND_ACCOUNT_BTN}</Text>
                   <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 </View>
               )}
@@ -408,7 +409,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
 
             <TouchableOpacity style={styles.secondaryLinkBtn} onPress={onNavigateToLogin}>
               <Ionicons name="arrow-back" size={16} color={colors.light.primary} />
-              <Text style={styles.secondaryLinkText}>Back to Login</Text>
+              <Text style={styles.secondaryLinkText}>{STRINGS.AUTH.BACK_TO_LOGIN}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -420,9 +421,9 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="mail-unread-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Check Your Inbox</Text>
+            <Text style={styles.cardSectionTitle}>{STRINGS.AUTH.CHECK_INBOX_TITLE}</Text>
             <Text style={styles.cardSectionDesc}>
-              A 6-digit verification code has been sent to:
+              {STRINGS.AUTH.OTP_SENT_TO_PREFIX}
             </Text>
 
             {/* Masked Email Chip */}
@@ -437,7 +438,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                 style={styles.changeEmailBtn}
                 onPress={() => setStep('search')}
               >
-                <Text style={styles.changeEmailText}>Change</Text>
+                <Text style={styles.changeEmailText}>{STRINGS.AUTH.CHANGE_EMAIL}</Text>
               </TouchableOpacity>
             </View>
 
@@ -467,14 +468,14 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
             </View>
 
             <Text style={styles.expiryNote}>
-              ⏱️ Code expires in 5 minutes. Please check your Spam folder if needed.
+              {STRINGS.AUTH.EXPIRY_NOTE_FORGOT}
             </Text>
 
             {/* Resend Cooldown Section */}
             <View style={styles.resendSection}>
               {countdown > 0 ? (
                 <Text style={styles.resendCountdownText}>
-                  Resend OTP code in:{' '}
+                  {STRINGS.AUTH.RESEND_OTP_IN}
                   <Text style={styles.countdownBold}>
                     00:{countdown < 10 ? `0${countdown}` : countdown}
                   </Text>
@@ -486,7 +487,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
                   style={styles.resendBtn}
                 >
                   <Ionicons name="refresh-outline" size={15} color={colors.light.primary} />
-                  <Text style={styles.resendBtnText}>Resend new OTP code</Text>
+                  <Text style={styles.resendBtnText}>{STRINGS.AUTH.RESEND_BTN}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -506,13 +507,13 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>VERIFY OTP CODE</Text>
+                  <Text style={styles.primaryBtnText}>{STRINGS.AUTH.VERIFY_OTP_CODE_BTN}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryLinkBtn} onPress={() => setStep('search')}>
-              <Text style={styles.secondaryLinkText}>Use a different account</Text>
+              <Text style={styles.secondaryLinkText}>{STRINGS.AUTH.USE_DIFF_ACCOUNT}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -524,21 +525,21 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               <Ionicons name="shield-checkmark-outline" size={32} color={colors.light.primary} />
             </View>
 
-            <Text style={styles.cardSectionTitle}>Create New Password</Text>
+            <Text style={styles.cardSectionTitle}>{STRINGS.AUTH.CREATE_NEW_PASSWORD_TITLE}</Text>
             <Text style={styles.cardSectionDesc}>
-              Set a new strong password for account <Text style={{ fontWeight: '700', color: colors.light.textPrimary }}>{foundEmail}</Text>
+              {STRINGS.AUTH.CREATE_NEW_PASSWORD_DESC(foundEmail)}
             </Text>
 
             {/* New Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>New Password *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.NEW_PASSWORD_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Minimum 6 characters"
+                  placeholder={STRINGS.AUTH.NEW_PASSWORD_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={newPassword}
                   onChangeText={(text: string) => {
@@ -563,14 +564,14 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
 
             {/* Confirm Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Confirm New Password *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.CONFIRM_NEW_PASSWORD_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="shield-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Re-enter your new password"
+                  placeholder={STRINGS.AUTH.CONFIRM_NEW_PASSWORD_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={confirmPassword}
                   onChangeText={(text: string) => {
@@ -605,7 +606,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="save-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>RESET PASSWORD</Text>
+                  <Text style={styles.primaryBtnText}>{STRINGS.AUTH.RESET_PASSWORD_BTN}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -620,10 +621,10 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
             </View>
 
             <Text style={[styles.cardSectionTitle, { textAlign: 'center', marginTop: 16 }]}>
-              Password Reset Successful!
+              {STRINGS.AUTH.RESET_SUCCESS_TITLE}
             </Text>
             <Text style={[styles.cardSectionDesc, { textAlign: 'center', marginBottom: 28 }]}>
-              Your new password has been successfully updated. Please use this new password to log in to TechShare.
+              {STRINGS.AUTH.RESET_SUCCESS_DESC}
             </Text>
 
             <TouchableOpacity
@@ -632,7 +633,7 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
               activeOpacity={0.85}
             >
               <View style={styles.btnContentRow}>
-                <Text style={styles.primaryBtnText}>LOG IN NOW</Text>
+                <Text style={styles.primaryBtnText}>{STRINGS.AUTH.LOG_IN_NOW_BTN}</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
               </View>
             </TouchableOpacity>
@@ -642,9 +643,9 @@ export function ForgotPasswordScreen({ onNavigateToLogin }: ForgotPasswordScreen
         {/* FOOTER */}
         {step !== 'success' && (
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Remember your password? </Text>
+            <Text style={styles.footerText}>{STRINGS.AUTH.REMEMBER_PASSWORD_PROMPT}</Text>
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginLink}>Log in now</Text>
+              <Text style={styles.loginLink}>{STRINGS.AUTH.LOG_IN_NOW_LINK}</Text>
             </TouchableOpacity>
           </View>
         )}

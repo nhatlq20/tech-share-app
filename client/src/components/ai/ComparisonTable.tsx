@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AIComparison } from '../../types/ai';
 import { Device } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 interface ComparisonTableProps {
   device1: Device;
@@ -30,7 +31,7 @@ function ComparisonRow({
         <Text style={styles.analysis}>{device1Analysis}</Text>
         <Text style={styles.analysis}>{device2Analysis}</Text>
       </View>
-      <Text style={styles.winner}>Winner: {winner}</Text>
+      <Text style={styles.winner}>{STRINGS.AI_COMPARE.WINNER_PREFIX}{winner}</Text>
     </View>
   );
 }
@@ -52,36 +53,36 @@ export function ComparisonTable({
       </View>
 
       <ComparisonRow
-        title="Power"
+        title={STRINGS.AI_COMPARE.POWER}
         device1Analysis={comparison.power.device1}
         device2Analysis={comparison.power.device2}
         winner={comparison.power.winner}
       />
       <ComparisonRow
-        title="Battery"
+        title={STRINGS.AI_COMPARE.BATTERY}
         device1Analysis={comparison.battery.device1}
         device2Analysis={comparison.battery.device2}
         winner={comparison.battery.winner}
       />
       <ComparisonRow
-        title="Weight"
+        title={STRINGS.AI_COMPARE.WEIGHT}
         device1Analysis={comparison.weight.device1}
         device2Analysis={comparison.weight.device2}
         winner={comparison.weight.winner}
       />
       <ComparisonRow
-        title="Value for Money"
+        title={STRINGS.AI_COMPARE.VALUE_FOR_MONEY}
         device1Analysis={comparison.valueForMoney.device1}
         device2Analysis={comparison.valueForMoney.device2}
         winner={comparison.valueForMoney.winner}
       />
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Overall Conclusion</Text>
+        <Text style={styles.summaryTitle}>{STRINGS.AI_COMPARE.CONCLUSION_TITLE}</Text>
         <Text style={styles.summaryText}>{comparison.conclusion}</Text>
       </View>
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Recommendation</Text>
+        <Text style={styles.summaryTitle}>{STRINGS.AI_COMPARE.RECOMMENDATION_TITLE}</Text>
         <Text style={styles.summaryText}>{comparison.recommendation}</Text>
       </View>
     </View>

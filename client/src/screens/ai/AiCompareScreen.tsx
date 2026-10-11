@@ -17,6 +17,7 @@ import { deviceService } from '../../services/deviceService';
 import { AIServiceError, compareDevices } from '../../services/aiService';
 import { ComparisonTable } from '../../components/ai/ComparisonTable';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 type DeviceSlot = 'device1' | 'device2';
 
@@ -41,7 +42,7 @@ export function AiCompareScreen() {
         const result = await deviceService.getDevices({ limit: 100 });
         if (isMounted) setDevices(result);
       } catch {
-        if (isMounted) setError('Unable to load devices. Please try again.');
+        if (isMounted) setError(STRINGS.AI_COMPARE.ERR_LOAD_DEVICES);
       } finally {
         if (isMounted) setDevicesLoading(false);
       }
@@ -71,12 +72,12 @@ export function AiCompareScreen() {
 
   const handleCompare = async () => {
     if (!device1 || !device2) {
-      setError('Please select two devices.');
+      setError(STRINGS.AI_COMPARE.ERR_SELECT_TWO);
       return;
     }
 
     if (device1._id === device2._id) {
-      setError('Please select two different devices.');
+      setError(STRINGS.AI_COMPARE.ERR_SELECT_DIFF);
       return;
     }
 
@@ -88,8 +89,8 @@ export function AiCompareScreen() {
     } catch (requestError: unknown) {
       const message =
         requestError instanceof AIServiceError && requestError.status === 503
-          ? 'AI is currently busy. Please try again later.'
-          : 'Unable to compare these devices. Please try again.';
+          ? STRINGS.AI_COMPARE.ERR_AI_BUSY
+          : STRINGS.AI_COMPARE.ERR_COMPARE_FAILED;
       setError(message);
     } finally {
       setLoading(false);
@@ -113,7 +114,7 @@ export function AiCompareScreen() {
           <Text style={styles.devicePrice}>{formatPrice(device.dailyRate)}</Text>
         </>
       ) : (
-        <Text style={styles.emptySelection}>No device selected</Text>
+        <Text style={styles.emptySelection}>{STRINGS.AI_COMPARE.NO_SELECTION}</Text>
       )}
       <TouchableOpacity
         style={styles.selectButton}
@@ -121,7 +122,7 @@ export function AiCompareScreen() {
         activeOpacity={0.8}
       >
         <Text style={styles.selectButtonText}>
-          {device ? 'Change Device' : 'Select Device'}
+          {device ? STRINGS.AI_COMPARE.CHANGE_DEVICE : STRINGS.AI_COMPARE.SELECT_DEVICE}
         </Text>
       </TouchableOpacity>
     </View>
@@ -130,21 +131,21 @@ export function AiCompareScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>AI Device Comparison</Text>
+        <Text style={styles.heading}>{STRINGS.AI_COMPARE.HEADING}</Text>
 
         {devicesLoading ? (
           <View style={styles.devicesLoading}>
             <ActivityIndicator color={colors.light.primary} />
-            <Text style={styles.loadingText}>Loading devices...</Text>
+            <Text style={styles.loadingText}>{STRINGS.AI_COMPARE.LOADING_DEVICES}</Text>
           </View>
         ) : (
           <>
-            <Text style={styles.slotTitle}>Device 1</Text>
+            <Text style={styles.slotTitle}>{STRINGS.AI_COMPARE.SLOT_DEVICE_1}</Text>
             {renderSelectedDevice(device1, 'device1')}
 
-            <Text style={styles.versus}>VS</Text>
+            <Text style={styles.versus}>{STRINGS.AI_COMPARE.VERSUS}</Text>
 
-            <Text style={styles.slotTitle}>Device 2</Text>
+            <Text style={styles.slotTitle}>{STRINGS.AI_COMPARE.SLOT_DEVICE_2}</Text>
             {renderSelectedDevice(device2, 'device2')}
           </>
         )}
@@ -162,11 +163,11 @@ export function AiCompareScreen() {
           ) : (
             <Ionicons name="git-compare-outline" size={18} color="#FFFFFF" />
           )}
-          <Text style={styles.compareButtonText}>Compare with AI</Text>
+          <Text style={styles.compareButtonText}>{STRINGS.AI_COMPARE.COMPARE_BUTTON}</Text>
         </TouchableOpacity>
 
         {loading ? (
-          <Text style={styles.loadingText}>AI is comparing the devices...</Text>
+          <Text style={styles.loadingText}>{STRINGS.AI_COMPARE.COMPARING_STATE}</Text>
         ) : null}
 
         {comparison && device1 && device2 ? (
@@ -187,7 +188,7 @@ export function AiCompareScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.picker}>
             <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Select a device</Text>
+              <Text style={styles.pickerTitle}>{STRINGS.AI_COMPARE.PICKER_TITLE}</Text>
               <TouchableOpacity onPress={() => setPickerVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.light.textPrimary} />
               </TouchableOpacity>
@@ -196,7 +197,7 @@ export function AiCompareScreen() {
               data={devices}
               keyExtractor={(item: Device) => item._id}
               ListEmptyComponent={
-                <Text style={styles.emptyList}>No devices are available.</Text>
+                <Text style={styles.emptyList}>{STRINGS.AI_COMPARE.PICKER_EMPTY}</Text>
               }
               renderItem={({ item }: { item: Device }) => (
                 <TouchableOpacity

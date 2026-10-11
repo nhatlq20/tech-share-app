@@ -21,7 +21,7 @@ import { OwnerRateRenterModal } from '../../components/booking/OwnerRateRenterMo
 import { OwnerQrScannerModal } from '../../components/booking/OwnerQrScannerModal';
 import { bookingService, Booking } from '../../services/bookingService';
 import { reviewService, ReviewItem } from '../../services/reviewService';
-import { socketService } from '../../services/socketService';
+import { useAppSelector } from '../../store';
 
 export type BookingManageTab = 'pending' | 'renting' | 'history';
 
@@ -106,15 +106,13 @@ export function BookingManageScreen({
     fetchOwnerBookings();
   }, [fetchOwnerBookings]);
 
-  // ── SOCKET LISTENER FOR REAL-TIME UPDATES ──
+  // ── REAL-TIME UPDATES VIA FIREBASE NOTIFICATIONS ──
+  const latestNotif = useAppSelector((state) => state.notifications.items[0]);
   useEffect(() => {
-    const unsub = socketService.onNewNotification((notif) => {
-      if (notif.type === 'order' || notif.type === 'reminder') {
-        fetchOwnerBookings();
-      }
-    });
-    return () => unsub();
-  }, [fetchOwnerBookings]);
+    if (latestNotif && (latestNotif.type === 'order' || latestNotif.type === 'reminder')) {
+      fetchOwnerBookings();
+    }
+  }, [latestNotif?._id, fetchOwnerBookings]);
 
   const onRefresh = async () => {
     setRefreshing(true);

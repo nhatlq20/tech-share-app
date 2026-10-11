@@ -127,8 +127,8 @@ export const createReview = async (req, res) => {
     if (booking.ownerId) {
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Bạn nhận được đánh giá mới! ⭐',
-        body: `Khách hàng vừa để lại đánh giá ${numRating} sao cho thiết bị và dịch vụ của bạn (Đơn #${booking.bookingCode}).`,
+        title: 'You Received a New Review! ⭐',
+        body: `A customer left a ${numRating}-star review for your device and service (Order #${booking.bookingCode}).`,
         type: 'order',
         relatedId: review._id,
         data: {
@@ -268,11 +268,11 @@ export const ownerRateRenter = async (req, res) => {
       const booking = await Booking.findById(review.bookingId);
       if (booking && booking.renterId) {
         const starEmoji = numRating >= 4 ? '⭐' : numRating >= 3 ? '🙂' : '⚠️';
-        const deltaText = delta > 0 ? `Điểm tín nhiệm +${delta} 🏆` : delta < 0 ? `Điểm tín nhiệm ${delta} ⚠️` : 'Điểm tín nhiệm không đổi.';
+        const deltaText = delta > 0 ? `Trust score +${delta} 🏆` : delta < 0 ? `Trust score ${delta} ⚠️` : 'Trust score unchanged.';
         createAndSendNotification({
           userId: booking.renterId,
-          title: `Chủ máy đã đánh giá ý thức của bạn ${starEmoji}`,
-          body: `Đơn #${booking.bookingCode}: ${numRating} sao ý thức. ${deltaText}`,
+          title: `Owner Rated Your Rental Experience ${starEmoji}`,
+          body: `Order #${booking.bookingCode}: ${numRating}-star rating. ${deltaText}`,
           type: 'order',
           relatedId: review._id,
           data: { bookingId: booking._id.toString(), reviewId: review._id.toString() },

@@ -146,11 +146,11 @@ export const createBooking = async (req, res) => {
     // Tự động bắn thông báo tức thì đến chủ máy kèm tên khách thuê
     if (device.ownerId) {
       const renter = await User.findById(renterId).select('name');
-      const renterName = renter?.name || 'Khách thuê';
+      const renterName = renter?.name || 'Renter';
       createAndSendNotification({
         userId: device.ownerId,
-        title: 'Yêu cầu thuê thiết bị mới! 📦',
-        body: `Khách hàng ${renterName} vừa gửi yêu cầu thuê thiết bị "${device.name}" (${totalDays} ngày). Mã đơn: #${bookingCode}. Bấm để duyệt ngay.`,
+        title: 'New Device Rental Request! 📦',
+        body: `Customer ${renterName} sent a rental request for "${device.name}" (${totalDays} days). Order: #${bookingCode}. Tap to review.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -264,13 +264,13 @@ export const cancelBooking = async (req, res) => {
     // Bắn thông báo chi tiết cho chủ máy khi khách hủy đơn
     if (booking.ownerId) {
       const renter = await User.findById(userId).select('name');
-      const renterName = renter?.name || 'Khách thuê';
+      const renterName = renter?.name || 'Renter';
       const dev = await Device.findById(booking.deviceId).select('name');
-      const deviceName = dev?.name || 'thiết bị';
+      const deviceName = dev?.name || 'device';
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Đơn thuê đã bị hủy ⚠️',
-        body: `Khách thuê ${renterName} đã hủy đơn yêu cầu thuê "${deviceName}" (#${booking.bookingCode}). Thiết bị đã tự động mở lại lịch trống.`,
+        title: 'Rental Order Cancelled ⚠️',
+        body: `Renter ${renterName} cancelled the rental request for "${deviceName}" (#${booking.bookingCode}). Device calendar has been restored.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -352,8 +352,8 @@ export const requestExtension = async (req, res) => {
     if (booking.ownerId) {
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Yêu cầu gia hạn đơn thuê! ⏳',
-        body: `Khách hàng đề xuất gia hạn thêm ${days} ngày cho đơn #${booking.bookingCode}. Phụ phí: ${additionalFee.toLocaleString('vi-VN')} đ.`,
+        title: 'Rental Extension Request! ⏳',
+        body: `Customer requested an extension of ${days} day(s) for order #${booking.bookingCode}. Additional fee: ${additionalFee.toLocaleString('en-US')} VND.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -419,8 +419,8 @@ export const respondExtension = async (req, res) => {
 
       createAndSendNotification({
         userId: booking.renterId,
-        title: 'Yêu cầu gia hạn đã được duyệt! 🎉',
-        body: `Chủ máy đã đồng ý gia hạn thêm ${extraDays} ngày cho đơn #${booking.bookingCode}. Hạn trả mới: ${new Date(booking.endDate).toLocaleDateString('vi-VN')}.`,
+        title: 'Extension Request Approved! 🎉',
+        body: `The owner approved an extension of ${extraDays} day(s) for order #${booking.bookingCode}. New return date: ${new Date(booking.endDate).toLocaleDateString('en-US')}.`,
         type: 'order',
         relatedId: booking._id,
         data: { bookingId: booking._id.toString() },
@@ -443,8 +443,8 @@ export const respondExtension = async (req, res) => {
 
       createAndSendNotification({
         userId: booking.renterId,
-        title: 'Yêu cầu gia hạn không được chấp thuận ❌',
-        body: `Chủ máy không thể gia hạn thêm cho đơn #${booking.bookingCode}. Vui lòng sắp xếp hoàn trả máy đúng hạn.`,
+        title: 'Extension Request Declined ❌',
+        body: `The owner was unable to extend order #${booking.bookingCode}. Please arrange punctual return.`,
         type: 'order',
         relatedId: booking._id,
         data: { bookingId: booking._id.toString() },
@@ -569,8 +569,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // Gửi thông báo cho người thuê
       createAndSendNotification({
         userId: booking.renterId?._id || booking.renterId,
-        title: 'Đơn thuê đã được duyệt! 🎉',
-        body: `Chủ máy đã phê duyệt yêu cầu thuê thiết bị "${deviceName}". Mã đơn: #${booking.bookingCode}. Vui lòng chuẩn bị nhận máy theo lịch hẹn.`,
+        title: 'Booking Request Approved! 🎉',
+        body: `The owner approved your rental request for "${deviceName}". Order: #${booking.bookingCode}. Please prepare for handover as scheduled.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -593,7 +593,7 @@ export const updateBookingStatusByOwner = async (req, res) => {
       }
 
       booking.status = 'rejected';
-      booking.rejectReason = reason || 'Chủ máy bận hoặc thiết bị chưa sẵn sàng';
+      booking.rejectReason = reason || 'Owner busy or device unavailable';
       booking.timeline.push({
         status: 'rejected',
         timestamp: new Date(),
@@ -605,8 +605,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // Gửi thông báo cho người thuê
       createAndSendNotification({
         userId: booking.renterId?._id || booking.renterId,
-        title: 'Đơn thuê bị từ chối ❌',
-        body: `Rất tiếc, chủ máy đã từ chối đơn thuê #${booking.bookingCode} (${deviceName}). Lý do: ${booking.rejectReason}.`,
+        title: 'Booking Request Declined ❌',
+        body: `Unfortunately, the owner declined rental order #${booking.bookingCode} (${deviceName}). Reason: ${booking.rejectReason}.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -640,8 +640,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // 1. Gửi thông báo cho Người thuê (Renter)
       createAndSendNotification({
         userId: booking.renterId?._id || booking.renterId,
-        title: 'Bàn giao thiết bị thành công! 📱',
-        body: `Bạn đã nhận thiết bị "${deviceName}". Đơn thuê #${booking.bookingCode} chính thức kích hoạt. Hãy bảo quản máy cẩn thận.`,
+        title: 'Device Handover Completed! 📱',
+        body: `You have received "${deviceName}". Rental order #${booking.bookingCode} is now active. Please use with care.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -653,8 +653,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // 2. Gửi thông báo cho Chủ máy (Owner)
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Đã bàn giao thiết bị 🤝',
-        body: `Bạn đã bàn giao thiết bị "${deviceName}" cho khách thuê ${renterName}. Trạng thái đơn: Đang thuê.`,
+        title: 'Device Handed Over 🤝',
+        body: `You handed over "${deviceName}" to renter ${renterName}. Status: Active Rental.`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -721,8 +721,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // 1. Gửi thông báo cho Renter (Kèm thông tin hoàn cọc)
       createAndSendNotification({
         userId: booking.renterId?._id || booking.renterId,
-        title: 'Đơn thuê hoàn tất & Hoàn tiền cọc! 💸',
-        body: `Đơn thuê #${booking.bookingCode} đã hoàn tất. Tiền cọc ${depositAmount.toLocaleString('vi-VN')} đ đã được giải tỏa hoàn trả về ví của bạn. Đừng quên đánh giá thiết bị nhé!`,
+        title: 'Rental Completed & Deposit Refunded! 💸',
+        body: `Order #${booking.bookingCode} is complete. Security deposit of ${depositAmount.toLocaleString('en-US')} VND has been refunded to your wallet. Please rate your experience!`,
         type: 'order',
         relatedId: booking._id,
         data: {
@@ -734,8 +734,8 @@ export const updateBookingStatusByOwner = async (req, res) => {
       // 2. Gửi thông báo cho Owner (Kèm thông tin doanh thu)
       createAndSendNotification({
         userId: booking.ownerId,
-        title: 'Đơn thuê hoàn tất thành công! 💰',
-        body: `Đã nhận lại thiết bị "${deviceName}". Doanh thu ${rentalIncome.toLocaleString('vi-VN')} đ đã được cộng vào số dư ví khả dụng của bạn.`,
+        title: 'Rental Completed Successfully! 💰',
+        body: `Returned device "${deviceName}" confirmed. Rental earnings of ${rentalIncome.toLocaleString('en-US')} VND credited to your wallet balance.`,
         type: 'order',
         relatedId: booking._id,
         data: {

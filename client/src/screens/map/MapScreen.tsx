@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { deviceService } from '../../services/deviceService';
 import { Device } from '../../types';
 import { DevicePreviewCard } from '../../components/map/DevicePreviewCard';
@@ -656,10 +657,10 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="map" size={24} color={colors.light.primary} />
-          <Text style={styles.headerTitle}>Nearby Devices</Text>
+          <Text style={styles.headerTitle}>{STRINGS.MAP.HEADER_TITLE}</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          Discover rental tech devices near your location
+          {STRINGS.MAP.HEADER_SUBTITLE}
         </Text>
       </View>
 
@@ -670,19 +671,19 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
             {nearbyState === 'loading' && <ActivityIndicator color={colors.light.primary} />}
             <Text style={styles.statusText}>
               {nearbyState === 'loading'
-                ? 'Searching for devices within 10 km…'
+                ? STRINGS.MAP.SEARCHING_DEVICES
                 : nearbyState === 'error'
-                  ? 'Unable to load nearby devices.'
+                  ? STRINGS.MAP.ERR_LOAD_DEVICES
                   : devices.length === 0
-                    ? 'No nearby devices'
-                    : `${markers.length} devices on the map · 10 km radius`}
+                    ? STRINGS.MAP.NO_NEARBY_DEVICES
+                    : STRINGS.MAP.DEVICES_ON_MAP(markers.length)}
             </Text>
             {nearbyState === 'error' && (
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() => setNearbyAttempt((attempt: number) => attempt + 1)}
               >
-                <Text style={styles.retryText}>Try Again</Text>
+                <Text style={styles.retryText}>{STRINGS.MAP.TRY_AGAIN}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -722,7 +723,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                 selectedMarker ? styles.myLocationButtonRaised : styles.myLocationButtonDefault,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="My Location"
+              accessibilityLabel={STRINGS.MAP.MY_LOCATION}
               activeOpacity={0.85}
               onPress={() => {
                 cameraAnchorRef.current = position;
@@ -747,20 +748,20 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
           {locationState === 'loading' ? (
             <>
               <ActivityIndicator size="large" color={colors.light.primary} />
-              <Text style={styles.description}>Getting your location...</Text>
+              <Text style={styles.description}>{STRINGS.MAP.GETTING_LOCATION}</Text>
             </>
           ) : (
             <>
               <Ionicons name="location-outline" size={54} color={colors.light.primary} />
               <Text style={styles.title}>
                 {locationState === 'denied'
-                  ? 'Location Permission Required'
+                  ? STRINGS.MAP.PERMISSION_REQUIRED
                   : locationState === 'disabled'
-                    ? 'Location Services Disabled'
-                    : 'Location Unavailable'}
+                    ? STRINGS.MAP.SERVICES_DISABLED
+                    : STRINGS.MAP.UNAVAILABLE}
               </Text>
               <Text style={styles.description}>
-                {error || 'Unable to determine your location.'}
+                {error || STRINGS.MAP.DEFAULT_ERROR}
               </Text>
               {locationState === 'denied' && !canAskAgain && (
                 <TouchableOpacity
@@ -770,7 +771,7 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                     void Linking.openSettings().catch(() => setLocationState('error'));
                   }}
                 >
-                  <Text style={styles.actionButtonText}>Open Settings</Text>
+                  <Text style={styles.actionButtonText}>{STRINGS.MAP.OPEN_SETTINGS}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -779,11 +780,11 @@ export function MapScreen({ onNavigateToDeviceDetail, onNavigateToHome }: MapScr
                 disabled={locationState === 'loading'}
                 onPress={retryLocation}
               >
-                <Text style={styles.actionButtonText}>Try Again</Text>
+                <Text style={styles.actionButtonText}>{STRINGS.MAP.TRY_AGAIN}</Text>
               </TouchableOpacity>
               {onNavigateToHome && (
                 <TouchableOpacity accessibilityRole="button" onPress={onNavigateToHome}>
-                  <Text style={styles.retryText}>Back to Home</Text>
+                  <Text style={styles.retryText}>{STRINGS.MAP.BACK_TO_HOME}</Text>
                 </TouchableOpacity>
               )}
             </>

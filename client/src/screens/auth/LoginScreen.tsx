@@ -18,6 +18,7 @@ import { useDispatch } from 'react-redux';
 import { apiClient } from '../../config/api';
 import { setAuth } from '../../store/slices/authSlice';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -39,7 +40,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
-      setErrorMsg('Please enter username/email and password');
+      setErrorMsg(STRINGS.AUTH.ERR_REQUIRED_FIELDS);
       return;
     }
 
@@ -54,7 +55,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
 
       const { token, user } = response.data;
       if (!token || !user) {
-        throw new Error('Login response is invalid');
+        throw new Error(STRINGS.AUTH.ERR_INVALID_RESPONSE);
       }
 
       dispatch(setAuth({ token, user }));
@@ -63,8 +64,8 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
     } catch (error: any) {
       const message = error?.response?.data?.message
         || (axios.isAxiosError(error) && !error.response
-          ? 'Cannot connect to the server. Check that the backend is running and the device is on the same Wi-Fi.'
-          : 'Login failed. Please try again.');
+          ? STRINGS.AUTH.ERR_SERVER_CONNECTION
+          : STRINGS.AUTH.ERR_LOGIN_FAILED);
       setErrorMsg(message);
     } finally {
       setLoading(false);
@@ -90,14 +91,14 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
           <View style={styles.logoCircle}>
             <Ionicons name="hardware-chip" size={32} color="#FFFFFF" />
           </View>
-          <Text style={styles.appTitle}>TechShare</Text>
-          <Text style={styles.appSubtitle}>A platform for sharing and renting tech devices</Text>
+          <Text style={styles.appTitle}>{STRINGS.AUTH.APP_NAME}</Text>
+          <Text style={styles.appSubtitle}>{STRINGS.AUTH.APP_SUBTITLE}</Text>
         </View>
 
         {/* LOGIN FORM */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Log In</Text>
-          <Text style={styles.cardDesc}>Welcome back to the community</Text>
+          <Text style={styles.cardTitle}>{STRINGS.AUTH.LOGIN_TITLE}</Text>
+          <Text style={styles.cardDesc}>{STRINGS.AUTH.LOGIN_DESC}</Text>
 
           {/* Báo lỗi nếu có */}
           {errorMsg ? (
@@ -109,14 +110,14 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
 
           {/* Username or email input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Username or email</Text>
+            <Text style={styles.inputLabel}>{STRINGS.AUTH.IDENTIFIER_LABEL}</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="mail-outline" size={20} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Enter username or email"
+                placeholder={STRINGS.AUTH.IDENTIFIER_PLACEHOLDER}
                 placeholderTextColor="#64748B"
                 value={identifier}
                 onChangeText={(text: string) => {
@@ -131,14 +132,14 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
 
           {/* Password input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Password</Text>
+            <Text style={styles.inputLabel}>{STRINGS.AUTH.PASSWORD_LABEL}</Text>
             <View style={styles.inputWrap}>
               <View style={styles.iconBox}>
                 <Ionicons name="lock-closed-outline" size={20} color={colors.light.textSecondary} />
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Enter password"
+                placeholder={STRINGS.AUTH.PASSWORD_PLACEHOLDER}
                 placeholderTextColor={colors.light.textSecondary}
                 value={password}
                 onChangeText={(text: string) => {
@@ -171,14 +172,14 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
               <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
                 {rememberMe && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
               </View>
-              <Text style={styles.rememberText}>Remember me</Text>
+              <Text style={styles.rememberText}>{STRINGS.AUTH.REMEMBER_ME}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={onNavigateToForgotPassword}
             >
-              <Text style={styles.forgotPassText}>Forgot password?</Text>
+              <Text style={styles.forgotPassText}>{STRINGS.AUTH.FORGOT_PASSWORD}</Text>
             </TouchableOpacity>
           </View>
 
@@ -193,7 +194,7 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.loginBtnText}>SIGN IN</Text>
+                <Text style={styles.loginBtnText}>{STRINGS.AUTH.SIGN_IN_BTN}</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
@@ -202,9 +203,9 @@ export function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, 
 
         {/* SWITCH TO REGISTER */}
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>{STRINGS.AUTH.NO_ACCOUNT_PROMPT}</Text>
           <TouchableOpacity onPress={onNavigateToRegister} activeOpacity={0.7}>
-            <Text style={styles.registerLink}>Sign up now</Text>
+            <Text style={styles.registerLink}>{STRINGS.AUTH.SIGN_UP_LINK}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

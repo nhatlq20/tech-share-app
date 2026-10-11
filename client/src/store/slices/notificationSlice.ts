@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Notification } from '../../types';
-import notificationService from '../../services/notificationService';
+import firebaseNotificationService from '../../services/firebaseNotificationService';
 
 export type NotificationFilter = 'all' | 'order' | 'reminder' | 'system' | 'promo';
 
@@ -29,16 +29,38 @@ const initialState: NotificationState = {
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchNotifications',
   async (
-    params: { type?: string; unreadOnly?: boolean; isRefresh?: boolean } | undefined,
-    { rejectWithValue }
+    params: { type?: string; unreadOnly?: boolean; isRefresh?: boolean; userId?: string } | undefined,
+    { rejectWithValue, getState }
   ) => {
     try {
-      const type = params?.type && params.type !== 'all' ? params.type : undefined;
-      const res = await notificationService.getNotifications({
-        type,
-        unreadOnly: params?.unreadOnly,
-      });
-      return { ...res, isRefresh: params?.isRefresh ?? false };
+      const state = getState() as any;
+      const currentUserId = params?.userId || state.auth?.user?.id || state.auth?.user?._id;
+
+      if (!currentUserId) {
+        return {
+          data: [],
+          unreadCount: 0,
+          total: 0,
+          isRefresh: params?.isRefresh ?? false,
+        };
+      }
+
+      const fbNotifs = await firebaseNotificationService.getNotifications(String(currentUserId));
+      let filtered = fbNotifs || [];
+      if (params?.type && params.type !== 'all') {
+        filtered = filtered.filter((n) => n.type === params.type);
+      }
+      if (params?.unreadOnly) {
+        filtered = filtered.filter((n) => !n.isRead);
+      }
+      const unreadCount = (fbNotifs || []).filter((n) => !n.isRead).length;
+
+      return {
+        data: filtered,
+        unreadCount,
+        total: filtered.length,
+        isRefresh: params?.isRefresh ?? false,
+      };
     } catch (err: any) {
       return rejectWithValue(err.message || 'Error loading notifications');
     }
@@ -47,12 +69,15 @@ export const fetchNotifications = createAsyncThunk(
 
 export const fetchUnreadCount = createAsyncThunk(
   'notifications/fetchUnreadCount',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const count = await notificationService.getUnreadCount();
-      return count;
+      const state = getState() as any;
+      const currentUserId = state.auth?.user?.id || state.auth?.user?._id;
+      if (!currentUserId) return 0;
+      const fbNotifs = await firebaseNotificationService.getNotifications(String(currentUserId));
+      return (fbNotifs || []).filter((n) => !n.isRead).length;
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.message || 'Error loading unread count');
     }
   }
 );
@@ -61,7 +86,7 @@ export const markNotificationRead = createAsyncThunk(
   'notifications/markNotificationRead',
   async (id: string, { rejectWithValue }) => {
     try {
-      await notificationService.markAsRead(id);
+      await firebaseNotificationService.markAsRead(id);
       return id;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -71,9 +96,13 @@ export const markNotificationRead = createAsyncThunk(
 
 export const markAllNotificationsRead = createAsyncThunk(
   'notifications/markAllNotificationsRead',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      await notificationService.markAllAsRead();
+      const state = getState() as any;
+      const currentUserId = state.auth?.user?.id || state.auth?.user?._id;
+      if (currentUserId) {
+        await firebaseNotificationService.markAllAsRead(String(currentUserId));
+      }
       return true;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -85,7 +114,7 @@ export const deleteNotificationItem = createAsyncThunk(
   'notifications/deleteNotificationItem',
   async (id: string, { rejectWithValue }) => {
     try {
-      await notificationService.deleteNotification(id);
+      await firebaseNotificationService.deleteNotification(id);
       return id;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -101,6 +130,14 @@ export const notificationSlice = createSlice({
   reducers: {
     setFilter: (state, action: PayloadAction<NotificationFilter>) => {
       state.filter = action.payload;
+    },
+    syncNotificationsFromFirebase: (state, action: PayloadAction<Notification[]>) => {
+      state.items = action.payload;
+      state.total = action.payload.length;
+      state.unreadCount = action.payload.filter((n) => !n.isRead).length;
+      state.isLoading = false;
+      state.isRefreshing = false;
+      state.error = null;
     },
     receiveRealtimeNotification: (state, action: PayloadAction<Notification>) => {
       const targetId = String(action.payload?._id || '');
@@ -186,6 +223,7 @@ export const notificationSlice = createSlice({
 
 export const {
   setFilter,
+  syncNotificationsFromFirebase,
   receiveRealtimeNotification,
   incrementUnreadCount,
   setUnreadCount,

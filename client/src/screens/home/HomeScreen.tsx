@@ -33,6 +33,7 @@ import { DeviceCard } from '../../components/device/DeviceCard';
 import { GetDevicesParams, HOME_NEARBY_RADIUS_METERS } from '../../services/deviceService';
 import { Device, DeviceCategory } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px screen padding + 8px gap
@@ -204,9 +205,8 @@ export function HomeScreen({
               <Ionicons name="hardware-chip" size={18} color="#FFFFFF" />
             </View>
             <View>
-              <Text style={styles.brandTitle}>TechShare</Text>
+              <Text style={styles.brandTitle}>{STRINGS.HOME_SCREEN.BRAND_TITLE}</Text>
               <View style={styles.locationRow}>
-                <Ionicons name="location-sharp" size={11} color={colors.light.primary} />
                 <Text style={styles.locationText}>{locationLabel}</Text>
               </View>
             </View>
@@ -234,7 +234,8 @@ export function HomeScreen({
                 <Ionicons name="briefcase" size={14} color={colors.light.primary} />
               </View>
               <Text style={styles.ownerSwitchText}>
-                Renter Mode • <Text style={styles.ownerSwitchTextBold}>Owner Dashboard</Text>
+                {STRINGS.HOME_SCREEN.OWNER_SWITCH_PREFIX}
+                <Text style={styles.ownerSwitchTextBold}>{STRINGS.HOME_SCREEN.OWNER_SWITCH_BOLD}</Text>
               </Text>
             </View>
             <View style={styles.ownerSwitchCta}>
@@ -249,7 +250,7 @@ export function HomeScreen({
             <Ionicons name="search-outline" size={20} color="#94A3B8" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search devices..."
+              placeholder={STRINGS.HOME_SCREEN.SEARCH_PLACEHOLDER}
               placeholderTextColor={colors.light.textSecondary}
               value={localSearch}
               onChangeText={handleSearchChange}
@@ -296,14 +297,14 @@ export function HomeScreen({
         )}
         {/* SECTION HEADER */}
         <SectionHeader
-          title="Discover Devices"
+          title={STRINGS.HOME_SCREEN.SECTION_DISCOVER_TITLE}
           subtitle={
             selectedCategory === 'all'
-              ? 'Nearest devices first within 10 km'
-              : `Filtered by: ${selectedCategory.toUpperCase()}`
+              ? STRINGS.HOME_SCREEN.SECTION_DISCOVER_SUB_ALL
+              : STRINGS.HOME_SCREEN.SECTION_DISCOVER_SUB_FILTER(selectedCategory.toUpperCase())
           }
           badgeCount={hasLoaded && !locationError ? filteredDevices.length : undefined}
-          actionText={selectedCategory !== 'all' ? 'See All' : undefined}
+          actionText={selectedCategory !== 'all' ? STRINGS.HOME_SCREEN.SEE_ALL : undefined}
           onActionPress={
             selectedCategory !== 'all'
               ? () => {
@@ -366,11 +367,11 @@ export function HomeScreen({
         <View style={styles.emptyIconCircle}>
           <Ionicons name="hardware-chip-outline" size={36} color="#64748B" />
         </View>
-        <Text style={styles.emptyTitle}>No nearby devices found</Text>
+        <Text style={styles.emptyTitle}>{STRINGS.HOME_SCREEN.EMPTY_TITLE}</Text>
         <Text style={styles.emptySubtitle}>
           {searchQuery || selectedCategory !== 'all'
-            ? 'No matching devices were found for your current filters.'
-            : 'There are no available devices within 10 km of your location.'}
+            ? STRINGS.HOME_SCREEN.EMPTY_SUBTITLE_FILTER
+            : STRINGS.HOME_SCREEN.EMPTY_SUBTITLE_ALL}
         </Text>
 
         {(searchQuery || selectedCategory !== 'all') && (
@@ -388,7 +389,7 @@ export function HomeScreen({
             activeOpacity={0.8}
           >
             <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.resetBtnText}>See All</Text>
+            <Text style={styles.resetBtnText}>{STRINGS.HOME_SCREEN.SEE_ALL}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -399,7 +400,7 @@ export function HomeScreen({
   const renderErrorState = () => (
     <View style={styles.errorContainer}>
       <Ionicons name="alert-circle-outline" size={40} color="#EF4444" />
-      <Text style={styles.errorTitle}>Unable to load nearby devices</Text>
+      <Text style={styles.errorTitle}>{STRINGS.HOME_SCREEN.ERROR_TITLE}</Text>
       <Text style={styles.errorSubtitle}>{error}</Text>
       <TouchableOpacity
         style={styles.retryBtn}
@@ -407,7 +408,7 @@ export function HomeScreen({
         activeOpacity={0.8}
       >
         <Ionicons name="reload-outline" size={16} color="#FFFFFF" />
-        <Text style={styles.retryBtnText}>Try Again</Text>
+        <Text style={styles.retryBtnText}>{STRINGS.HOME_SCREEN.TRY_AGAIN}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -481,7 +482,7 @@ export function HomeScreen({
           onPress={onNavigateToAiConsultant}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Open AI rental consultant"
+          accessibilityLabel={STRINGS.HOME_SCREEN.AI_CONSULTANT_ACCESSIBILITY_LABEL}
         >
           <Ionicons name="sparkles" size={23} color={colors.light.white} />
         </TouchableOpacity>

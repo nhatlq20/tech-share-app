@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { DeviceCategory } from '../../types';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 export interface CategoryItem {
   id: DeviceCategory | 'all';
@@ -19,32 +20,32 @@ export interface CategoryItem {
 export const CATEGORIES: CategoryItem[] = [
   {
     id: 'all',
-    name: 'All',
+    name: STRINGS.CATEGORIES.ALL,
     icon: 'apps-outline',
   },
   {
     id: 'smartphone',
-    name: 'Smartphones',
+    name: STRINGS.CATEGORIES.SMARTPHONES,
     icon: 'phone-portrait-outline',
   },
   {
     id: 'laptop',
-    name: 'Laptops',
+    name: STRINGS.CATEGORIES.LAPTOPS,
     icon: 'laptop-outline',
   },
   {
     id: 'camera',
-    name: 'Cameras',
+    name: STRINGS.CATEGORIES.CAMERAS,
     icon: 'camera-outline',
   },
   {
     id: 'drone',
-    name: 'Drones',
+    name: STRINGS.CATEGORIES.DRONES,
     icon: 'airplane-outline',
   },
   {
     id: 'audio',
-    name: 'Audio',
+    name: STRINGS.CATEGORIES.AUDIO,
     icon: 'headset-outline',
   },
   {
@@ -54,7 +55,7 @@ export const CATEGORIES: CategoryItem[] = [
   },
   {
     id: 'accessory',
-    name: 'Accessories',
+    name: STRINGS.CATEGORIES.ACCESSORIES,
     icon: 'hardware-chip-outline',
   },
 ];

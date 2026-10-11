@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import {
   AIConsultRecommendation,
   consultRentalAssistant,
@@ -32,26 +33,20 @@ interface AiChatConsultantProps {
   onNavigateToDeviceDetail: (deviceId: string) => void;
 }
 
-const SUGGESTED_QUESTIONS = [
-  'I need a laptop for programming.',
-  'Find a camera under 200k/day.',
-  'Recommend a phone for gaming.',
-];
-
 export function AiChatConsultant({
   onBack,
   onNavigateToDeviceDetail,
 }: AiChatConsultantProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState([
     {
       id: 'welcome',
-      sender: 'assistant',
-      text: 'Hi! Tell me what device you need, your budget, and how you plan to use it.',
+      sender: 'assistant' as const,
+      text: STRINGS.AI_CHAT.WELCOME_MESSAGE,
     },
-  ]);
+  ] as ChatMessage[]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef(null as any);
   const nextMessageId = useRef(0);
 
   const addMessage = (
@@ -60,7 +55,7 @@ export function AiChatConsultant({
     recommendations?: AIConsultRecommendation[]
   ) => {
     nextMessageId.current += 1;
-    setMessages((currentMessages) => [
+    setMessages((currentMessages: ChatMessage[]) => [
       ...currentMessages,
       {
         id: `message-${nextMessageId.current}`,
@@ -83,13 +78,13 @@ export function AiChatConsultant({
       const response = await consultRentalAssistant(message);
       addMessage(
         'assistant',
-        response.reply || response.message || 'No matching devices are available right now.',
+        response.reply || response.message || STRINGS.AI_CHAT.NO_MATCH,
         response.recommendations || []
       );
     } catch {
       addMessage(
         'assistant',
-        'Sorry, I could not get recommendations right now. Please try again.'
+        STRINGS.AI_CHAT.ERR_MESSAGE
       );
     } finally {
       setIsLoading(false);
@@ -115,7 +110,7 @@ export function AiChatConsultant({
         <View style={styles.recommendationDetails}>
           <Text style={styles.deviceName}>{item.device.name}</Text>
           <Text style={styles.devicePrice}>
-            {item.device.pricePerDay.toLocaleString('vi-VN')} ₫/day
+            {item.device.pricePerDay.toLocaleString('vi-VN')}{STRINGS.DEVICE_CARD.PRICE_SUFFIX}
           </Text>
           <Text style={styles.recommendationReason}>{item.reason}</Text>
           <TouchableOpacity
@@ -123,7 +118,7 @@ export function AiChatConsultant({
             onPress={() => onNavigateToDeviceDetail(item.device._id)}
             activeOpacity={0.8}
           >
-            <Text style={styles.detailsButtonText}>View Details</Text>
+            <Text style={styles.detailsButtonText}>{STRINGS.AI_CHAT.VIEW_DETAILS}</Text>
             <Ionicons
               name="arrow-forward"
               size={15}
@@ -147,14 +142,14 @@ export function AiChatConsultant({
             style={styles.backButton}
             onPress={onBack}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={STRINGS.AI_CHAT.ACCESSIBILITY_BACK}
           >
             <Ionicons name="arrow-back" size={22} color={colors.light.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerIcon}>
             <Ionicons name="sparkles" size={19} color={colors.light.ai} />
           </View>
-          <Text style={styles.headerTitle}>AI Rental Consultant</Text>
+          <Text style={styles.headerTitle}>{STRINGS.AI_CHAT.HEADER_TITLE}</Text>
         </View>
 
         <ScrollView
@@ -167,7 +162,7 @@ export function AiChatConsultant({
             scrollViewRef.current?.scrollToEnd({ animated: true })
           }
         >
-          {messages.map((message) => (
+          {messages.map((message: ChatMessage) => (
             <View
               key={message.id}
               style={[
@@ -210,8 +205,8 @@ export function AiChatConsultant({
 
           {messages.length === 1 && (
             <View style={styles.suggestions}>
-              <Text style={styles.suggestionsTitle}>Try asking</Text>
-              {SUGGESTED_QUESTIONS.map((question) => (
+              <Text style={styles.suggestionsTitle}>{STRINGS.AI_CHAT.TRY_ASKING}</Text>
+              {STRINGS.AI_CHAT.SUGGESTED_QUESTIONS.map((question) => (
                 <TouchableOpacity
                   key={question}
                   style={styles.suggestionButton}
@@ -236,7 +231,7 @@ export function AiChatConsultant({
               </View>
               <View style={styles.loadingBubble}>
                 <ActivityIndicator size="small" color={colors.light.ai} />
-                <Text style={styles.loadingText}>Thinking...</Text>
+                <Text style={styles.loadingText}>{STRINGS.AI_CHAT.THINKING}</Text>
               </View>
             </View>
           )}
@@ -247,7 +242,7 @@ export function AiChatConsultant({
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Describe what you need to rent..."
+            placeholder={STRINGS.AI_CHAT.INPUT_PLACEHOLDER}
             placeholderTextColor={colors.light.textMuted}
             multiline
             maxLength={500}
@@ -263,7 +258,7 @@ export function AiChatConsultant({
             onPress={() => sendMessage(inputText)}
             disabled={!inputText.trim() || isLoading}
             accessibilityRole="button"
-            accessibilityLabel="Send message"
+            accessibilityLabel={STRINGS.AI_CHAT.ACCESSIBILITY_SEND}
           >
             <Ionicons name="send" size={18} color={colors.light.white} />
           </TouchableOpacity>

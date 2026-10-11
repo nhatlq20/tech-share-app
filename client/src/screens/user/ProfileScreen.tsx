@@ -70,7 +70,7 @@ export function ProfileScreen({
   const [name, setName] = useState(user?.name || 'John Nguyen');
   const [email, setEmail] = useState(user?.email || 'an.creator@techshare.vn');
   const [phone, setPhone] = useState(user?.phone || '0988 123 456');
-  const [bio, setBio] = useState('Tech Reviewer & Content Creator. Đam mê máy ảnh Sony & Apple Flagships.');
+  const [bio, setBio] = useState((user as any)?.bio || STRINGS.PROFILE.DEFAULT_BIO);
   const [role, setRole] = useState((user?.role || 'renter') as UserRole);
 
   // Address
