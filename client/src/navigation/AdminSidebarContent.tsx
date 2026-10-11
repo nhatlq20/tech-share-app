@@ -135,23 +135,12 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
             paddingTop:
               Math.max(
                 insets.top,
-                Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
-              ) + theme.spacing.sm,
+                Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 12
+              ) + 12,
           },
         ]}
       >
-        {/* Brand Logo Row */}
-        <View style={styles.brandRow}>
-          <View style={styles.logoBadge}>
-            <Ionicons name="shield-checkmark" size={20} color={theme.colors.primary[600]} />
-          </View>
-          <View>
-            <Text style={styles.brandTitle}>{STRINGS.ADMIN_SIDEBAR.BRAND_TITLE}</Text>
-            <Text style={styles.brandSubtitle}>{STRINGS.ADMIN_SIDEBAR.BRAND_SUBTITLE}</Text>
-          </View>
-        </View>
-
-        {/* Admin Profile Box */}
+        {/* Admin Profile Row */}
         <View style={styles.profileBox}>
           <Image
             source={{
@@ -168,20 +157,19 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
             <Text style={styles.adminEmail} numberOfLines={1}>
               {user?.email || STRINGS.ADMIN_SIDEBAR.DEFAULT_ADMIN_EMAIL}
             </Text>
-
-            {/* Badge System Administrator */}
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>{STRINGS.ADMIN_SIDEBAR.ROLE_BADGE}</Text>
-            </View>
           </View>
         </View>
       </View>
+
+      {/* ── Đường phân cách ngang Divider ── */}
+      <View style={styles.divider} />
 
       {/* ── 2. DANH MỤC MENU QUẢN TRỊ CỐT LÕI ── */}
       <ScrollView
         style={styles.menuScrollView}
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <Text style={styles.menuSectionHeader}>{STRINGS.ADMIN_SIDEBAR.SECTION_HEADER}</Text>
 
@@ -217,8 +205,8 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
                 >
                   <Ionicons
                     name={item.icon}
-                    size={18}
-                    color={isActive ? theme.colors.primary[600] : theme.colors.slate[600]}
+                    size={16}
+                    color={isActive ? theme.colors.primary[700] : theme.colors.slate[600]}
                   />
                 </View>
                 <Text style={[styles.menuItemLabel, isActive && styles.menuItemLabelActive]}>
@@ -252,14 +240,24 @@ export function AdminSidebarContent(props: DrawerContentComponentProps) {
       </ScrollView>
 
       {/* ── 3. SIDEBAR FOOTER ── */}
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Math.max(
+              insets.bottom,
+              Platform.OS === 'android' ? 12 : 8
+            ),
+          },
+        ]}
+      >
         {/* Nút Đăng xuất */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => setShowLogoutModal(true)}
           activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
         >
-          <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
+          <Ionicons name="log-out-outline" size={16} color={theme.colors.danger[600]} />
           <Text style={styles.logoutButtonText}>{STRINGS.ADMIN_SIDEBAR.LOGOUT_BUTTON}</Text>
         </TouchableOpacity>
       </View>
@@ -281,55 +279,18 @@ const styles = StyleSheet.create({
     backgroundColor: theme.card,
   },
   header: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-    backgroundColor: theme.colors.slate[50],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: theme.spacing.md,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.primary[500],
-  },
-  brandTitle: {
-    ...theme.typography.subheading,
-    fontSize: 16,
-    color: theme.textPrimary,
-  },
-  brandSubtitle: {
-    ...theme.typography.caption,
-    color: theme.textSecondary,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   profileBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: theme.border,
-    marginBottom: theme.spacing.sm,
-    gap: 10,
-    ...theme.shadows.subtle,
+    gap: 12,
   },
   adminAvatar: {
     width: 44,
     height: 44,
-    borderRadius: theme.radii.full,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary[500],
+    borderRadius: 22,
     backgroundColor: theme.colors.slate[200],
   },
   profileInfo: {
@@ -337,59 +298,53 @@ const styles = StyleSheet.create({
   },
   adminName: {
     ...theme.typography.body,
+    fontSize: 14.5,
+    lineHeight: 19,
     fontWeight: '700',
     color: theme.textPrimary,
   },
   adminEmail: {
     ...theme.typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
     color: theme.textSecondary,
-    marginBottom: 4,
+    marginTop: 2,
   },
-  roleBadge: {
-    backgroundColor: theme.colors.danger[50],
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: theme.radii.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.danger[500],
-    alignSelf: 'flex-start',
-  },
-  roleBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: theme.colors.danger[600],
-    letterSpacing: 0.2,
+
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.slate[200],
+    marginHorizontal: 16,
+    marginVertical: 14,
   },
 
   menuScrollView: {
     flex: 1,
   },
   menuScrollContent: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    gap: 6,
+    paddingHorizontal: 12,
+    paddingTop: 2,
+    paddingBottom: 8,
+    gap: 2,
   },
   menuSectionHeader: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: theme.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     marginBottom: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 9999,
   },
   menuItemActive: {
     backgroundColor: theme.colors.primary[50],
-    borderColor: theme.colors.primary[500],
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -398,71 +353,73 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: theme.radii.sm,
+    width: 26,
+    height: 26,
+    borderRadius: 9999,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuIconContainerActive: {
-    backgroundColor: theme.card,
+    backgroundColor: 'transparent',
   },
   menuItemLabel: {
     ...theme.typography.body,
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '500',
-    color: theme.colors.slate[600],
+    color: theme.textPrimary,
   },
   menuItemLabelActive: {
-    color: theme.colors.primary[600],
-    fontWeight: '700',
+    fontWeight: '600',
+    color: theme.colors.primary[700],
   },
   menuBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: theme.radii.full,
-    borderWidth: 1,
   },
   menuBadgeRed: {
     backgroundColor: theme.colors.danger[50],
+    borderWidth: 1,
     borderColor: theme.colors.danger[500],
-  },
-  menuBadgeTextRed: {
-    color: theme.colors.danger[600],
-    fontSize: 10,
-    fontWeight: '700',
   },
   menuBadgeBlue: {
     backgroundColor: theme.colors.primary[50],
+    borderWidth: 1,
     borderColor: theme.colors.primary[500],
+  },
+  menuBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  menuBadgeTextRed: {
+    color: theme.colors.danger[600],
   },
   menuBadgeTextBlue: {
     color: theme.colors.primary[600],
-    fontSize: 10,
-    fontWeight: '700',
   },
 
   footer: {
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: 10,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: theme.border,
     backgroundColor: theme.colors.slate[50],
-    gap: theme.spacing.sm,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: theme.colors.danger[50],
-    borderRadius: theme.radii.full,
-    paddingVertical: 12,
+    borderRadius: theme.radii.md,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.danger[500],
   },
   logoutButtonText: {
     color: theme.colors.danger[600],
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 });

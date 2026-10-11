@@ -35,8 +35,8 @@ export function OwnerDrawerNavigator({ navigation }: any) {
         swipeEnabled: true,
         swipeEdgeWidth: 100,
         drawerStyle: {
-          width: '80%',
-          maxWidth: 320,
+          width: '70%',
+          maxWidth: 260,
           backgroundColor: theme.card,
         },
       }}

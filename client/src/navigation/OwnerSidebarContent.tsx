@@ -138,23 +138,12 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
             paddingTop:
               Math.max(
                 insets.top,
-                Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20
-              ) + theme.spacing.sm,
+                Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 12
+              ) + 12,
           },
         ]}
       >
-        {/* Brand Row */}
-        <View style={styles.brandRow}>
-          <View style={styles.logoBadge}>
-            <Ionicons name="briefcase" size={20} color={theme.colors.primary[600]} />
-          </View>
-          <View>
-            <Text style={styles.brandTitle}>{STRINGS.OWNER_SIDEBAR.BRAND_TITLE}</Text>
-            <Text style={styles.brandSubtitle}>{STRINGS.OWNER_SIDEBAR.BRAND_SUBTITLE}</Text>
-          </View>
-        </View>
-
-        {/* Owner Profile Box */}
+        {/* Owner Profile Row */}
         <View style={styles.profileBox}>
           <Image
             source={{
@@ -171,39 +160,26 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
               </Text>
               <Ionicons
                 name="checkmark-circle"
-                size={15}
+                size={14}
                 color={theme.colors.primary[500]}
               />
             </View>
             <Text style={styles.ownerEmail} numberOfLines={1}>
               {user?.email || STRINGS.OWNER_SIDEBAR.DEFAULT_OWNER_EMAIL}
             </Text>
-
-            {/* Badges Row */}
-            <View style={styles.badgeRow}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>{STRINGS.OWNER_SIDEBAR.ROLE_BADGE}</Text>
-              </View>
-              <View style={styles.trustBadge}>
-                <Ionicons
-                  name="shield-checkmark"
-                  size={10}
-                  color={theme.colors.success[600]}
-                />
-                <Text style={styles.trustBadgeText}>
-                  {STRINGS.OWNER_SIDEBAR.TRUST_LABEL(user?.trustScore || CONFIG.LIMITS.MAX_TRUST_SCORE)}
-                </Text>
-              </View>
-            </View>
           </View>
         </View>
       </View>
+
+      {/* ── Đường phân cách ngang Divider ── */}
+      <View style={styles.divider} />
 
       {/* ── 2. DANH MỤC MENU QUẢN LÝ ── */}
       <ScrollView
         style={styles.menuScrollView}
         contentContainerStyle={styles.menuScrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <Text style={styles.menuSectionHeader}>{STRINGS.OWNER_SIDEBAR.SECTION_HEADER}</Text>
 
@@ -231,8 +207,8 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
                 >
                   <Ionicons
                     name={item.icon}
-                    size={18}
-                    color={isActive ? theme.colors.primary[600] : theme.colors.slate[600]}
+                    size={16}
+                    color={isActive ? theme.colors.primary[700] : theme.colors.slate[600]}
                   />
                 </View>
                 <Text
@@ -280,13 +256,23 @@ export function OwnerSidebarContent(props: DrawerContentComponentProps) {
       </ScrollView>
 
       {/* ── 3. SIDEBAR FOOTER ── */}
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Math.max(
+              insets.bottom,
+              Platform.OS === 'android' ? 12 : 8
+            ),
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => setShowLogoutModal(true)}
           activeOpacity={CONFIG.ANIMATION.ACTIVE_OPACITY_BUTTON}
         >
-          <Ionicons name="log-out-outline" size={18} color={theme.colors.danger[600]} />
+          <Ionicons name="log-out-outline" size={16} color={theme.colors.danger[600]} />
           <Text style={styles.logoutButtonText}>{STRINGS.OWNER_SIDEBAR.LOGOUT_BUTTON}</Text>
         </TouchableOpacity>
       </View>
@@ -309,55 +295,18 @@ const styles = StyleSheet.create({
     backgroundColor: theme.card,
   },
   header: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-    backgroundColor: theme.colors.slate[50],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: theme.spacing.md,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.primary[500],
-  },
-  brandTitle: {
-    ...theme.typography.subheading,
-    fontSize: 16,
-    color: theme.textPrimary,
-  },
-  brandSubtitle: {
-    ...theme.typography.caption,
-    color: theme.textSecondary,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   profileBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.card,
-    borderRadius: theme.radii.md,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: theme.border,
-    marginBottom: theme.spacing.sm,
-    gap: 10,
-    ...theme.shadows.subtle,
+    gap: 12,
   },
   ownerAvatar: {
     width: 44,
     height: 44,
-    borderRadius: theme.radii.full,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary[500],
+    borderRadius: 22,
     backgroundColor: theme.colors.slate[200],
   },
   profileInfo: {
@@ -367,84 +316,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 2,
   },
   ownerName: {
     ...theme.typography.body,
+    fontSize: 14.5,
+    lineHeight: 19,
     fontWeight: '700',
     color: theme.textPrimary,
   },
   ownerEmail: {
     ...theme.typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
     color: theme.textSecondary,
-    marginBottom: 4,
+    marginTop: 2,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  roleBadge: {
-    backgroundColor: theme.colors.primary[50],
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: theme.radii.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.primary[500],
-  },
-  roleBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: theme.colors.primary[700],
-    letterSpacing: 0.2,
-  },
-  trustBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: theme.colors.success[50],
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: theme.radii.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.success[500],
-  },
-  trustBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: theme.colors.success[600],
+
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.slate[200],
+    marginHorizontal: 16,
+    marginVertical: 14,
   },
 
   menuScrollView: {
     flex: 1,
   },
   menuScrollContent: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    gap: 6,
+    paddingHorizontal: 12,
+    paddingTop: 2,
+    paddingBottom: 8,
+    gap: 2,
   },
   menuSectionHeader: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: theme.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     marginBottom: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 9999,
   },
   menuItemActive: {
     backgroundColor: theme.colors.primary[50],
-    borderColor: theme.colors.primary[500],
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -453,30 +374,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.slate[100],
+    width: 26,
+    height: 26,
+    borderRadius: 9999,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuIconContainerActive: {
-    backgroundColor: theme.colors.white,
+    backgroundColor: 'transparent',
   },
   menuItemLabel: {
     ...theme.typography.body,
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '500',
     color: theme.textPrimary,
   },
   menuItemLabelActive: {
-    fontWeight: '700',
-    color: theme.colors.primary[600],
+    fontWeight: '600',
+    color: theme.colors.primary[700],
   },
 
   menuBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: theme.radii.full,
   },
   menuBadgeRed: {
@@ -490,7 +411,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
   },
   menuBadgeText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   menuBadgeTextRed: {
@@ -501,8 +422,8 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: 10,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: theme.border,
     backgroundColor: theme.colors.slate[50],
@@ -511,8 +432,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
+    gap: 6,
+    paddingVertical: 8,
     borderRadius: theme.radii.md,
     backgroundColor: theme.colors.danger[50],
     borderWidth: 1,
@@ -520,7 +441,7 @@ const styles = StyleSheet.create({
   },
   logoutButtonText: {
     ...theme.typography.body,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: theme.colors.danger[600],
   },
