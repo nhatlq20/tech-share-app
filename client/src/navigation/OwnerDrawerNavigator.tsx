@@ -7,6 +7,7 @@ import { OwnerAnalyticsScreen } from '../screens/owner/OwnerAnalyticsScreen';
 import { BookingManageScreen } from '../screens/booking/BookingManageScreen';
 import { PostDeviceScreen } from '../screens/device/PostDeviceScreen';
 import { NotificationScreen } from '../screens/notification/NotificationScreen';
+import { OwnerMessagesScreen } from '../screens/owner/OwnerMessagesScreen';
 
 export type OwnerDrawerParamList = {
   OwnerDashboard:
@@ -17,6 +18,7 @@ export type OwnerDrawerParamList = {
     | undefined;
   OwnerAnalytics: undefined;
   BookingManage: { initialTab?: 'pending' | 'renting' | 'history' } | undefined;
+  OwnerMessages: undefined;
   PostDevice: undefined;
   Notification: { from?: string } | undefined;
 };
@@ -73,6 +75,23 @@ export function OwnerDrawerNavigator({ navigation }: any) {
             onNavigateToNotifications={() =>
               props.navigation.navigate('Notification', { from: 'owner' })
             }
+            onNavigateToChat={(bookingId: string) =>
+              navigation.navigate('ChatDetail', { bookingId })
+            }
+          />
+        )}
+      </Drawer.Screen>
+      <Drawer.Screen
+        name="OwnerMessages"
+        options={{
+          title: STRINGS.OWNER_NAV.MESSAGES_TITLE,
+          drawerLabel: STRINGS.OWNER_NAV.MESSAGES_DRAWER,
+        }}
+      >
+        {(props: any) => (
+          <OwnerMessagesScreen
+            {...props}
+            onOpenDrawer={() => props.navigation.openDrawer()}
             onNavigateToChat={(bookingId: string) =>
               navigation.navigate('ChatDetail', { bookingId })
             }

@@ -52,6 +52,12 @@ const OWNER_MENU_ITEMS: OwnerMenuItem[] = [
     isActionHighlight: true,
   },
   {
+    id: 'messages',
+    label: STRINGS.OWNER_SIDEBAR.MENU_MESSAGES,
+    icon: 'chatbubbles-outline',
+    targetScreen: 'OwnerMessages',
+  },
+  {
     id: 'fleet',
     label: STRINGS.OWNER_SIDEBAR.MENU_FLEET,
     icon: 'cube-outline',
