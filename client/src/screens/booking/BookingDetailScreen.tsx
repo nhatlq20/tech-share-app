@@ -368,17 +368,21 @@ export function BookingDetailScreen({
               </Text>
             </TouchableOpacity>
 
-            {Boolean(onNavigateToChat) && (
-              <TouchableOpacity
-                style={[styles.ownerActionBtn, { backgroundColor: colors.light.primary }]}
-                onPress={() => onNavigateToChat && onNavigateToChat(booking._id)}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.light.white} />
-                <Text style={[styles.ownerActionBtnText, { color: colors.light.white }]}>
-                  Chat
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.ownerActionBtn, { backgroundColor: colors.light.primary }]}
+              onPress={() => {
+                if (onNavigateToChat) {
+                  onNavigateToChat(booking._id);
+                } else {
+                  (navigation as any)?.navigate?.('ChatDetail', { bookingId: booking._id });
+                }
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.light.white} />
+              <Text style={[styles.ownerActionBtnText, { color: colors.light.white }]}>
+                Chat
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 

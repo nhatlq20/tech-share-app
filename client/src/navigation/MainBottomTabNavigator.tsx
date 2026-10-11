@@ -95,6 +95,9 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
               navigation.navigate('BookingCreate', { deviceId })
             }
             onNavigateToHome={() => navigation.navigate('Home')}
+            onNavigateToChat={(bookingId) =>
+              navigation.navigate('ChatDetail', { bookingId })
+            }
           />
         )}
       </Tab.Screen>
