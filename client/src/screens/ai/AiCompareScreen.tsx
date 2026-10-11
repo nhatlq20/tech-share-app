@@ -225,6 +225,8 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 36,
+    marginTop: 23
+    
   },
   heading: {
     color: colors.light.textPrimary,

@@ -309,7 +309,6 @@ export function BookingCreateScreen({
   }
 
   const totalAmount = rentalFeeAfterLongTerm - voucherDiscountAmount + (device.depositValue || 0);
-
   const handleConfirm = async () => {
     if (currentUser?.role === 'renter' && !currentUser.isVerified) {
       Alert.alert(
@@ -317,28 +316,41 @@ export function BookingCreateScreen({
         STRINGS.AUTH_VERIFY_ALERT.MSG,
         [
           { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
-          { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
+          {
+            text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW,
+            onPress: onNavigateToVerification,
+          },
         ]
       );
       return;
     }
 
     if (!startDate || !endDate) {
-      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DATES_MSG);
+      showBookingResult(
+        'error',
+        STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE,
+        STRINGS.BOOKING_CREATE.MISSING_DATES_MSG
+      );
       return;
     }
 
     if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
-      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DELIVERY_ADDRESS_MSG);
+      showBookingResult(
+        'error',
+        STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE,
+        STRINGS.BOOKING_CREATE.MISSING_DELIVERY_ADDRESS_MSG
+      );
       return;
     }
 
-    // Check overlap with active bookings
     const conflict = checkOverlapWithBusy(startDate, endDate);
+
     if (conflict) {
       const fromStr = new Date(conflict.startDate).toLocaleDateString('en-US');
       const toStr = new Date(conflict.endDate).toLocaleDateString('en-US');
-      Alert.alert(
+
+      showBookingResult(
+        'error',
         STRINGS.BOOKING_CREATE.DEVICE_RENTED_TITLE,
         `The device is already booked during (${fromStr} - ${toStr}). Please select a different rental period!`
       );
@@ -346,37 +358,47 @@ export function BookingCreateScreen({
     }
 
     setIsSubmitting(true);
+
     try {
       await apiClient.post('/bookings', {
-
         deviceId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         voucherCode: appliedVoucher?.code || '',
         deliveryMethod,
-        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress.trim() : (device.addressText || ''),
+        deliveryAddress:
+          deliveryMethod === 'delivery'
+            ? deliveryAddress.trim()
+            : device.addressText || '',
       });
 
       setSuccessModalVisible(true);
     } catch (error: any) {
       const responseData = error.response?.data;
+
       if (responseData?.code === 'RENTER_EKYC_REQUIRED') {
         Alert.alert(
           STRINGS.AUTH_VERIFY_ALERT.TITLE,
           responseData.message || STRINGS.AUTH_VERIFY_ALERT.MSG,
           [
             { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
-            { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
+            {
+              text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW,
+              onPress: onNavigateToVerification,
+            },
           ]
         );
       } else {
-        Alert.alert('Error', responseData?.message || 'Unable to submit booking request.');
+        showBookingResult(
+          'error',
+          'Booking Failed',
+          responseData?.message || 'Unable to submit booking request.'
+        );
       }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const isConfirmDisabled =
     !startDate ||
     !endDate ||
@@ -1190,9 +1212,13 @@ const CustomDateTimePicker = ({
               <Text style={styles.modalBtnTextConfirm}>{STRINGS.BOOKING_CREATE.CONFIRM_BTN}</Text>
             </TouchableOpacity>
           </View>
+
         </View>
+      
       </View>
+      
     </Modal>
+    
   );
 };
 

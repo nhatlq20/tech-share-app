@@ -12,163 +12,110 @@ export interface DeviceState {
   isRefreshing: boolean;
   error: string | null;
   currentRequestId: string | null;
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  failedPage: number | null;
+  hasNextPage: boolean;
+  isLoadingMore: boolean;
+  hasLoaded: boolean;
 }
 
 const initialState: DeviceState = {
-  devices: [],
-  filteredDevices: [],
-  selectedCategory: 'all',
-  searchQuery: '',
-  isLoading: false,
-  isInitialLoading: true,
-  isRefreshing: false,
-  error: null,
-  currentRequestId: null,
+  devices: [], filteredDevices: [], selectedCategory: 'all', searchQuery: '',
+  isLoading: false, isInitialLoading: true, isRefreshing: false,
+  error: null, currentRequestId: null, page: 0, totalPages: 0, totalItems: 0, failedPage: null, hasNextPage: false, isLoadingMore: false, hasLoaded: false,
 };
 
-// Async thunk tải danh sách thiết bị
-export const fetchDevices = createAsyncThunk(
-  'devices/fetchDevices',
-  async (params: GetDevicesParams | undefined, { rejectWithValue }) => {
-    try {
-      const data = await deviceService.getDevices(params);
-      return data;
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      return rejectWithValue(error.message || 'Failed to load devices');
-    }
+let discoveryRequestNumber = 0;
+const requestPage = async (params: GetDevicesParams | undefined, context: { requestId: string }) => {
+  const number = ++discoveryRequestNumber;
+  const tag = `[HOME FILTER #${number}]`;
+  const debug = typeof __DEV__ !== 'undefined' && __DEV__;
+  if (debug) console.log(tag + ' ' + JSON.stringify({ event: 'request', requestId: context.requestId,
+    lat: params?.latitude, lng: params?.longitude, radius: params?.radius,
+    category: params?.category === 'all' ? undefined : params?.category,
+    q: (params?.q || params?.search || '').trim() || undefined, page: params?.page || 1, limit: 10 }));
+  try {
+    const result = await deviceService.getNearbyDevicesPage({ ...params, limit: 10 });
+    if (debug) console.log(tag + ' ' + JSON.stringify({ event: 'response', requestId: context.requestId,
+      count: result.data.length, pagination: result.pagination, ids: result.data.map(device => device._id) }));
+    return result;
+  } catch (error) {
+    if (debug) console.log(tag + ' ' + JSON.stringify({ event: 'error', requestId: context.requestId }));
+    throw error;
   }
-);
-
-// Async thunk phục vụ Pull-to-refresh
-export const refreshDevices = createAsyncThunk(
-  'devices/refreshDevices',
-  async (params: GetDevicesParams | undefined, { rejectWithValue }) => {
-    try {
-      const data = await deviceService.getDevices(params);
-      return data;
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      return rejectWithValue(error.message || 'Failed to refresh devices');
-    }
-  }
-);
-
-const filterList = (
-  devices: Device[],
-  category: DeviceCategory | 'all',
-  searchQuery: string
-): Device[] => {
-  return devices.filter(item => {
-    const matchesCategory = category === 'all' || item.category === category;
-    const matchesSearch =
-      !searchQuery.trim() ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-      item.brand.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase().trim());
-
-    return matchesCategory && matchesSearch;
-  });
 };
+
+export const fetchDevices = createAsyncThunk('devices/fetchDevices', requestPage);
+export const refreshDevices = createAsyncThunk('devices/refreshDevices',
+  (params: GetDevicesParams | undefined, context) => requestPage({ ...params, page: 1 }, context));
 
 export const deviceSlice = createSlice({
-  name: 'devices',
-  initialState,
+  name: 'devices', initialState,
   reducers: {
     setSelectedCategory: (state, action: PayloadAction<DeviceCategory | 'all'>) => {
       state.selectedCategory = action.payload;
-      state.filteredDevices = filterList(state.devices, state.selectedCategory, state.searchQuery);
     },
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
-      state.filteredDevices = filterList(state.devices, state.selectedCategory, state.searchQuery);
     },
     clearFilters: state => {
-      state.selectedCategory = 'all';
-      state.searchQuery = '';
-      state.filteredDevices = state.devices;
+      state.selectedCategory = 'all'; state.searchQuery = '';
+    },
+    resetDeviceDiscovery: state => {
+      state.devices = []; state.filteredDevices = []; state.page = 0;
+      state.totalPages = 0; state.totalItems = 0; state.currentRequestId = null;
+      state.error = null; state.failedPage = null; state.isLoading = false; state.isRefreshing = false;
+      state.isInitialLoading = true; state.hasLoaded = false; state.hasNextPage = false; state.isLoadingMore = false;
     },
   },
   extraReducers: builder => {
-    // fetchDevices
-    builder
-      .addCase(fetchDevices.pending, (state, action) => {
-        state.isLoading = true;
-        state.isRefreshing = false;
+    for (const thunk of [fetchDevices, refreshDevices]) {
+      builder.addCase(thunk.pending, (state, action) => {
+        state.isRefreshing = action.type === refreshDevices.pending.type;
+        state.isLoading = !state.isRefreshing;
+        state.isLoadingMore = !state.isRefreshing && (action.meta.arg?.page || 1) > 1;
         state.error = null;
+        state.failedPage = null;
         state.currentRequestId = action.meta.requestId;
-        if (action.meta.arg?.category !== undefined) {
-          state.selectedCategory = action.meta.arg.category;
+        if (action.meta.arg?.category !== undefined) state.selectedCategory = action.meta.arg.category;
+        if (action.meta.arg?.search !== undefined) state.searchQuery = action.meta.arg.search;
+        // A new filter/location must not expose results from the old query.
+        if (!state.isRefreshing && (action.meta.arg?.page || 1) === 1) {
+          state.devices = []; state.filteredDevices = []; state.page = 0;
+          state.totalPages = 0; state.totalItems = 0; state.isInitialLoading = true; state.hasLoaded = false; state.hasNextPage = false;
         }
-        if (action.meta.arg?.search !== undefined) {
-          state.searchQuery = action.meta.arg.search;
-        }
-      })
-      .addCase(fetchDevices.fulfilled, (state, action) => {
-        // Tránh Race Condition: Chỉ nhận kết quả từ request mới nhất
-        if (state.currentRequestId !== action.meta.requestId) {
-          return;
-        }
-        state.isLoading = false;
-        state.isInitialLoading = false;
-        state.devices = action.payload;
-        if (action.meta.arg?.category !== undefined) {
-          state.selectedCategory = action.meta.arg.category;
-        }
-        if (action.meta.arg?.search !== undefined) {
-          state.searchQuery = action.meta.arg.search;
-        }
-        state.filteredDevices = action.payload;
-      })
-      .addCase(fetchDevices.rejected, (state, action) => {
-        if (state.currentRequestId !== action.meta.requestId) {
-          return;
-        }
-        state.isLoading = false;
-        state.isInitialLoading = false;
-        state.error = (action.payload as string) || 'Unable to load devices';
       });
-
-    // refreshDevices
-    builder
-      .addCase(refreshDevices.pending, (state, action) => {
-        state.isRefreshing = true;
-        state.isLoading = false;
-        state.error = null;
-        state.currentRequestId = action.meta.requestId;
-        if (action.meta.arg?.category !== undefined) {
-          state.selectedCategory = action.meta.arg.category;
-        }
-        if (action.meta.arg?.search !== undefined) {
-          state.searchQuery = action.meta.arg.search;
-        }
-      })
-      .addCase(refreshDevices.fulfilled, (state, action) => {
+      builder.addCase(thunk.fulfilled, (state, action) => {
         if (state.currentRequestId !== action.meta.requestId) {
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[HOME FILTER STALE] ignored ' + action.meta.requestId);
           return;
         }
-        state.isRefreshing = false;
-        state.isInitialLoading = false;
-        state.devices = action.payload;
-        if (action.meta.arg?.category !== undefined) {
-          state.selectedCategory = action.meta.arg.category;
-        }
-        if (action.meta.arg?.search !== undefined) {
-          state.searchQuery = action.meta.arg.search;
-        }
-        state.filteredDevices = action.payload;
-      })
-      .addCase(refreshDevices.rejected, (state, action) => {
-        if (state.currentRequestId !== action.meta.requestId) {
-          return;
-        }
-        state.isRefreshing = false;
-        state.isInitialLoading = false;
-        state.error = (action.payload as string) || 'Unable to refresh devices';
+        const { data, pagination } = action.payload;
+        const seen = new Set<string>();
+        const combined = pagination.page === 1 ? data : [...state.devices, ...data];
+        state.devices = combined.filter(device => {
+          if (seen.has(device._id)) return false;
+          seen.add(device._id);
+          return true;
+        });
+        state.filteredDevices = state.devices;
+        state.page = pagination.page; state.totalPages = pagination.totalPages;
+        state.totalItems = pagination.totalItems; state.hasNextPage = pagination.hasNextPage;
+        state.hasLoaded = true; state.isLoadingMore = false;
+        state.isLoading = false; state.isRefreshing = false; state.isInitialLoading = false;
       });
+      builder.addCase(thunk.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return;
+        state.isLoading = false; state.isRefreshing = false; state.isInitialLoading = false;
+        state.isLoadingMore = false;
+        state.failedPage = action.type === refreshDevices.rejected.type ? 1 : (action.meta.arg?.page || 1);
+        state.error = action.error.message || 'Unable to load nearby devices';
+      });
+    }
   },
 });
 
-export const { setSelectedCategory, setSearchQuery, clearFilters } = deviceSlice.actions;
-
+export const { setSelectedCategory, setSearchQuery, clearFilters, resetDeviceDiscovery } = deviceSlice.actions;
 export default deviceSlice.reducer;
