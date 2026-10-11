@@ -30,6 +30,7 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BookingManageScreen, BookingManageTab } from '../screens/booking/BookingManageScreen';
 import { WishlistScreen } from '../screens/device/WishlistScreen';
 import { AiChatConsultant } from '../screens/ai/AiChatConsultant';
+import { ChatDetailScreen } from '../screens/chat/ChatDetailScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -63,6 +64,7 @@ export type RootStackParamList = {
     | undefined;
   Notification: { from?: string } | undefined;
   AiChatConsultant: undefined;
+  ChatDetail: { bookingId: string };
 };
 
 export const rootNavigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -113,6 +115,7 @@ const BookingDetailRoute = ({ route, navigation }: any) => (
     onBack={() => navigation.goBack()}
     onNavigateToDeviceDetail={(deviceId) => navigation.navigate('DeviceDetail', { deviceId })}
     onNavigateToBookingCreate={(deviceId) => navigation.navigate('BookingCreate', { deviceId })}
+    onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
   />
 );
 
@@ -123,6 +126,16 @@ const BookingManageRoute = ({ route, navigation }: any) => (
     onBack={() => navigation.goBack()}
     onNavigateToBookingDetail={(bookingId) => navigation.navigate('BookingDetail', { bookingId })}
     onNavigateToNotifications={() => navigation.navigate('Notification', { from: 'owner' })}
+    onNavigateToChat={(bookingId) => navigation.navigate('ChatDetail', { bookingId })}
+  />
+);
+
+const ChatDetailRoute = ({ route, navigation }: any) => (
+  <ChatDetailScreen
+    route={route}
+    navigation={navigation}
+    bookingId={route.params?.bookingId}
+    onBack={() => navigation.goBack()}
   />
 );
 
@@ -196,6 +209,14 @@ export function RootNavigator() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null as boolean | null);
 
   useEffect(() => {
+    if (isAuthenticated && user?._id) {
+      socketService.connect(user._id);
+    } else {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, user?._id]);
+
+  useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)
       .then((value) => setHasSeenOnboarding(value === 'true'))
       .catch(() => setHasSeenOnboarding(false));
@@ -264,6 +285,7 @@ export function RootNavigator() {
             <Stack.Screen name="BookingCreate">{BookingCreateRoute}</Stack.Screen>
             <Stack.Screen name="Wishlist">{WishlistRoute}</Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
           </Stack.Group>
         ) : isOwner ? (
           <Stack.Group>
@@ -291,6 +313,7 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
           </Stack.Group>
         ) : (
           <Stack.Group>
@@ -337,6 +360,7 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Notification">{NotificationRoute}</Stack.Screen>
+            <Stack.Screen name="ChatDetail">{ChatDetailRoute}</Stack.Screen>
           </Stack.Group>
         )}
       </Stack.Navigator>

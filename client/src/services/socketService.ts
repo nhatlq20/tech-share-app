@@ -1,11 +1,16 @@
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '../config/api';
-import { Notification } from '../types';
+import { Notification, ChatMessage } from '../types';
 
 let socket: Socket | null = null;
 let currentUserId: string | null = null;
+let activeBookingId: string | null = null;
+
 type NotificationListener = (notification: Notification) => void;
+type MessageListener = (message: ChatMessage) => void;
+
 let notificationListeners: NotificationListener[] = [];
+let messageListeners: MessageListener[] = [];
 
 export const socketService = {
   /**
@@ -16,6 +21,42 @@ export const socketService = {
     return () => {
       notificationListeners = notificationListeners.filter(l => l !== listener);
     };
+  },
+
+  /**
+   * Đăng ký nhận tin nhắn chat realtime từ socket
+   */
+  onNewMessage: (listener: MessageListener) => {
+    messageListeners.push(listener);
+    return () => {
+      messageListeners = messageListeners.filter(l => l !== listener);
+    };
+  },
+
+  /**
+   * Gia nhập room chat của đơn thuê cụ thể
+   */
+  joinChat: (bookingId: string) => {
+    if (!bookingId) return;
+    activeBookingId = bookingId;
+    if (socket?.connected) {
+      socket.emit('join_chat', bookingId);
+      console.log(`💬 [Socket.IO Client] Joined chat_${bookingId}`);
+    }
+  },
+
+  /**
+   * Rời room chat khi thoát màn hình chat
+   */
+  leaveChat: (bookingId: string) => {
+    if (!bookingId) return;
+    if (activeBookingId === bookingId) {
+      activeBookingId = null;
+    }
+    if (socket?.connected) {
+      socket.emit('leave_chat', bookingId);
+      console.log(`🚪 [Socket.IO Client] Left chat_${bookingId}`);
+    }
   },
 
   /**
@@ -49,6 +90,10 @@ export const socketService = {
       socket.on('connect', () => {
         console.log(`⚡ [Socket.IO Client] Đã kết nối server (${socket?.id})`);
         socket?.emit('join_user', userId);
+        if (activeBookingId) {
+          socket?.emit('join_chat', activeBookingId);
+          console.log(`💬 [Socket.IO Client] Re-joined chat_${activeBookingId}`);
+        }
       });
 
       socket.on('new_notification', (notification: Notification) => {
@@ -58,6 +103,17 @@ export const socketService = {
             listener(notification);
           } catch (e) {
             console.warn('Listener error in socketService:', e);
+          }
+        });
+      });
+
+      socket.on('new_message', (message: ChatMessage) => {
+        console.log('💬 [Socket.IO Client] Nhận tin nhắn mới:', message._id);
+        messageListeners.forEach(listener => {
+          try {
+            listener(message);
+          } catch (e) {
+            console.warn('Listener error in onNewMessage:', e);
           }
         });
       });

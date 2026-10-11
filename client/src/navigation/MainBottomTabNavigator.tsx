@@ -71,7 +71,7 @@ export function MainBottomTabNavigator({ navigation }: { navigation: any }) {
             onNavigateToWishlist={() => navigation.navigate('Wishlist')}
             onNavigateToSearch={() => console.log('[Nav] Search')}
             onNavigateToNotifications={() => navigation.navigate('Notification')}
-            onNavigateToChat={() => console.log('[Nav] Chat')}
+            onNavigateToChat={() => navigation.navigate('Bookings')}
             onNavigateToAiConsultant={() => navigation.navigate('AiChatConsultant')}
             onNavigateToOwnerDashboard={() =>
               navigation.navigate(user?.role === 'owner' ? 'OwnerRoot' : 'OwnerDashboard')

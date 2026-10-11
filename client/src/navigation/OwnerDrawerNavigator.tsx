@@ -73,6 +73,9 @@ export function OwnerDrawerNavigator({ navigation }: any) {
             onNavigateToNotifications={() =>
               props.navigation.navigate('Notification', { from: 'owner' })
             }
+            onNavigateToChat={(bookingId: string) =>
+              navigation.navigate('ChatDetail', { bookingId })
+            }
           />
         )}
       </Drawer.Screen>

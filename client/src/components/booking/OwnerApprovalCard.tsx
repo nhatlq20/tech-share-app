@@ -23,6 +23,7 @@ export interface OwnerApprovalCardProps {
   onPress?: (booking: Booking) => void;
   onRateRenter?: (booking: Booking) => void;
   onScanQr?: (booking: Booking) => void;
+  onChat?: (booking: Booking) => void;
   renterReview?: ReviewItem;
   isUpdating?: boolean;
 }
@@ -78,6 +79,7 @@ export function OwnerApprovalCard({
   onPress,
   onRateRenter,
   onScanQr,
+  onChat,
   renterReview,
   isUpdating = false,
 }: OwnerApprovalCardProps) {
@@ -203,12 +205,25 @@ export function OwnerApprovalCard({
           </View>
         </View>
 
-        {renter.phone && (
-          <View style={styles.renterPhoneBox}>
-            <Ionicons name="call-outline" size={12} color={colors.light.textSecondary} />
-            <Text style={styles.renterPhoneText}>{renter.phone}</Text>
-          </View>
-        )}
+        <View style={styles.renterContactRow}>
+          {renter.phone && (
+            <View style={styles.renterPhoneBox}>
+              <Ionicons name="call-outline" size={12} color={colors.light.textSecondary} />
+              <Text style={styles.renterPhoneText}>{renter.phone}</Text>
+            </View>
+          )}
+
+          {Boolean(onChat) && (
+            <TouchableOpacity
+              style={styles.chatButton}
+              onPress={() => onChat && onChat(booking)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={12} color={colors.light.primary} />
+              <Text style={styles.chatButtonText}>Chat</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* ── 4. DELIVERY METHOD ── */}
@@ -610,6 +625,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.light.textSecondary,
+  },
+  renterContactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: colors.light.primaryLight,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.light.primary,
+  },
+  chatButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.light.primary,
   },
   deliveryRow: {
     flexDirection: 'row',
