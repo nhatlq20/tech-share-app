@@ -239,7 +239,7 @@ export const STRINGS = {
     MENU_ANALYTICS: 'Revenue & Analytics',
     MENU_ORDERS: 'Pending Bookings',
     MENU_FLEET: 'My Device Inventory',
-    MENU_POST_DEVICE: 'List a New Device',
+    MENU_POST_DEVICE: 'List New Devices',
     MENU_WALLET: 'Revenue & Deposit Wallet',
     MENU_AI_TOOLS: 'AI Assistant',
     MENU_RENTER_MODE: 'Switch to Renter Mode',

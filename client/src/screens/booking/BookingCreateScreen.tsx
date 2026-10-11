@@ -26,7 +26,7 @@ import { STRINGS } from '../../constants/strings';
 import { useAppSelector } from '../../store';
 import { VoucherInput } from './components/VoucherInput';
 import { PriceBreakdownCard } from './components/PriceBreakdownCard';
-
+import BookingResultModal from './components/BookingResultModal';
 interface BookingCreateScreenProps {
   deviceId: string;
   onBack: () => void;
@@ -85,7 +85,22 @@ export function BookingCreateScreen({
   const [pickerConfig, setPickerConfig] = useState({ visible: false, type: 'start' as 'start' | 'end' });
   const [appliedVoucher, setAppliedVoucher] = useState(null as any);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
+  const [resultModal, setResultModal] = useState({
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: '',
+  });
+
+  const showBookingResult = (
+    type: 'success' | 'error',
+    title: string,
+    message: string
+  ) => {
+    setResultModal({ type, title, message });
+    setShowResultModal(true);
+  };
   useEffect(() => {
     if (currentUser?.address && !deliveryAddress) {
       setDeliveryAddress(currentUser.address);
@@ -281,7 +296,6 @@ export function BookingCreateScreen({
   }
 
   const totalAmount = rentalFeeAfterLongTerm - voucherDiscountAmount + (device.depositValue || 0);
-
   const handleConfirm = async () => {
     if (currentUser?.role === 'renter' && !currentUser.isVerified) {
       Alert.alert(
@@ -289,28 +303,41 @@ export function BookingCreateScreen({
         STRINGS.AUTH_VERIFY_ALERT.MSG,
         [
           { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
-          { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
+          {
+            text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW,
+            onPress: onNavigateToVerification,
+          },
         ]
       );
       return;
     }
 
     if (!startDate || !endDate) {
-      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DATES_MSG);
+      showBookingResult(
+        'error',
+        STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE,
+        STRINGS.BOOKING_CREATE.MISSING_DATES_MSG
+      );
       return;
     }
 
     if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
-      Alert.alert(STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE, STRINGS.BOOKING_CREATE.MISSING_DELIVERY_ADDRESS_MSG);
+      showBookingResult(
+        'error',
+        STRINGS.BOOKING_CREATE.MISSING_INFO_TITLE,
+        STRINGS.BOOKING_CREATE.MISSING_DELIVERY_ADDRESS_MSG
+      );
       return;
     }
 
-    // Check overlap with active bookings
     const conflict = checkOverlapWithBusy(startDate, endDate);
+
     if (conflict) {
       const fromStr = new Date(conflict.startDate).toLocaleDateString('en-US');
       const toStr = new Date(conflict.endDate).toLocaleDateString('en-US');
-      Alert.alert(
+
+      showBookingResult(
+        'error',
         STRINGS.BOOKING_CREATE.DEVICE_RENTED_TITLE,
         `The device is already booked during (${fromStr} - ${toStr}). Please select a different rental period!`
       );
@@ -318,53 +345,52 @@ export function BookingCreateScreen({
     }
 
     setIsSubmitting(true);
+
     try {
       await apiClient.post('/bookings', {
-
         deviceId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         voucherCode: appliedVoucher?.code || '',
         deliveryMethod,
-        deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress.trim() : (device.addressText || ''),
+        deliveryAddress:
+          deliveryMethod === 'delivery'
+            ? deliveryAddress.trim()
+            : device.addressText || '',
       });
 
-      Alert.alert(
+      showBookingResult(
+        'success',
         STRINGS.BOOKING_CREATE.SUCCESS_TITLE,
-        STRINGS.BOOKING_CREATE.SUCCESS_MSG,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (onSuccess) {
-                onSuccess();
-              } else {
-                onBack();
-              }
-            },
-          },
-        ],
-        { cancelable: false }
+        STRINGS.BOOKING_CREATE.SUCCESS_MSG
       );
+
     } catch (error: any) {
       const responseData = error.response?.data;
+
       if (responseData?.code === 'RENTER_EKYC_REQUIRED') {
         Alert.alert(
           STRINGS.AUTH_VERIFY_ALERT.TITLE,
           responseData.message || STRINGS.AUTH_VERIFY_ALERT.MSG,
           [
             { text: STRINGS.AUTH_VERIFY_ALERT.LATER, style: 'cancel' },
-            { text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW, onPress: onNavigateToVerification },
+            {
+              text: STRINGS.AUTH_VERIFY_ALERT.VERIFY_NOW,
+              onPress: onNavigateToVerification,
+            },
           ]
         );
       } else {
-        Alert.alert('Error', responseData?.message || 'Unable to submit booking request.');
+        showBookingResult(
+          'error',
+          'Booking Failed',
+          responseData?.message || 'Unable to submit booking request.'
+        );
       }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const isConfirmDisabled =
     !startDate ||
     !endDate ||
@@ -716,6 +742,24 @@ export function BookingCreateScreen({
         busyRanges={busyRanges}
         onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
         onConfirm={handleConfirmPicker}
+      />
+
+      <BookingResultModal
+        visible={showResultModal}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+        onClose={() => {
+          setShowResultModal(false);
+
+          if (resultModal.type === 'success') {
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              onBack();
+            }
+          }
+        }}
       />
     </View>
   );
@@ -1078,9 +1122,13 @@ const CustomDateTimePicker = ({
               <Text style={styles.modalBtnTextConfirm}>{STRINGS.BOOKING_CREATE.CONFIRM_BTN}</Text>
             </TouchableOpacity>
           </View>
+
         </View>
+      
       </View>
+      
     </Modal>
+    
   );
 };
 
