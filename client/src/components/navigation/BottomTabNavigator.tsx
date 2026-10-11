@@ -22,6 +22,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { ScreenType } from '../../types';
+import { STRINGS } from '../../constants/strings';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,31 +50,31 @@ interface BottomTabNavigatorProps {
 const TAB_CONFIGS: TabConfig[] = [
   {
     key: 'home',
-    label: 'Home',
+    label: STRINGS.BOTTOM_NAV.HOME,
     iconActive: 'home',
     iconInactive: 'home-outline',
   },
   {
     key: 'bookings',
-    label: 'Bookings',
+    label: STRINGS.BOTTOM_NAV.BOOKINGS,
     iconActive: 'receipt',
     iconInactive: 'receipt-outline',
   },
   {
     key: 'map',
-    label: 'Nearby',
+    label: STRINGS.BOTTOM_NAV.NEARBY,
     iconActive: 'map',
     iconInactive: 'map-outline',
   },
   {
     key: 'compare',
-    label: 'Compare',
+    label: STRINGS.BOTTOM_NAV.COMPARE,
     iconActive: 'git-compare',
     iconInactive: 'git-compare-outline',
   },
   {
     key: 'profile',
-    label: 'Profile',
+    label: STRINGS.BOTTOM_NAV.PROFILE,
     iconActive: 'person',
     iconInactive: 'person-outline',
   },

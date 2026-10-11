@@ -1,3 +1,5 @@
+import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../config/firebase.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
@@ -97,6 +99,13 @@ export const markAsRead = async (req, res) => {
       });
     }
 
+    // Sync to Firebase Firestore (non-blocking)
+    try {
+      updateDoc(doc(db, 'notifications', id), { isRead: true }).catch(() => {});
+    } catch (fbErr) {
+      // Document might not exist in Firestore
+    }
+
     const unreadCount = await Notification.countDocuments({ userId, isRead: false });
 
     return res.status(200).json({
@@ -124,6 +133,26 @@ export const markAllAsRead = async (req, res) => {
     const userId = req.auth?.id || req.auth?._id;
 
     await Notification.updateMany({ userId, isRead: false }, { $set: { isRead: true } });
+
+    // Sync to Firebase Firestore (non-blocking)
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('recipient', '==', String(userId)),
+        where('isRead', '==', false)
+      );
+      getDocs(q)
+        .then((snap) => {
+          if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.docs.forEach((d) => batch.update(d.ref, { isRead: true }));
+            batch.commit().catch(() => {});
+          }
+        })
+        .catch(() => {});
+    } catch (fbErr) {
+      // Document batch update error
+    }
 
     return res.status(200).json({
       success: true,
@@ -157,6 +186,13 @@ export const deleteNotification = async (req, res) => {
         success: false,
         message: 'Không tìm thấy thông báo cần xóa',
       });
+    }
+
+    // Sync to Firebase Firestore (non-blocking)
+    try {
+      deleteDoc(doc(db, 'notifications', id)).catch(() => {});
+    } catch (fbErr) {
+      // Safe fallback
     }
 
     const unreadCount = await Notification.countDocuments({ userId, isRead: false });

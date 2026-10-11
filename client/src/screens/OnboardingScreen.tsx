@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { STRINGS } from '../constants/strings';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -125,23 +126,23 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             onPress={() => setShowTerms(false)}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Back to onboarding"
+            accessibilityLabel={STRINGS.ONBOARDING.ACCESSIBILITY_BACK}
           >
             <Ionicons name="arrow-back" size={23} color={colors.light.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.termsNavTitle}>Terms of Service</Text>
+          <Text style={styles.termsNavTitle}>{STRINGS.ONBOARDING.TERMS_NAV_TITLE}</Text>
           <View style={styles.backButtonSpacer} />
         </View>
         <ScrollView
           contentContainerStyle={styles.termsContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.termsTitle}>TECHSHARE TERMS OF SERVICE</Text>
+          <Text style={styles.termsTitle}>{STRINGS.ONBOARDING.TERMS_TITLE}</Text>
           <Text style={styles.termsSubtitle}>
-            TechShare Project - Peer-to-Peer Tech Rental Platform & Gemini AI Assistant
+            {STRINGS.ONBOARDING.TERMS_SUBTITLE}
           </Text>
           <Text style={styles.termsDraftNote}>
-            Draft agreement. Please review carefully before using the service.
+            {STRINGS.ONBOARDING.TERMS_DRAFT_NOTE}
           </Text>
           {termsSections.map((section) => (
             <View key={section.title} style={styles.termsSection}>
@@ -161,10 +162,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         <View style={styles.brandMark}>
           <Ionicons name="hardware-chip" size={17} color="#FFFFFF" />
         </View>
-        <Text style={styles.brandName}>TechShare</Text>
+        <Text style={styles.brandName}>{STRINGS.ONBOARDING.BRAND_NAME}</Text>
         {activeIndex < slides.length - 1 ? (
           <TouchableOpacity onPress={skipToFinalSlide} hitSlop={12} accessibilityRole="button">
-            <Text style={styles.skipText}>Skip</Text>
+            <Text style={styles.skipText}>{STRINGS.ONBOARDING.SKIP}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.topBarSpacer} />
@@ -203,18 +204,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                   onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: hasAcceptedTerms }}
-                  accessibilityLabel="Agree to Terms of Service"
+                  accessibilityLabel={STRINGS.ONBOARDING.ACCESSIBILITY_AGREE}
                 >
                   {hasAcceptedTerms ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}
                 </TouchableOpacity>
                 <Text style={styles.acceptTermsText}>
-                  I have read and agree to the{' '}
+                  {STRINGS.ONBOARDING.ACCEPT_TERMS_PREFIX}
                   <Text
                     style={styles.termsLink}
                     onPress={() => setShowTerms(true)}
                     accessibilityRole="link"
                   >
-                    Terms of Service
+                    {STRINGS.ONBOARDING.TERMS_LINK}
                   </Text>
                 </Text>
               </View>
@@ -243,7 +244,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           accessibilityRole="button"
         >
           <Text style={styles.nextButtonText}>
-            {activeIndex === slides.length - 1 ? 'Get Started' : 'Next'}
+            {activeIndex === slides.length - 1 ? STRINGS.ONBOARDING.GET_STARTED : STRINGS.ONBOARDING.NEXT}
           </Text>
           <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
         </TouchableOpacity>

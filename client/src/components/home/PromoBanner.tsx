@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_CARD_WIDTH = SCREEN_WIDTH - 32; // 16px padding on each side
@@ -25,25 +26,25 @@ export interface PromoBannerItem {
 export const PROMO_BANNERS: PromoBannerItem[] = [
   {
     id: 'banner_1',
-    badge: 'SPRINT OFFER',
-    title: 'Rent Tech Easily',
-    subtitle: 'Flagship Apple, Sony and DJI devices ready from just 100k/day',
+    badge: STRINGS.PROMO_BANNERS.BANNER_1.BADGE,
+    title: STRINGS.PROMO_BANNERS.BANNER_1.TITLE,
+    subtitle: STRINGS.PROMO_BANNERS.BANNER_1.SUBTITLE,
     imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&auto=format&fit=crop&q=80',
     accentColor: colors.light.primary,
   },
   {
     id: 'banner_2',
-    badge: 'GPS READY',
-    title: 'Explore Nearby',
-    subtitle: 'Find cameras, laptops and gimbals near you and pick up in 30 minutes',
+    badge: STRINGS.PROMO_BANNERS.BANNER_2.BADGE,
+    title: STRINGS.PROMO_BANNERS.BANNER_2.TITLE,
+    subtitle: STRINGS.PROMO_BANNERS.BANNER_2.SUBTITLE,
     imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=80',
     accentColor: '#8B5CF6',
   },
   {
     id: 'banner_3',
-    badge: '100% SAFE',
-    title: 'Premium Quality Gear',
-    subtitle: 'Fully inspected for condition and specs before handover',
+    badge: STRINGS.PROMO_BANNERS.BANNER_3.BADGE,
+    title: STRINGS.PROMO_BANNERS.BANNER_3.TITLE,
+    subtitle: STRINGS.PROMO_BANNERS.BANNER_3.SUBTITLE,
     imageUrl: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800&auto=format&fit=crop&q=80',
     accentColor: colors.light.success,
   },

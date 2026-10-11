@@ -25,6 +25,7 @@ import { Device } from "../../types";
 import { generateDescription } from "../../services/aiService";
 import AiGenerateButton from "../../components/ai/AiGenerateButton";
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants';
 type PostDeviceScreenProps = {
   onBack?: () => void;
   onPublished?: () => void;
@@ -77,7 +78,7 @@ export function PostDeviceScreen({
   navigation,
 }: PostDeviceScreenProps) {
   const insets = useSafeAreaInsets();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef(null as any);
   const descriptionSectionY = useRef(0);
   const topInset = Math.max(
     insets.top,
@@ -785,7 +786,7 @@ export function PostDeviceScreen({
 
         <View
           style={styles.section}
-          onLayout={(event) => {
+          onLayout={(event: any) => {
             descriptionSectionY.current = event.nativeEvent.layout.y;
           }}
         >

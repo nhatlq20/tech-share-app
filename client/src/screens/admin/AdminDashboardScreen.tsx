@@ -188,7 +188,7 @@ export function AdminDashboardScreen({
                 }));
               }
             } catch (err: any) {
-              Alert.alert('Error', err.message || STRINGS.ADMIN.DASHBOARD.DELETE_ERROR);
+              Alert.alert(STRINGS.COMMON.ERROR, err.message || STRINGS.ADMIN.DASHBOARD.DELETE_ERROR);
             }
           },
         },
@@ -240,7 +240,7 @@ export function AdminDashboardScreen({
                 }
               }}
               activeOpacity={0.7}
-              accessibilityLabel="Open admin menu"
+              accessibilityLabel={STRINGS.ADMIN.DASHBOARD.MENU_ACCESSIBILITY}
             >
               <Ionicons name="menu-outline" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
@@ -253,7 +253,7 @@ export function AdminDashboardScreen({
           {onBackToHome && (
             <TouchableOpacity style={styles.exitButton} onPress={onBackToHome} activeOpacity={0.8}>
               <Ionicons name="exit-outline" size={16} color={theme.textSecondary} />
-              <Text style={styles.exitButtonText}>Exit</Text>
+              <Text style={styles.exitButtonText}>{STRINGS.ADMIN.DASHBOARD.EXIT}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -276,7 +276,7 @@ export function AdminDashboardScreen({
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-            <Text style={styles.loadingText}>Loading TechShare Admin data...</Text>
+            <Text style={styles.loadingText}>{STRINGS.ADMIN.DASHBOARD.LOADING}</Text>
           </View>
         ) : (
           <>

@@ -1,4 +1,6 @@
 import { Expo } from 'expo-server-sdk';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../config/firebase.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { getIO } from '../socket.js';
@@ -69,6 +71,30 @@ export const createAndSendNotification = async ({
       relatedId,
       isRead: false,
     });
+
+    // 2. Sync to Firebase Firestore for Real-time Cloud updates (non-blocking)
+    try {
+      const notifId = notification._id.toString();
+      setDoc(doc(db, 'notifications', notifId), {
+        recipient: String(userId),
+        userId: String(userId),
+        title,
+        body,
+        type,
+        relatedId: relatedId ? String(relatedId) : null,
+        data: data || {},
+        isRead: false,
+        createdAt: notification.createdAt ? notification.createdAt.toISOString() : new Date().toISOString(),
+      })
+        .then(() => {
+          console.log(`🔥 [Firebase Firestore] Notification synced: ${notifId}`);
+        })
+        .catch((fbError) => {
+          console.warn('⚠️ [Firebase Firestore] Warning:', fbError.message);
+        });
+    } catch (fbError) {
+      console.warn('⚠️ [Firebase Firestore] Error:', fbError.message);
+    }
 
     // 2. Emit real-time Socket event if user is active online
     const socketIO = io || getIO();

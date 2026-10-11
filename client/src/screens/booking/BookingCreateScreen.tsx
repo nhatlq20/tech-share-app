@@ -413,7 +413,7 @@ export function BookingCreateScreen({
               </View>
               <View>
                 <Text style={styles.sectionTitle}>{STRINGS.BOOKING_DETAIL.RENTAL_PERIOD}</Text>
-                <Text style={styles.sectionSubtitle}>Pickup & return schedule</Text>
+                <Text style={styles.sectionSubtitle}>{STRINGS.BOOKING_CREATE.PICKUP_RETURN_SCHEDULE}</Text>
               </View>
             </View>
             {rentalDays > 0 && startDate && endDate && (
@@ -428,11 +428,9 @@ export function BookingCreateScreen({
             <View style={styles.activeBusyAlertBox}>
               <Ionicons name="warning" size={16} color={colors.light.error} />
               <Text style={styles.activeBusyAlertText}>
-                Device is currently rented until{' '}
-                <Text style={{ fontWeight: '700' }}>
-                  {new Date(currentActiveBooking.endDate).toLocaleDateString('en-US')}
-                </Text>
-                . Please select a pickup date after this time!
+                {STRINGS.BOOKING_CREATE.RENTED_UNTIL_ALERT(
+                  new Date(currentActiveBooking.endDate).toLocaleDateString('en-US')
+                )}
               </Text>
             </View>
           )}
@@ -468,10 +466,10 @@ export function BookingCreateScreen({
                 </View>
               ) : (
                 <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
+                  <Text style={styles.datePlaceholderPrompt}>{STRINGS.BOOKING_CREATE.NOT_SET}</Text>
                   <View style={styles.dateCardActionBadge}>
                     <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Select time</Text>
+                    <Text style={styles.dateCardActionText}>{STRINGS.BOOKING_CREATE.SELECT_TIME}</Text>
                   </View>
                 </View>
               )}
@@ -514,10 +512,10 @@ export function BookingCreateScreen({
                 </View>
               ) : (
                 <View style={styles.dateCardPlaceholder}>
-                  <Text style={styles.datePlaceholderPrompt}>Not set</Text>
+                  <Text style={styles.datePlaceholderPrompt}>{STRINGS.BOOKING_CREATE.NOT_SET}</Text>
                   <View style={styles.dateCardActionBadge}>
                     <Ionicons name="add" size={12} color={colors.light.primary} />
-                    <Text style={styles.dateCardActionText}>Select time</Text>
+                    <Text style={styles.dateCardActionText}>{STRINGS.BOOKING_CREATE.SELECT_TIME}</Text>
                   </View>
                 </View>
               )}
@@ -529,7 +527,7 @@ export function BookingCreateScreen({
             <View style={styles.durationSummaryBar}>
               <Ionicons name="checkmark-circle" size={15} color={colors.light.primary} />
               <Text style={styles.durationSummaryText}>
-                Total rental duration: <Text style={styles.durationSummaryBold}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</Text> ({rentalDays * 24} hours)
+                {STRINGS.BOOKING_CREATE.DURATION_SUMMARY(rentalDays, rentalDays * 24)}
               </Text>
             </View>
           )}
@@ -573,7 +571,7 @@ export function BookingCreateScreen({
                       {STRINGS.BOOKING_CREATE.METHOD_PICKUP}
                     </Text>
                     <Text style={styles.deliveryOptionSubtitle}>
-                      Inspect and receive the device directly at pickup location
+                      {STRINGS.BOOKING_CREATE.METHOD_PICKUP_SUB}
                     </Text>
                   </View>
                 </View>
@@ -591,7 +589,7 @@ export function BookingCreateScreen({
                 <View style={styles.pickupAddressBox}>
                   <Ionicons name="location-outline" size={16} color={colors.light.primary} />
                   <Text style={styles.pickupAddressText}>
-                    {STRINGS.BOOKING_CREATE.PICKUP_ADDRESS_LABEL} {device.addressText || 'Coordinate directly with owner after booking is approved'}
+                    {STRINGS.BOOKING_CREATE.PICKUP_ADDRESS_LABEL} {device.addressText || STRINGS.BOOKING_CREATE.METHOD_PICKUP_FALLBACK}
                   </Text>
                 </View>
               )}
@@ -630,7 +628,7 @@ export function BookingCreateScreen({
                       {STRINGS.BOOKING_CREATE.METHOD_DELIVERY}
                     </Text>
                     <Text style={styles.deliveryOptionSubtitle}>
-                      Owner or courier delivers the device directly to your address
+                      {STRINGS.BOOKING_CREATE.METHOD_DELIVERY_SUB}
                     </Text>
                   </View>
                 </View>

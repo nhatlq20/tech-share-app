@@ -22,8 +22,8 @@ export const checkReturnReminders = async () => {
       if (diffHours <= 6 && diffHours > 2 && !booking.reminder6hSent) {
         await createAndSendNotification({
           userId: booking.renterId,
-          title: 'Nhắc nhở: Sắp đến hạn trả thiết bị! ⏳',
-          body: `Đơn #${booking.bookingCode} sẽ đến hạn trả trong vòng 6 giờ tới. Vui lòng chuẩn bị và liên hệ chủ máy bàn giao đúng hạn.`,
+          title: 'Reminder: Return Deadline Approaching! ⏳',
+          body: `Order #${booking.bookingCode} is due for return within 6 hours. Please arrange punctual return with the owner.`,
           type: 'reminder',
           relatedId: booking._id,
           data: { bookingId: booking._id.toString() },
@@ -38,8 +38,8 @@ export const checkReturnReminders = async () => {
       if (diffHours <= 2 && diffHours > 0 && !booking.reminder2hSent) {
         await createAndSendNotification({
           userId: booking.renterId,
-          title: 'Khẩn cấp: Chỉ còn 2 giờ đến hạn trả máy! ⚠️',
-          body: `Đơn #${booking.bookingCode} chỉ còn chưa đầy 2 giờ nữa là tới hạn hoàn trả. Vui lòng tiến hành trả máy để tránh phát sinh phụ phí phạt trễ hạn.`,
+          title: 'Urgent: Return Due in 2 Hours! ⚠️',
+          body: `Order #${booking.bookingCode} is due in under 2 hours. Please complete return to avoid overdue late fees.`,
           type: 'reminder',
           relatedId: booking._id,
           data: { bookingId: booking._id.toString() },

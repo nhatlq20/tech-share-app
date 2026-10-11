@@ -17,6 +17,7 @@ import { useDispatch } from 'react-redux';
 import { apiClient } from '../../config/api';
 import { setAuth } from '../../store/slices/authSlice';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -73,28 +74,28 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
     const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !trimmedName || !trimmedEmail || !trimmedPhone || !password) {
-      setErrorMsg('Please fill in all required fields');
+      setErrorMsg(STRINGS.AUTH.ERR_ALL_FIELDS_REQUIRED);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setErrorMsg('Invalid email address format');
+      setErrorMsg(STRINGS.AUTH.ERR_INVALID_EMAIL);
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long');
+      setErrorMsg(STRINGS.AUTH.ERR_PASSWORD_LENGTH);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
+      setErrorMsg(STRINGS.AUTH.ERR_PASSWORDS_MISMATCH);
       return;
     }
 
     if (!agreeTerms) {
-      setErrorMsg('You must agree to TechShare Terms of Service');
+      setErrorMsg(STRINGS.AUTH.ERR_TERMS_REQUIRED);
       return;
     }
 
@@ -113,13 +114,13 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
         setStep('otp');
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg(res.data.message || 'Verification OTP code has been sent to your email');
+        setInfoMsg(res.data.message || STRINGS.AUTH.OTP_SENT_SUCCESS);
         setTimeout(() => {
           otpInputRefs.current[0]?.focus();
         }, 400);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Unable to send OTP code. Please try again later.';
+      const msg = err?.response?.data?.message || STRINGS.AUTH.ERR_OTP_FAILED;
       setErrorMsg(msg);
       if (err?.response?.data?.remainingSeconds) {
         setCountdown(err.response.data.remainingSeconds);
@@ -147,11 +148,11 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
       if (res.data?.success) {
         setCountdown(60);
         setOtp(['', '', '', '', '', '']);
-        setInfoMsg('A new OTP code has been sent to your email');
+        setInfoMsg(STRINGS.AUTH.NEW_OTP_SENT);
         otpInputRefs.current[0]?.focus();
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'Unable to resend OTP. Please try again later.');
+      setErrorMsg(err?.response?.data?.message || STRINGS.AUTH.ERR_RESEND_FAILED);
     } finally {
       setLoading(false);
     }
@@ -196,7 +197,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   const handleVerifyAndRegister = async () => {
     const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
-      setErrorMsg('Please enter all 6 digits of the OTP code');
+      setErrorMsg(STRINGS.AUTH.ERR_OTP_DIGITS);
       return;
     }
 
@@ -216,13 +217,13 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
       const { token, user } = response.data;
       if (!token || !user) {
-        throw new Error('Registration response is invalid');
+        throw new Error(STRINGS.AUTH.REGISTRATION_INVALID_RESPONSE);
       }
 
       dispatch(setAuth({ token, user }));
       onRegisterSuccess?.(user?.role);
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || 'OTP verification or registration failed.');
+      setErrorMsg(err?.response?.data?.message || STRINGS.AUTH.ERR_REGISTER_FAILED);
     } finally {
       setLoading(false);
     }
@@ -253,12 +254,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           </TouchableOpacity>
           <View style={styles.headerTitles}>
             <Text style={styles.appTitle}>
-              {step === 'form' ? 'Create Account' : 'Verify OTP'}
+              {step === 'form' ? STRINGS.AUTH.REGISTER_TITLE : STRINGS.AUTH.VERIFY_OTP_TITLE}
             </Text>
             <Text style={styles.appSubtitle}>
               {step === 'form'
-                ? 'Join the TechShare gadget rental community'
-                : 'Secure your account with email verification'}
+                ? STRINGS.AUTH.REGISTER_DESC
+                : STRINGS.AUTH.VERIFY_OTP_DESC}
             </Text>
           </View>
         </View>
@@ -274,7 +275,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               )}
             </View>
             <Text style={[styles.stepLabel, step === 'form' ? styles.stepLabelActive : styles.stepLabelDone]}>
-              Details
+              {STRINGS.AUTH.STEP_DETAILS}
             </Text>
           </View>
           <View style={[styles.stepConnector, step === 'otp' && styles.stepConnectorActive]} />
@@ -283,7 +284,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               <Text style={[styles.stepNumber, step !== 'otp' && styles.stepNumberInactive]}>2</Text>
             </View>
             <Text style={[styles.stepLabel, step === 'otp' ? styles.stepLabelActive : styles.stepLabelInactive]}>
-              Verify OTP
+              {STRINGS.AUTH.STEP_OTP}
             </Text>
           </View>
         </View>
@@ -308,14 +309,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           <View style={styles.card}>
             {/* Username input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Username *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.USERNAME_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="at-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. johndoe20"
+                  placeholder={STRINGS.AUTH.USERNAME_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   autoCapitalize="none"
                   value={username}
@@ -329,14 +330,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Full name input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.FULLNAME_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="person-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. John Doe"
+                  placeholder={STRINGS.AUTH.FULLNAME_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={name}
                   onChangeText={(text: string) => {
@@ -349,14 +350,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Email input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email (to receive OTP) *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.EMAIL_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="mail-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. john.doe@email.com"
+                  placeholder={STRINGS.AUTH.EMAIL_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={email}
                   onChangeText={(text: string) => {
@@ -371,14 +372,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Phone input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Phone Number *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.PHONE_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="call-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. 0912 345 678"
+                  placeholder={STRINGS.AUTH.PHONE_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={phone}
                   onChangeText={(text: string) => {
@@ -392,14 +393,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password * (Min. 6 characters)</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.PASSWORD_REQ_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="lock-closed-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Enter a secure password"
+                  placeholder={STRINGS.AUTH.PASSWORD_REQ_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={password}
                   onChangeText={(text: string) => {
@@ -424,14 +425,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Confirm Password input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Confirm Password *</Text>
+              <Text style={styles.inputLabel}>{STRINGS.AUTH.CONFIRM_PASSWORD_LABEL}</Text>
               <View style={styles.inputWrap}>
                 <View style={styles.iconBox}>
                   <Ionicons name="shield-checkmark-outline" size={18} color={colors.light.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="Re-enter password"
+                  placeholder={STRINGS.AUTH.CONFIRM_PASSWORD_PLACEHOLDER}
                   placeholderTextColor={colors.light.textSecondary}
                   value={confirmPassword}
                   onChangeText={(text: string) => {
@@ -453,8 +454,8 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 {agreeTerms && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
               </View>
               <Text style={styles.termsText}>
-                I agree to TechShare's <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Escrow Privacy Policy</Text>.
+                {STRINGS.AUTH.AGREE_PREFIX}<Text style={styles.termsLink}>{STRINGS.AUTH.TERMS_LINK}</Text>{STRINGS.AUTH.AND_CONNECTOR}
+                <Text style={styles.termsLink}>{STRINGS.AUTH.ESCROW_LINK}</Text>{STRINGS.AUTH.DOT_SUFFIX}
               </Text>
             </TouchableOpacity>
 
@@ -469,7 +470,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.btnContentRow}>
-                  <Text style={styles.primaryBtnText}>CONTINUE (GET OTP)</Text>
+                  <Text style={styles.primaryBtnText}>{STRINGS.AUTH.CONTINUE_BTN}</Text>
                   <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 </View>
               )}
@@ -477,9 +478,9 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Switch to Login */}
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Already have an account? </Text>
+              <Text style={styles.footerText}>{STRINGS.AUTH.HAVE_ACCOUNT_PROMPT}</Text>
               <TouchableOpacity onPress={onNavigateToLogin}>
-                <Text style={styles.loginLink}>Sign in now</Text>
+                <Text style={styles.loginLink}>{STRINGS.AUTH.SIGN_IN_LINK}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -493,9 +494,9 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               </View>
             </View>
 
-            <Text style={styles.otpCardTitle}>Check Your Inbox</Text>
+            <Text style={styles.otpCardTitle}>{STRINGS.AUTH.CHECK_INBOX_TITLE}</Text>
             <Text style={styles.otpCardSubtitle}>
-              A 6-digit verification code has been sent to:
+              {STRINGS.AUTH.OTP_SENT_TO_PREFIX}
             </Text>
 
             {/* Email display chip with change email action */}
@@ -510,7 +511,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 style={styles.changeEmailBtn}
                 onPress={() => setStep('form')}
               >
-                <Text style={styles.changeEmailText}>Change</Text>
+                <Text style={styles.changeEmailText}>{STRINGS.AUTH.CHANGE_EMAIL}</Text>
               </TouchableOpacity>
             </View>
 
@@ -541,14 +542,14 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
 
             {/* Expiry note */}
             <Text style={styles.expiryNote}>
-              ⏱️ Code expires in 5 minutes. Please check your spam folder as well.
+              {STRINGS.AUTH.EXPIRY_NOTE}
             </Text>
 
             {/* Resend Cooldown Section */}
             <View style={styles.resendSection}>
               {countdown > 0 ? (
                 <Text style={styles.resendCountdownText}>
-                  Resend verification code in:{' '}
+                  {STRINGS.AUTH.RESEND_COUNTDOWN_PREFIX}
                   <Text style={styles.countdownBold}>
                     00:{countdown < 10 ? `0${countdown}` : countdown}
                   </Text>
@@ -560,7 +561,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                   style={styles.resendBtn}
                 >
                   <Ionicons name="refresh-outline" size={15} color={colors.light.primary} />
-                  <Text style={styles.resendBtnText}>Resend new OTP code</Text>
+                  <Text style={styles.resendBtnText}>{STRINGS.AUTH.RESEND_BTN}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -580,7 +581,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               ) : (
                 <View style={styles.btnContentRow}>
                   <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryBtnText}>VERIFY & SIGN UP</Text>
+                  <Text style={styles.primaryBtnText}>{STRINGS.AUTH.VERIFY_SIGN_UP_BTN}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -590,7 +591,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
               style={styles.secondaryBtn}
               onPress={() => setStep('form')}
             >
-              <Text style={styles.secondaryBtnText}>Back to edit info</Text>
+              <Text style={styles.secondaryBtnText}>{STRINGS.AUTH.BACK_TO_EDIT_BTN}</Text>
             </TouchableOpacity>
           </View>
         )}

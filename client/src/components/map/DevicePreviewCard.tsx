@@ -3,6 +3,7 @@ import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../../config/api';
 import { colors } from '../../theme/colors';
+import { STRINGS } from '../../constants/strings';
 import { Device } from '../../types';
 
 interface DevicePreviewCardProps {
@@ -23,8 +24,8 @@ function resolveImageUri(url?: string): string | null {
 }
 
 function formatDistance(distanceMeters: number): string {
-  if (distanceMeters < 1000) return `${Math.round(distanceMeters)} m away`;
-  return `${(distanceMeters / 1000).toFixed(1)} km away`;
+  if (distanceMeters < 1000) return STRINGS.MAP.DISTANCE_METERS(Math.round(distanceMeters));
+  return STRINGS.MAP.DISTANCE_KM((distanceMeters / 1000).toFixed(1));
 }
 
 export function DevicePreviewCard({
@@ -37,7 +38,7 @@ export function DevicePreviewCard({
   const translateY = useRef(new Animated.Value(18)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  const title = device.title || (device as any).name || 'Device';
+  const title = device.title || (device as any).name || STRINGS.MAP.DEFAULT_TITLE;
   const dailyRate = device.dailyRate ?? (device as any).pricePerDay ?? 0;
   const rating = device.rating ?? (device as any).ratingAvg ?? 5;
   const brand = (device.brand || '').trim().toUpperCase();
@@ -145,7 +146,7 @@ export function DevicePreviewCard({
             </View>
 
             <View style={styles.ctaRow}>
-              <Text style={styles.ctaText}>View Details</Text>
+              <Text style={styles.ctaText}>{STRINGS.MAP.VIEW_DETAILS}</Text>
               <Ionicons name="arrow-forward" size={12} color={colors.light.primary} />
             </View>
           </View>

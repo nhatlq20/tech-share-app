@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Notification } from '../../types';
 import notificationService from '../../services/notificationService';
+import firebaseNotificationService from '../../services/firebaseNotificationService';
 
 export type NotificationFilter = 'all' | 'order' | 'reminder' | 'system' | 'promo';
 
@@ -29,10 +30,37 @@ const initialState: NotificationState = {
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchNotifications',
   async (
-    params: { type?: string; unreadOnly?: boolean; isRefresh?: boolean } | undefined,
-    { rejectWithValue }
+    params: { type?: string; unreadOnly?: boolean; isRefresh?: boolean; userId?: string } | undefined,
+    { rejectWithValue, getState }
   ) => {
     try {
+      const state = getState() as any;
+      const currentUserId = params?.userId || state.auth?.user?.id || state.auth?.user?._id;
+
+      if (currentUserId) {
+        try {
+          const fbNotifs = await firebaseNotificationService.getNotifications(String(currentUserId));
+          if (fbNotifs && fbNotifs.length > 0) {
+            let filtered = fbNotifs;
+            if (params?.type && params.type !== 'all') {
+              filtered = filtered.filter((n) => n.type === params.type);
+            }
+            if (params?.unreadOnly) {
+              filtered = filtered.filter((n) => !n.isRead);
+            }
+            const unreadCount = fbNotifs.filter((n) => !n.isRead).length;
+            return {
+              data: filtered,
+              unreadCount,
+              total: filtered.length,
+              isRefresh: params?.isRefresh ?? false,
+            };
+          }
+        } catch (fbErr) {
+          console.warn('⚠️ [Firebase] Fallback to API notification service:', fbErr);
+        }
+      }
+
       const type = params?.type && params.type !== 'all' ? params.type : undefined;
       const res = await notificationService.getNotifications({
         type,
@@ -47,8 +75,20 @@ export const fetchNotifications = createAsyncThunk(
 
 export const fetchUnreadCount = createAsyncThunk(
   'notifications/fetchUnreadCount',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      const state = getState() as any;
+      const currentUserId = state.auth?.user?.id || state.auth?.user?._id;
+      if (currentUserId) {
+        try {
+          const fbNotifs = await firebaseNotificationService.getNotifications(String(currentUserId));
+          if (fbNotifs.length > 0) {
+            return fbNotifs.filter((n) => !n.isRead).length;
+          }
+        } catch (fbErr) {
+          // fallback to REST API
+        }
+      }
       const count = await notificationService.getUnreadCount();
       return count;
     } catch (err: any) {
@@ -61,7 +101,10 @@ export const markNotificationRead = createAsyncThunk(
   'notifications/markNotificationRead',
   async (id: string, { rejectWithValue }) => {
     try {
-      await notificationService.markAsRead(id);
+      await Promise.allSettled([
+        firebaseNotificationService.markAsRead(id),
+        notificationService.markAsRead(id),
+      ]);
       return id;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -71,9 +114,14 @@ export const markNotificationRead = createAsyncThunk(
 
 export const markAllNotificationsRead = createAsyncThunk(
   'notifications/markAllNotificationsRead',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      await notificationService.markAllAsRead();
+      const state = getState() as any;
+      const currentUserId = state.auth?.user?.id || state.auth?.user?._id;
+      await Promise.allSettled([
+        currentUserId ? firebaseNotificationService.markAllAsRead(String(currentUserId)) : Promise.resolve(),
+        notificationService.markAllAsRead(),
+      ]);
       return true;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -85,7 +133,10 @@ export const deleteNotificationItem = createAsyncThunk(
   'notifications/deleteNotificationItem',
   async (id: string, { rejectWithValue }) => {
     try {
-      await notificationService.deleteNotification(id);
+      await Promise.allSettled([
+        firebaseNotificationService.deleteNotification(id),
+        notificationService.deleteNotification(id),
+      ]);
       return id;
     } catch (err: any) {
       return rejectWithValue(err.message);
@@ -101,6 +152,14 @@ export const notificationSlice = createSlice({
   reducers: {
     setFilter: (state, action: PayloadAction<NotificationFilter>) => {
       state.filter = action.payload;
+    },
+    syncNotificationsFromFirebase: (state, action: PayloadAction<Notification[]>) => {
+      state.items = action.payload;
+      state.total = action.payload.length;
+      state.unreadCount = action.payload.filter((n) => !n.isRead).length;
+      state.isLoading = false;
+      state.isRefreshing = false;
+      state.error = null;
     },
     receiveRealtimeNotification: (state, action: PayloadAction<Notification>) => {
       const targetId = String(action.payload?._id || '');
@@ -186,6 +245,7 @@ export const notificationSlice = createSlice({
 
 export const {
   setFilter,
+  syncNotificationsFromFirebase,
   receiveRealtimeNotification,
   incrementUnreadCount,
   setUnreadCount,
