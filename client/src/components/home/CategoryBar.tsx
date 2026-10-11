@@ -48,6 +48,11 @@ export const CATEGORIES: CategoryItem[] = [
     icon: 'headset-outline',
   },
   {
+    id: 'tablet',
+    name: 'Tablets',
+    icon: 'tablet-portrait-outline',
+  },
+  {
     id: 'accessory',
     name: 'Accessories',
     icon: 'hardware-chip-outline',
@@ -73,6 +78,9 @@ export function CategoryBar({ selectedCategory, onSelectCategory }: CategoryBarP
           return (
             <TouchableOpacity
               key={cat.id}
+              accessibilityRole="button"
+              accessibilityLabel={cat.name}
+              accessibilityState={{ selected: isActive }}
               style={[styles.categoryItem, isActive && styles.categoryItemActive]}
               onPress={() => onSelectCategory(cat.id)}
               activeOpacity={0.75}

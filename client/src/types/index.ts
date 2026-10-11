@@ -90,6 +90,7 @@ export type DeviceCategory =
   | "camera"
   | "drone"
   | "audio"
+  | "tablet"
   | "accessory";
 
 export interface DeviceAiAnalysis {
@@ -107,6 +108,8 @@ export interface DeviceLocation {
 }
 
 export interface Device {
+  name?: string;
+  distanceMeters?: number;
   _id: string;
   addressText?: string;
   owner: User | string;

@@ -9,8 +9,11 @@ import {
   RefreshControl,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
+  Linking,
   Platform,
 } from 'react-native';
+import { useHomeLocation, homeDistanceMeters, HOME_LOCATION_MOVEMENT_METERS } from '../../hooks/useHomeLocation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { HeaderActions } from '../../components/navigation/HeaderActions';
@@ -21,11 +24,13 @@ import {
   setSelectedCategory,
   setSearchQuery,
   clearFilters,
+  resetDeviceDiscovery,
 } from '../../store/slices/deviceSlice';
 import { CategoryBar } from '../../components/home/CategoryBar';
 import { PromoBanner, PromoBannerItem } from '../../components/home/PromoBanner';
 import { SectionHeader } from '../../components/home/SectionHeader';
 import { DeviceCard } from '../../components/device/DeviceCard';
+import { GetDevicesParams, HOME_NEARBY_RADIUS_METERS } from '../../services/deviceService';
 import { Device, DeviceCategory } from '../../types';
 import { colors } from '../../theme/colors';
 
@@ -73,98 +78,122 @@ export function HomeScreen({
     isInitialLoading,
     isRefreshing,
     error,
+    page,
+    failedPage,
+    hasNextPage,
+    isLoadingMore,
+    hasLoaded,
   } = useAppSelector(state => state.devices);
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
-  const isFirstMount = useRef(true);
   const debounceTimerRef = useRef(null as ReturnType<typeof setTimeout> | null);
-  const isClearingRef = useRef(false);
 
-  const selectedCategoryRef = useRef(selectedCategory);
-  selectedCategoryRef.current = selectedCategory;
+  const positionRef = useRef(null as { latitude: number; longitude: number } | null);
+  const pagingRef = useRef(false);
+  const filtersRef = useRef({ category: selectedCategory, search: localSearch });
+  filtersRef.current = { category: selectedCategory, search: localSearch };
 
-  const initialFiltersRef = useRef({ category: selectedCategory, search: searchQuery });
+  const loadDevices = (params: GetDevicesParams) => {
+    if (!positionRef.current) return;
+    dispatch(fetchDevices({ ...params, ...positionRef.current, radius: HOME_NEARBY_RADIUS_METERS,
+      page: params.page || 1, limit: 10 }));
+  };
+  const location = useHomeLocation((coordinate, force) => {
+    const previous = positionRef.current;
+    positionRef.current = coordinate;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = null;
+    const params = { ...filtersRef.current, ...coordinate, radius: HOME_NEARBY_RADIUS_METERS, page: 1, limit: 10 };
+    if (force && previous && homeDistanceMeters(previous, coordinate) < HOME_LOCATION_MOVEMENT_METERS) {
+      dispatch(refreshDevices(params));
+    } else {
+      // Invalidate old location requests before starting the new query.
+      dispatch(resetDeviceDiscovery());
+      dispatch(fetchDevices(params));
+    }
+  });
+  const { error: locationError, warning: locationWarning, isLocating, isRefreshingLocation } = location;
+  const locationLabel = location.position
+    ? `${location.position.latitude.toFixed(4)}, ${location.position.longitude.toFixed(4)}`
+    : isLocating ? 'Getting your location...' : 'Location unavailable';
 
-  // Restore the active filters when returning from Device Detail.
   useEffect(() => {
-    dispatch(fetchDevices(initialFiltersRef.current));
-  }, [dispatch]);
-
-  // Debounce 400ms cho việc tìm kiếm: TextInput hiển thị ngay, chỉ gọi API sau khi ngừng gõ 400ms
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
+    if (__DEV__) {
+      console.log('[HOME FILTER RENDER] ' + JSON.stringify({ category: selectedCategory, q: localSearch.trim(), page, count: filteredDevices.length, ids: filteredDevices.map(device => device._id), location: positionRef.current }));
+      console.log('[HOME NEARBY] rendered count:', filteredDevices.length);
+      console.log('[HOME NEARBY] radius:', HOME_NEARBY_RADIUS_METERS, 'meters');
+      console.log('[HOME NEARBY] page:', page);
+      console.log('[HOME NEARBY] limit:', 10);
     }
+  }, [filteredDevices, page]);
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  const cancelSearchDebounce = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = null;
+  };
+  useEffect(() => () => cancelSearchDebounce(), []);
 
-    // Nếu vừa bấm nút Clear thì đã gọi API tức thì, không cần gọi lại sau 400ms
-    if (isClearingRef.current) {
-      isClearingRef.current = false;
-      return;
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      console.log(`[LIVE SEARCH] Debounce 400ms completed: "${localSearch}" (Category: ${selectedCategoryRef.current}) -> Calling API`);
-      dispatch(fetchDevices({ category: selectedCategoryRef.current, search: localSearch }));
-    }, 400);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [localSearch, dispatch]);
-
-  // Khi gõ text: cập nhật TextInput ngay lập tức không bị delay
+  // Only typing schedules a request; explicit actions cancel the timer.
   const handleSearchChange = (text: string) => {
+    cancelSearchDebounce();
+    filtersRef.current = { ...filtersRef.current, search: text };
     setLocalSearch(text);
+    dispatch(setSearchQuery(text));
+    dispatch(resetDeviceDiscovery());
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      loadDevices(filtersRef.current);
+    }, 400);
   };
 
   const handleClearSearch = () => {
-    console.log('[LIVE SEARCH] Clear button tapped');
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    isClearingRef.current = true;
+    cancelSearchDebounce();
+    filtersRef.current = { ...filtersRef.current, search: '' };
     setLocalSearch('');
     dispatch(setSearchQuery(''));
-    dispatch(fetchDevices({ category: selectedCategory, search: '' }));
+    loadDevices(filtersRef.current);
   };
 
   const handleSelectCategory = (category: DeviceCategory | 'all') => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+    filtersRef.current = { ...filtersRef.current, category };
     dispatch(setSelectedCategory(category));
-    dispatch(fetchDevices({ category, search: localSearch }));
+    loadDevices(filtersRef.current);
   };
 
   const handleSubmitSearch = () => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    dispatch(fetchDevices({ category: selectedCategory, search: localSearch }));
+    loadDevices({ category: selectedCategory, search: localSearch });
   };
 
   const handleRefresh = () => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    dispatch(refreshDevices({ category: selectedCategory, search: localSearch }));
+    void location.refresh(true);
   };
 
   const handleRetry = () => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    dispatch(fetchDevices({ category: selectedCategory, search: localSearch }));
+    loadDevices({ category: selectedCategory, search: localSearch });
   };
 
   // Header của FlatList gồm: Search, CategoryBar, PromoBanner, SectionHeader
+  const handleLoadMore = () => {
+    if (!positionRef.current || isLocating || locationError || isLoading || isRefreshing ||
+        pagingRef.current || error || page < 1 || !hasNextPage || localSearch !== searchQuery) return;
+    pagingRef.current = true;
+    void dispatch(fetchDevices({ ...positionRef.current, category: selectedCategory,
+      search: searchQuery, radius: HOME_NEARBY_RADIUS_METERS, page: page + 1, limit: 10,
+    })).finally(() => { pagingRef.current = false; });
+  };
+
   const renderListHeader = useMemo(() => {
     return (
       <View style={styles.headerArea}>
@@ -178,7 +207,7 @@ export function HomeScreen({
               <Text style={styles.brandTitle}>TechShare</Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-sharp" size={11} color={colors.light.primary} />
-                <Text style={styles.locationText}>Hanoi, Vietnam</Text>
+                <Text style={styles.locationText}>{locationLabel}</Text>
               </View>
             </View>
           </View>
@@ -224,12 +253,15 @@ export function HomeScreen({
               placeholderTextColor={colors.light.textSecondary}
               value={localSearch}
               onChangeText={handleSearchChange}
+              accessibilityLabel="Search devices"
               onSubmitEditing={handleSubmitSearch}
               returnKeyType="search"
             />
             {localSearch.length > 0 ? (
               <TouchableOpacity
                 onPress={handleClearSearch}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
                 style={{ padding: 6 }}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 activeOpacity={0.7}
@@ -257,15 +289,20 @@ export function HomeScreen({
           }}
         />
 
+        {locationWarning && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <Text style={{ color: colors.light.textSecondary }}>{locationWarning} Showing your last known area.</Text>
+          </View>
+        )}
         {/* SECTION HEADER */}
         <SectionHeader
           title="Discover Devices"
           subtitle={
             selectedCategory === 'all'
-              ? 'All tech categories'
+              ? 'Nearest devices first within 10 km'
               : `Filtered by: ${selectedCategory.toUpperCase()}`
           }
-          badgeCount={filteredDevices.length}
+          badgeCount={hasLoaded && !locationError ? filteredDevices.length : undefined}
           actionText={selectedCategory !== 'all' ? 'See All' : undefined}
           onActionPress={
             selectedCategory !== 'all'
@@ -273,8 +310,9 @@ export function HomeScreen({
                   if (debounceTimerRef.current) {
                     clearTimeout(debounceTimerRef.current);
                   }
+                  filtersRef.current = { ...filtersRef.current, category: 'all' };
                   dispatch(setSelectedCategory('all'));
-                  dispatch(fetchDevices({ category: 'all', search: localSearch }));
+                  loadDevices(filtersRef.current);
                 }
               : undefined
           }
@@ -284,6 +322,10 @@ export function HomeScreen({
   }, [
     selectedCategory,
     filteredDevices.length,
+    hasLoaded,
+    locationError,
+    locationWarning,
+    locationLabel,
     localSearch,
     dispatch,
     onNavigateToNotifications,
@@ -313,7 +355,9 @@ export function HomeScreen({
 
   // Empty State
   const renderEmptyState = () => {
-    if (isInitialLoading) {
+    if (locationError) return renderLocationError();
+    if (error) return renderErrorState();
+    if (isInitialLoading || isLocating || !hasLoaded) {
       return renderLoadingSkeleton();
     }
 
@@ -322,11 +366,11 @@ export function HomeScreen({
         <View style={styles.emptyIconCircle}>
           <Ionicons name="hardware-chip-outline" size={36} color="#64748B" />
         </View>
-        <Text style={styles.emptyTitle}>No devices found</Text>
+        <Text style={styles.emptyTitle}>No nearby devices found</Text>
         <Text style={styles.emptySubtitle}>
           {searchQuery || selectedCategory !== 'all'
             ? 'No matching devices were found for your current filters.'
-            : 'There are no devices available for rent at the moment.'}
+            : 'There are no available devices within 10 km of your location.'}
         </Text>
 
         {(searchQuery || selectedCategory !== 'all') && (
@@ -336,9 +380,10 @@ export function HomeScreen({
               if (debounceTimerRef.current) {
                 clearTimeout(debounceTimerRef.current);
               }
+              filtersRef.current = { category: 'all', search: '' };
               setLocalSearch('');
               dispatch(clearFilters());
-              dispatch(fetchDevices({ category: 'all' }));
+              loadDevices({ category: 'all', search: '' });
             }}
             activeOpacity={0.8}
           >
@@ -354,7 +399,7 @@ export function HomeScreen({
   const renderErrorState = () => (
     <View style={styles.errorContainer}>
       <Ionicons name="alert-circle-outline" size={40} color="#EF4444" />
-      <Text style={styles.errorTitle}>Something went wrong</Text>
+      <Text style={styles.errorTitle}>Unable to load nearby devices</Text>
       <Text style={styles.errorSubtitle}>{error}</Text>
       <TouchableOpacity
         style={styles.retryBtn}
@@ -367,16 +412,24 @@ export function HomeScreen({
     </View>
   );
 
+  const renderLocationError = () => (
+    <View style={styles.errorContainer}>
+      <Ionicons name="location-outline" size={40} color={colors.light.primary} />
+      <Text style={styles.errorTitle}>Unable to determine your location</Text>
+      <Text style={styles.errorSubtitle}>{locationError}</Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={() => void location.refresh()}>
+        <Text style={styles.retryBtnText}>Try Again</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={{ marginTop: 16 }} onPress={() => void Linking.openSettings()}>
+        <Text style={{ color: colors.light.primary }}>Open Settings</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.light.background} />
 
-      {error && filteredDevices.length === 0 ? (
-        <View style={styles.root}>
-          {renderListHeader}
-          {renderErrorState()}
-        </View>
-      ) : (
         <FlatList
           data={filteredDevices}
           keyExtractor={(item: Device) => item._id}
@@ -395,16 +448,32 @@ export function HomeScreen({
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={renderListHeader}
           ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={filteredDevices.length > 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              {isLoadingMore || isRefreshing || isLocating ? <ActivityIndicator color={colors.light.primary} /> : error ? (
+                <TouchableOpacity onPress={() => {
+                  if (positionRef.current) dispatch(fetchDevices({ ...positionRef.current,
+                    category: selectedCategory, search: searchQuery, radius: HOME_NEARBY_RADIUS_METERS, page: failedPage || 1, limit: 10 }));
+                }}>
+                  <Text style={styles.errorSubtitle}>{error}</Text>
+                  <Text style={{ color: colors.light.primary, textAlign: 'center' }}>Retry loading devices</Text>
+                </TouchableOpacity>
+              ) : hasNextPage ? (
+                <TouchableOpacity onPress={handleLoadMore}>
+                  <Text style={{ color: colors.light.primary }}>Load more devices</Text>
+                </TouchableOpacity>
+              ) : <Text style={{ color: colors.light.textSecondary }}>All devices loaded</Text>}
+            </View>
+          ) : null}
           refreshControl={
             <RefreshControl
-              refreshing={isRefreshing}
+              refreshing={isRefreshing || isRefreshingLocation}
               onRefresh={handleRefresh}
               tintColor={colors.light.primary}
               colors={[colors.light.primary, colors.light.primaryHover]}
             />
           }
         />
-      )}
 
       {onNavigateToAiConsultant && (
         <TouchableOpacity
