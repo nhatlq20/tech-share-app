@@ -112,9 +112,54 @@ export const bookingService = {
 
   getDeviceBusyDates: async (
     deviceId: string
-  ): Promise<{ _id: string; startDate: string; endDate: string; status: string; bookingCode?: string }[]> => {
+  ): Promise<{
+    _id: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    bookingCode?: string;
+    type?: 'booking' | 'blocked';
+    reason?: string;
+  }[]> => {
     const res = await apiClient.get(`/bookings/busy-dates/${deviceId}`);
     return res.data.busyRanges || [];
+  },
+
+  getDeviceSchedule: async (
+    deviceId: string
+  ): Promise<{
+    busyRanges: {
+      _id: string;
+      startDate: string;
+      endDate: string;
+      status: string;
+      bookingCode?: string;
+      type?: 'booking' | 'blocked';
+      reason?: string;
+    }[];
+    bookedBookings: {
+      _id: string;
+      startDate: string;
+      endDate: string;
+      status: string;
+      bookingCode?: string;
+      type?: 'booking';
+    }[];
+    blockedDates: {
+      _id: string;
+      startDate: string;
+      endDate: string;
+      status: string;
+      reason?: string;
+      type?: 'blocked';
+    }[];
+  }> => {
+    const res = await apiClient.get(`/bookings/busy-dates/${deviceId}`);
+    return {
+      busyRanges: res.data.busyRanges || [],
+      bookedBookings: res.data.bookedBookings || [],
+      blockedDates: res.data.blockedDates || [],
+    };
   },
 
   updateBeforeRentalPhotos: async (

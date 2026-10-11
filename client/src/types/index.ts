@@ -143,6 +143,7 @@ export interface OwnedDevice {
   rentalCount: number;
   ratingAvg: number;
   status: ManagedDeviceStatus;
+  blockedDates?: BlockedDate[];
 }
 // ==========================================
 // 3. Phân hệ Đơn thuê (Bookings)
@@ -489,4 +490,5 @@ export type ScreenType =
 export type BlockedDate = {
   startDate: string;
   endDate: string;
+  reason?: string;
 };

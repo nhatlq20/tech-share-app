@@ -46,22 +46,43 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ message: 'Thời gian trả máy phải sau thời gian nhận máy' });
     }
 
-    // Kiểm tra trùng lịch với đơn đang active (hoặc approved) trên MongoDB
+    // Kiểm tra trùng lịch với đơn đang active, approved hoặc pending trên MongoDB
     const conflictingBooking = await Booking.findOne({
       deviceId: device._id,
-      status: { $in: ['active', 'approved'] },
+      status: { $in: ['active', 'approved', 'pending'] },
       startDate: { $lt: end },
       endDate: { $gt: start },
     });
 
-
     if (conflictingBooking) {
       const fromStr = new Date(conflictingBooking.startDate).toLocaleDateString('vi-VN');
       const toStr = new Date(conflictingBooking.endDate).toLocaleDateString('vi-VN');
-      const statusText = conflictingBooking.status === 'active' ? 'đang được thuê' : 'đã được duyệt cho thuê';
+      let statusText = 'đang được thuê';
+      if (conflictingBooking.status === 'approved') statusText = 'đã được duyệt cho thuê';
+      if (conflictingBooking.status === 'pending') statusText = 'đã có người đặt (đang chờ duyệt)';
       return res.status(400).json({
         message: `Thiết bị ${statusText} trong khoảng thời gian (${fromStr} - ${toStr}). Vui lòng chọn thời gian khác!`,
       });
+    }
+
+    // Kiểm tra trùng lịch với lịch bận do chủ máy tự chặn
+    if (Array.isArray(device.blockedDates)) {
+      const conflictBlocked = device.blockedDates.find((b) => {
+        const bStart = new Date(b.startDate);
+        const bEnd = new Date(b.endDate);
+        if (bEnd.getHours() === 0 && bEnd.getMinutes() === 0 && bEnd.getSeconds() === 0) {
+          bEnd.setHours(23, 59, 59, 999);
+        }
+        return start < bEnd && end > bStart;
+      });
+
+      if (conflictBlocked) {
+        const fromStr = new Date(conflictBlocked.startDate).toLocaleDateString('vi-VN');
+        const toStr = new Date(conflictBlocked.endDate).toLocaleDateString('vi-VN');
+        return res.status(400).json({
+          message: `Chủ máy bận hoặc thiết bị không sẵn sàng trong khoảng thời gian (${fromStr} - ${toStr}). Vui lòng chọn thời gian khác!`,
+        });
+      }
     }
 
     const diffTime = Math.abs(end - start);
@@ -779,27 +800,77 @@ export const getDeviceBusyDates = async (req, res) => {
   try {
     const { deviceId } = req.params;
 
-    // Tìm các đơn thuê đang có status là 'active' hoặc 'approved' và chưa kết thúc trong quá khứ
+    if (!deviceId || !mongoose.Types.ObjectId.isValid(deviceId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã thiết bị không hợp lệ',
+        busyRanges: [],
+        bookedBookings: [],
+        blockedDates: [],
+      });
+    }
+
+    const device = await Device.findById(deviceId).select('blockedDates name ownerId');
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thiết bị',
+        busyRanges: [],
+        bookedBookings: [],
+        blockedDates: [],
+      });
+    }
+
     const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 1. Tìm các đơn thuê đang có status là 'active', 'approved' hoặc 'pending' và chưa kết thúc trong quá khứ
     const busyBookings = await Booking.find({
       deviceId,
-      status: { $in: ['active', 'approved'] },
-      endDate: { $gte: now },
+      status: { $in: ['active', 'approved', 'pending'] },
+      endDate: { $gte: startOfToday },
     })
       .select('startDate endDate status bookingCode')
       .sort({ startDate: 1 });
 
-    const busyRanges = busyBookings.map((b) => ({
+    const bookedBookings = busyBookings.map((b) => ({
       _id: b._id,
       startDate: b.startDate,
       endDate: b.endDate,
       status: b.status,
       bookingCode: b.bookingCode,
+      type: 'booking',
     }));
+
+    // 2. Lấy lịch bận do chủ máy tự đặt từ device.blockedDates
+    const blockedDates = (device.blockedDates || [])
+      .filter((b) => {
+        if (!b.endDate) return false;
+        const end = new Date(b.endDate);
+        if (end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0) {
+          end.setHours(23, 59, 59, 999);
+        }
+        return end >= startOfToday;
+      })
+      .map((b) => ({
+        _id: b._id,
+        startDate: b.startDate,
+        endDate: b.endDate,
+        status: 'owner_blocked',
+        reason: b.reason || 'Chủ máy bận',
+        type: 'blocked',
+      }));
+
+    // 3. Hợp nhất cả hai danh sách để hiển thị toàn bộ thời gian bận của thiết bị
+    const busyRanges = [...bookedBookings, ...blockedDates].sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
 
     return res.status(200).json({
       success: true,
       busyRanges,
+      bookedBookings,
+      blockedDates,
     });
   } catch (error) {
     console.error('Error getting device busy dates:', error);
