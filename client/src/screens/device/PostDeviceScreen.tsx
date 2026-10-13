@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Keyboard,
@@ -16,7 +17,6 @@ import {
 import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { SpecsInputForm } from "./SpecsInputForm";
 import { deviceService } from "../../services/deviceService";
 import { useSelector } from "react-redux";
@@ -26,6 +26,9 @@ import { generateDescription } from "../../services/aiService";
 import AiGenerateButton from "../../components/ai/AiGenerateButton";
 import { colors } from '../../theme/colors';
 import { STRINGS } from '../../constants';
+import { ImageUploadGrid } from "../../components/device/ImageUploadGrid";
+import { EditDeviceModal } from "../../components/device/EditDeviceModal";
+import type { UpdateDevicePayload } from "../../services/deviceService";
 type PostDeviceScreenProps = {
   onBack?: () => void;
   onPublished?: () => void;
@@ -103,6 +106,9 @@ export function PostDeviceScreen({
   const [draftSaved, setDraftSaved] = useState(false);
   const [photoUris, setPhotoUris] = useState([] as string[]);
   const [devices, setDevices] = useState([] as Device[]);
+  const [deletingDeviceId, setDeletingDeviceId] = useState<string | null>(null);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [isUpdatingDevice, setIsUpdatingDevice] = useState(false);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState("");
   const [specifications, setSpecifications] = useState(
@@ -318,6 +324,10 @@ export function PostDeviceScreen({
         throw new Error(STRINGS.POST_DEVICE.ERR_ADD_PHOTO);
       }
 
+      if (photoUris.length > 8) {
+        throw new Error("You can upload a maximum of 8 photos.");
+      }
+
       const selectedImages = photoUris.filter((uri: string): uri is string => Boolean(uri),);
       if (selectedImages.length === 0) {
         throw new Error(STRINGS.POST_DEVICE.ERR_ADD_VALID_PHOTO);
@@ -374,28 +384,99 @@ export function PostDeviceScreen({
     setSubmitted(false);
   };
 
-  const handlePhotoPress = async (index: number) => {
-    if (photoUris[index]) {
-      setPhotoUris(
-        photoUris.filter(
-          (_photoUri: string, photoIndex: number) => photoIndex !== index,),
+  const handleDeleteDevice = (device: Device) => {
+    Alert.alert(
+      STRINGS.ADMIN.DASHBOARD.CONFIRM_DELETE_TITLE,
+      STRINGS.ADMIN.DASHBOARD.CONFIRM_DELETE_MSG(device.title),
+      [
+        { text: STRINGS.ADMIN.DASHBOARD.CANCEL, style: "cancel" },
+        {
+          text: STRINGS.ADMIN.DASHBOARD.REMOVE_DEVICE,
+          style: "destructive",
+          onPress: async () => {
+            if (!token) {
+              Alert.alert(
+                STRINGS.ADMIN.DASHBOARD.DELETE_ERROR,
+                STRINGS.POST_DEVICE.ERR_LOGIN_REQUIRED,
+              );
+              return;
+            }
+
+            setDeletingDeviceId(device._id);
+            try {
+              await deviceService.deleteMyDevice(token, device._id);
+              setDevices((currentDevices) =>
+                currentDevices.filter(
+                  (currentDevice) => currentDevice._id !== device._id,
+                ),
+              );
+              Alert.alert(
+                STRINGS.ADMIN.DASHBOARD.DELETE_SUCCESS_TITLE,
+                STRINGS.ADMIN.DASHBOARD.DELETE_SUCCESS_MSG(device.title),
+              );
+            } catch (error: unknown) {
+              console.error("[PostDeviceScreen] Cannot delete device:", error);
+              const responseMessage = axios.isAxiosError(error)
+                ? error.response?.data?.message
+                : undefined;
+              const message =
+                typeof responseMessage === "string"
+                  ? responseMessage
+                  : error instanceof Error
+                    ? error.message
+                    : STRINGS.ADMIN.DASHBOARD.DELETE_ERROR;
+
+              Alert.alert(
+                STRINGS.ADMIN.DASHBOARD.DELETE_ERROR,
+                message,
+              );
+            } finally {
+              setDeletingDeviceId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleUpdateDevice = async (values: UpdateDevicePayload) => {
+    if (!token || !editingDevice) {
+      Alert.alert(
+        "Update failed",
+        STRINGS.POST_DEVICE.ERR_LOGIN_REQUIRED,
       );
       return;
     }
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
+    setIsUpdatingDevice(true);
+    try {
+      const updatedDevice = await deviceService.updateMyDevice(
+        token,
+        editingDevice._id,
+        values,
+      );
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]?.uri) {
-      const nextPhotoUris = [...photoUris];
-      nextPhotoUris[index] = result.assets[0].uri;
-      setPhotoUris(nextPhotoUris);
+      setDevices((currentDevices) =>
+        currentDevices.map((device) =>
+          device._id === updatedDevice._id ? updatedDevice : device,
+        ),
+      );
+      setEditingDevice(null);
+      Alert.alert("Device updated", "Your device listing was updated.");
+    } catch (error: unknown) {
+      console.error("[PostDeviceScreen] Cannot update device:", error);
+      const responseMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message
+        : undefined;
+      const message =
+        typeof responseMessage === "string"
+          ? responseMessage
+          : error instanceof Error
+            ? error.message
+            : "Unable to update device. Please try again.";
+      Alert.alert("Update failed", message);
+    } finally {
+      setIsUpdatingDevice(false);
     }
   };
 
@@ -519,6 +600,43 @@ export function PostDeviceScreen({
                       : device.status}
                   </Text>
                 </View>
+                <View style={styles.deviceActions}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit ${device.title}`}
+                    style={styles.editDeviceButton}
+                    onPress={() => setEditingDevice(device)}
+                    disabled={deletingDeviceId === device._id}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={18}
+                      color={colors.light.primaryDark}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${device.title}`}
+                    style={styles.deleteDeviceButton}
+                    onPress={() => handleDeleteDevice(device)}
+                    disabled={deletingDeviceId === device._id}
+                    activeOpacity={0.75}
+                  >
+                    {deletingDeviceId === device._id ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.light.danger}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color={colors.light.danger}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             ))
           )}
@@ -526,69 +644,10 @@ export function PostDeviceScreen({
 
         <View style={styles.section}>
           <SectionTitle title={STRINGS.POST_DEVICE.SECTION_PHOTOS} />
-          <View style={styles.photoRow}>
-            <TouchableOpacity
-              style={styles.primaryPhotoBox}
-              onPress={() => handlePhotoPress(0)}
-              activeOpacity={0.8}
-            >
-              {photoUris[0] ? (
-                <>
-                  <Image
-                    source={{ uri: photoUris[0] }}
-                    style={styles.primaryPhoto}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.photoOverlay}>
-                    <Ionicons name="trash-outline" size={18} color={colors.light.white} />
-                    <Text style={styles.photoOverlayText}>{STRINGS.POST_DEVICE.REMOVE_PHOTO}</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Ionicons
-                    name="cloud-upload-outline"
-                    size={27}
-                    color={colors.light.primary}
-                  />
-                  <Text style={styles.photoTitle}>{STRINGS.POST_DEVICE.ADD_PHOTOS_TITLE}</Text>
-                  <Text style={styles.photoHint}>
-                    {STRINGS.POST_DEVICE.ADD_PHOTOS_HINT}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <View style={styles.smallPhotoColumn}>
-              <TouchableOpacity
-                style={styles.smallPhotoBox}
-                onPress={() => handlePhotoPress(1)}
-                activeOpacity={0.8}
-              >
-                {photoUris[1] ? (
-                  <Image
-                    source={{ uri: photoUris[1] }}
-                    style={styles.smallPhoto}
-                  />
-                ) : (
-                  <Ionicons name="add" size={21} color={colors.light.textSecondary} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.smallPhotoBox}
-                onPress={() => handlePhotoPress(2)}
-                activeOpacity={0.8}
-              >
-                {photoUris[2] ? (
-                  <Image
-                    source={{ uri: photoUris[2] }}
-                    style={styles.smallPhoto}
-                  />
-                ) : (
-                  <Ionicons name="add" size={21} color={colors.light.textSecondary} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ImageUploadGrid
+            images={photoUris}
+            onChangeImages={setPhotoUris}
+          />
         </View>
 
         <View style={styles.section}>
@@ -863,6 +922,17 @@ export function PostDeviceScreen({
           {publishError && <Text style={styles.errorText}>{publishError}</Text>}
         </View>
       </ScrollView>
+      <EditDeviceModal
+        device={editingDevice}
+        visible={editingDevice !== null}
+        saving={isUpdatingDevice}
+        onClose={() => {
+          if (!isUpdatingDevice) {
+            setEditingDevice(null);
+          }
+        }}
+        onSave={handleUpdateDevice}
+      />
     </View>
   );
 }
@@ -969,6 +1039,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light.borderDefault,
   },
   deviceListInfo: { flex: 1, marginLeft: 10 },
+  deviceActions: {
+    alignItems: "center",
+    gap: 7,
+    marginLeft: 8,
+  },
+  editDeviceButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    backgroundColor: colors.light.primaryLight,
+  },
+  deleteDeviceButton: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+    borderRadius: 10,
+    backgroundColor: colors.light.dangerLight,
+  },
   deviceListName: { color: colors.light.textPrimary, fontSize: 13, fontWeight: "800" },
   deviceListMeta: { color: colors.light.textSecondary, fontSize: 11, marginTop: 4 },
   deviceListStatus: { fontSize: 11, fontWeight: "700", marginTop: 5 },
@@ -995,65 +1087,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 5,
   },
-  photoRow: { flexDirection: "row", gap: 10 },
-  primaryPhotoBox: {
-    flex: 1,
-    minHeight: 153,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    backgroundColor: colors.light.background,
-    borderWidth: 1,
-    borderColor: colors.light.borderDefault,
-    borderRadius: 12,
-    borderStyle: "dashed",
-  },
-  primaryPhoto: {
-    ...StyleSheet.absoluteFillObject,
-
-    borderRadius: 12,
-    width: 200,
-    height: 200,
-  },
-  photoOverlay: {
-    position: "absolute",
-    right: 9,
-    bottom: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "rgba(15, 23, 42, 0.78)",
-  },
-  photoOverlayText: { color: colors.light.white, fontSize: 10, fontWeight: "700" },
-  photoTitle: {
-    color: colors.light.primary,
-    fontSize: 13,
-    fontWeight: "800",
-    marginTop: 9,
-  },
-  photoHint: {
-    color: colors.light.textSecondary,
-    fontSize: 10,
-    lineHeight: 14,
-    textAlign: "center",
-    marginTop: 5,
-  },
-  smallPhotoColumn: { width: 75, gap: 10 },
-  smallPhotoBox: {
-    flex: 1,
-    minHeight: 71,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.light.background,
-    borderWidth: 1,
-    borderColor: colors.light.borderDefault,
-    borderRadius: 12,
-    borderStyle: "dashed",
-  },
-  smallPhoto: { width: "100%", height: "100%", borderRadius: 12 },
   fieldLabel: {
     color: colors.light.textPrimary,
     fontSize: 13,

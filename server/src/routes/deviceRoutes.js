@@ -1,11 +1,13 @@
 import express from "express";
 import {
   createDevice,
+  deleteMyDevice,
   getDeviceById,
   getDevices,
   getMyDevices,
   getNearbyDevices,
   updateBlockedDates,
+  updateMyDevice,
   updateDeviceStatus,
   uploadDeviceImageToCloudinary,
 } from "../controllers/deviceController.js";
@@ -21,6 +23,8 @@ router.post("/",requireAuth,createDevice);
 router.get("/myDevices",requireAuth,getMyDevices);
 router.get("/nearby", getNearbyDevices);
 router.get("/:id", getDeviceById);
+router.delete("/:id", requireAuth, deleteMyDevice);
+router.patch("/:id", requireAuth, updateMyDevice);
 router.patch("/:id/status", requireAuth, updateDeviceStatus);
 router.patch("/:id/blocked-dates",requireAuth,updateBlockedDates)
 export default router;

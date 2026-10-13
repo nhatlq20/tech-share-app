@@ -79,6 +79,16 @@ export interface CreateDevicePayload {
   addressText: string;
 }
 
+export interface UpdateDevicePayload {
+  name: string;
+  brand: string;
+  category: string;
+  description: string;
+  pricePerDay: number;
+  depositAmount: number;
+  addressText: string;
+}
+
 export const deviceService = {
   /** Real paginated Nearby data for Home. Never supplies offline/fake devices. */
   async getNearbyDevicesPage(params: GetDevicesParams): Promise<DevicePage> {
@@ -301,6 +311,28 @@ export const deviceService = {
 
   async getMyDevices(token: string): Promise<Device[]> {
     const response = await apiClient.get("/devices/myDevices", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data.data;
+  },
+
+  async deleteMyDevice(token: string, deviceId: string): Promise<void> {
+    await apiClient.delete(`/devices/${deviceId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  async updateMyDevice(
+    token: string,
+    deviceId: string,
+    payload: UpdateDevicePayload,
+  ): Promise<Device> {
+    const response = await apiClient.patch(`/devices/${deviceId}`, payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
