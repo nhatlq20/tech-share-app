@@ -279,6 +279,123 @@ export const getMyDevices = async (req, res) => {
   }
 };
 
+export const deleteMyDevice = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!/^[a-fA-F0-9]{24}$/.test(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "ID thiết bị không hợp lệ",
+    });
+  }
+
+  const userId = req.auth?.id || req.auth?._id;
+  const device = await Device.findOne({
+    _id: id,
+    ownerId: userId,
+    isDeleted: false,
+  });
+
+  if (!device) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy thiết bị hoặc bạn không có quyền xóa thiết bị này.",
+    });
+  }
+
+  device.isDeleted = true;
+  device.status = "hidden";
+  await device.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Thiết bị đã được xóa khỏi danh sách.",
+    data: {
+      id: device._id,
+      isDeleted: device.isDeleted,
+    },
+  });
+});
+
+export const updateMyDevice = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!/^[a-fA-F0-9]{24}$/.test(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "ID thiết bị không hợp lệ",
+    });
+  }
+
+  const {
+    name,
+    brand,
+    category,
+    description,
+    pricePerDay,
+    depositAmount,
+    addressText,
+  } = req.body;
+  const allowedCategories = [
+    "smartphone",
+    "laptop",
+    "camera",
+    "drone",
+    "audio",
+    "tablet",
+    "gaming",
+    "accessory",
+  ];
+
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    typeof brand !== "string" ||
+    !brand.trim() ||
+    !allowedCategories.includes(category) ||
+    typeof description !== "string" ||
+    !description.trim() ||
+    typeof addressText !== "string" ||
+    !addressText.trim() ||
+    !Number.isFinite(pricePerDay) ||
+    pricePerDay < 10000 ||
+    !Number.isFinite(depositAmount) ||
+    depositAmount < 0
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Thông tin thiết bị không hợp lệ.",
+    });
+  }
+
+  const userId = req.auth?.id || req.auth?._id;
+  const device = await Device.findOne({
+    _id: id,
+    ownerId: userId,
+    isDeleted: false,
+  });
+
+  if (!device) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy thiết bị hoặc bạn không có quyền cập nhật thiết bị này.",
+    });
+  }
+
+  device.name = name.trim();
+  device.brand = brand.trim();
+  device.category = category;
+  device.description = description.trim();
+  device.pricePerDay = pricePerDay;
+  device.depositAmount = depositAmount;
+  device.addressText = addressText.trim();
+  await device.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Cập nhật thiết bị thành công.",
+    data: device,
+  });
+});
+
 export const updateDeviceStatus = async (req, res) => {
   try {
     const { id } = req.params;
